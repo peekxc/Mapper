@@ -1,0 +1,51 @@
+body.mh-100(style="overflow: hidden;")
+  nav.navbar.navbar-expand-lg.navbar-light.bg-light.border
+    a.navbar-brand(href='#') Mapper Dashboard
+    button.navbar-toggler(type='button', data-toggle='collapse', data-target='#navbarNavDropdown', aria-controls='navbarNavDropdown', aria-expanded='false', aria-label='Toggle navigation')
+      span.navbar-toggler-icon
+    .collapse.navbar-collapse
+      ul.navbar-nav
+        li.nav-item.dropdown
+          a#navbarDropdown.nav-link.dropdown-toggle(href='#', role='button', data-toggle='dropdown', aria-haspopup='true', aria-expanded='false')
+            | Force Options
+          .dropdown-menu(aria-labelledby='navbarDropdown').p-2
+            #force_opts.shiny-html-output
+  // HTML form elements (in this case a select list and a number input) are bound to input slots using their name attribute.
+  // Output is rendered into HTML elements based on matching their id attribute to an output slot and by specifying the
+  // requisite css class for the element (in this case either shiny-text-output, shiny-plot-output, or shiny-html-output).
+  //(style="max-width: 100%; max-height: 100%")
+  .container-fluid.p-0
+    .row
+      .col.col-md-3.pr-0
+        .card
+          .card-header Network Options
+          .card-body.p-2
+            #recenter.shiny-html-output
+            #overlap.shiny-html-output
+            #num_intervals.shiny-html-output
+            #colorFunc.shiny-html-output
+            #node_min.shiny-html-output
+            #node_max.shiny-html-output
+            #scale.shiny-html-output
+            #selection_mode.shiny-html-output
+      .col.col-md-9.p-0
+        #mapper_window.m-0(style="height: 60vh !important; width: 100% !important;")
+          #mapper_network_ui.shiny-html-output.h-100.border
+        .h-40.m-0.pb-2(style="height: 30vh !important; width: 100% !important;")
+          .row.m-0.h-100.w-100
+            #panel1.col.p-0.w-50.h-100.border.shiny-html-output
+            #panel2.col.p-0.w-50.h-100.border.shiny-plot-output
+  .footer
+    .container-fluid
+      p ----
+  // Custom
+  link(rel="stylesheet" type="text/css" href="css/bootstrap.min.css")
+  link(rel="stylesheet" type="text/css" href="css/custom.css")
+  // script(src="js/jquery-3.3.1.min.js")
+  script(src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous")
+  script(src="js/bootstrap.min.js")
+  script.
+    $(document).on("shiny:connected", function (e) {
+      var plot_width = $('#filter_plot').innerWidth;
+      Shiny.onInputChange("GetPlotWidth", plot_width);
+    });

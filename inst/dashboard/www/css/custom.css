@@ -1,0 +1,13 @@
+.h-70 { height:70%!important }
+.h-30 { height:30%!important }
+.h-65 { height:65%!important }
+.h-35 { height:35%!important }
+.h-40 { height:40%!important }
+.h-60 { height:60%!important }
+.footer {
+    bottom: 0;
+    width: 100%;
+    position: absolute;
+    height: 10px;
+    background-color: #f5f5f5;
+}
