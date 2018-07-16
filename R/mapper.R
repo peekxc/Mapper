@@ -51,7 +51,7 @@
 #'
 #' @seealso \code{\link[stats]{dist}} \code{\link[stats]{hclust}} \code{\link[Mapper]{cutoff_first_bin}}
 #' @useDynLib Mapper
-#' @import methods parallelDist
+#' @import methods parallelDist htmlwidgets
 #' @importFrom Rcpp sourceCpp
 #'
 #' @author Matt Piekenbrock, \email{matt.piekenbrock@@gmail.com}
@@ -114,7 +114,7 @@ mapper <- function(X, filter_values, cover_type = "fixed rectangular", return_re
 
 #' S3 method for default printing
 #' @export
-print.Mapper <- function(m){
-  writeLines(attr(m, ".summary"))
+print.Mapper <- function(x){
+  writeLines(attr(x, ".summary"))
 }
 

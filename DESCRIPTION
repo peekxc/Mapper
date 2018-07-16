@@ -10,11 +10,10 @@ Author: Matt Piekenbrock [aut, cre, ctb],
         Gurjeet Singh [ctb, cph]
 Maintainer: Matt Piekenbrock <matt.piekenbrock@gmail.com>
 Description: Open source implementation of the Mapper algorithm often used in Topological Data Analysis 
-Imports: Rcpp
+Imports: Rcpp, DT, htmlwidgets, methods, parallelDist, shiny
 LinkingTo: Rcpp
 License: GPL-3
-Suggests: parallelDist,
-    network,
+Suggests: network,
     testthat,
     igraph,
     knitr

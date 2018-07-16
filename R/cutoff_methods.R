@@ -4,7 +4,8 @@
 #' threshold corresponding to the first empty of a histogram of the linkage distances.
 #'
 #' @param hcl hierarchical clustering in the form an 'hclust' object.
-#' @param num_bins Controls how many bins there are in the histogram used to determine cutoff. values
+#' @param num_bins Controls how many bins there are in the histogram used to determine cutoff.
+#' @importFrom stats cutree
 #' @export
 cutoff_first_bin <- function(hcl, num_bins) {
   if (!is(hcl, "hclust")){ stop("'cutoff_first_bin' expects an 'hclust' object as input.") }

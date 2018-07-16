@@ -4,7 +4,7 @@
 \alias{print.Mapper}
 \title{S3 method for default printing}
 \usage{
-\method{print}{Mapper}(m)
+\method{print}{Mapper}(x)
 }
 \description{
 S3 method for default printing

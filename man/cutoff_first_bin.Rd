@@ -9,7 +9,7 @@ cutoff_first_bin(hcl, num_bins)
 \arguments{
 \item{hcl}{hierarchical clustering in the form an 'hclust' object.}
 
-\item{num_bins}{Controls how many bins there are in the histogram used to determine cutoff. values}
+\item{num_bins}{Controls how many bins there are in the histogram used to determine cutoff.}
 }
 \description{
 Uses the heuristic from the original Mapper paper to cut a given hierarchical cluster tree at the
