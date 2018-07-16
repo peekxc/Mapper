@@ -188,29 +188,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// something
-NumericVector something(NumericVector x);
-RcppExport SEXP _Mapper_something(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(something(x));
-    return rcpp_result_gen;
-END_RCPP
-}
-// construct_simplex_tree
-List construct_simplex_tree(const IntegerMatrix& el, const int n_nodes);
-RcppExport SEXP _Mapper_construct_simplex_tree(SEXP elSEXP, SEXP n_nodesSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const IntegerMatrix& >::type el(elSEXP);
-    Rcpp::traits::input_parameter< const int >::type n_nodes(n_nodesSEXP);
-    rcpp_result_gen = Rcpp::wrap(construct_simplex_tree(el, n_nodes));
-    return rcpp_result_gen;
-END_RCPP
-}
 // timesTwo
 NumericVector timesTwo(const NumericMatrix& fv);
 RcppExport SEXP _Mapper_timesTwo(SEXP fvSEXP) {
@@ -238,8 +215,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Mapper_concatDist", (DL_FUNC) &_Mapper_concatDist, 3},
     {"_Mapper_dist_from_to", (DL_FUNC) &_Mapper_dist_from_to, 2},
     {"_Mapper_createUpdateBlocks", (DL_FUNC) &_Mapper_createUpdateBlocks, 5},
-    {"_Mapper_something", (DL_FUNC) &_Mapper_something, 1},
-    {"_Mapper_construct_simplex_tree", (DL_FUNC) &_Mapper_construct_simplex_tree, 2},
     {"_Mapper_timesTwo", (DL_FUNC) &_Mapper_timesTwo, 1},
     {NULL, NULL, 0}
 };

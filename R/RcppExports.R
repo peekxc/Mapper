@@ -57,14 +57,6 @@ createUpdateBlocks <- function(G, overlap_blocks, n_lvl_sets, n_blocks, n) {
     .Call('_Mapper_createUpdateBlocks', PACKAGE = 'Mapper', G, overlap_blocks, n_lvl_sets, n_blocks, n)
 }
 
-something <- function(x) {
-    .Call('_Mapper_something', PACKAGE = 'Mapper', x)
-}
-
-construct_simplex_tree <- function(el, n_nodes) {
-    .Call('_Mapper_construct_simplex_tree', PACKAGE = 'Mapper', el, n_nodes)
-}
-
 timesTwo <- function(fv) {
     .Call('_Mapper_timesTwo', PACKAGE = 'Mapper', fv)
 }

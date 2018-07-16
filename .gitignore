@@ -6,6 +6,8 @@
 *.Rproj
 .RData
 
+*.so
+*.o
 *.idea
 
 # Example code in package build process
