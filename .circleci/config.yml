@@ -1,6 +1,14 @@
-test:
-  override:
-    - sudo R -q -e "install.packages(\"devtools\", repos = \"https://cran.rstudio.com/\")"
-    - sudo R -q -e "install.packages(\"roxygen2\", repos = \"https://cran.rstudio.com/\")"
-    - sudo R -q -e "devtools::install(\"~/mapper\", dependencies=TRUE)"
-    - sudo R -q -e "devtools::test(\"~/mapper\")"
+version: 2
+jobs:
+  build:
+    docker: # See https://docs.docker.com/get-started/#docker-concepts if you are new to Docker.
+      - image: circleci/ruby:2.4.1-jessie
+    steps:
+      - checkout
+      - run: echo "A first hello"
+# test:
+#   override:
+#     - sudo R -q -e "install.packages(\"devtools\", repos = \"https://cran.rstudio.com/\")"
+#     - sudo R -q -e "install.packages(\"roxygen2\", repos = \"https://cran.rstudio.com/\")"
+#     - sudo R -q -e "devtools::install(\"~/mapper\", dependencies=TRUE)"
+#     - sudo R -q -e "devtools::test(\"~/mapper\")"
