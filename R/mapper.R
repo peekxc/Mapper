@@ -113,8 +113,10 @@ mapper <- function(X, filter_values, cover_type = "fixed rectangular", return_re
 }
 
 #' S3 method for default printing
+#' @param x Mapper object.
+#' @param ... unused. 
 #' @export
-print.Mapper <- function(x){
+print.Mapper <- function(x, ...){
   writeLines(attr(x, ".summary"))
 }
 

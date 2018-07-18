@@ -4,7 +4,12 @@
 \alias{print.Mapper}
 \title{S3 method for default printing}
 \usage{
-\method{print}{Mapper}(x)
+\method{print}{Mapper}(x, ...)
+}
+\arguments{
+\item{x}{Mapper object.}
+
+\item{...}{unused.}
 }
 \description{
 S3 method for default printing

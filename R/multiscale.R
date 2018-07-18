@@ -1,6 +1,5 @@
-#' Computes all unique Mapper constructions
-#' Only supports rectangular cover
-#' @export
+# Computes all unique Mapper constructions
+# Only supports rectangular cover
 multiscale <- function(mapper_obj){
   if (class(mapper_obj) != "MapperRef"){ stop("'multiscale' expects a Mapper reference object.") }
   if (mapper_obj$cover$type != "rectnagular"){ stop("'multiscale' is only compatable with rectangular covers.") }

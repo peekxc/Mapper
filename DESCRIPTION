@@ -1,24 +1,26 @@
 Package: Mapper
 Type: Package
-Title: Open source implementation of the Mapper algorithm often used in Topological Data Analysis 
+Title: Open source implementation of the Mapper algorithm often used in Topological Data Analysis
 Version: 0.1.0
-Authors@R: c(person("Matt", "Piekenbrock", email = "matt.piekenbrock@gmail.com", role = c("aut", "ctb", "cph")), 
+Authors@R: c(person("Matt", "Piekenbrock", email = "matt.piekenbrock@gmail.com", role = c("aut", "cre", "cph")), 
              person("Daniel", "Muellner", role = c("ctb","cph")), 
              person("Gurjeet","Singh", role = c("ctb","cph")))
 Author: Matt Piekenbrock [aut, cre, ctb],
         Daniel Muellner [ctb, cph],
         Gurjeet Singh [ctb, cph]
 Maintainer: Matt Piekenbrock <matt.piekenbrock@gmail.com>
-Description: Open source implementation of the Mapper algorithm often used in Topological Data Analysis 
+Description: This package interfaces an open source implementation of the Mapper algorithm often used in Topological Data Analysis. 
 Imports: Rcpp, DT, htmlwidgets, methods, parallelDist, shiny
 LinkingTo: Rcpp
-License: GPL-3
-Suggests: network,
+License: file LICENSE
+BugReports: https://github.com/peekxc/mapper
+Suggests: 
+    network,
     testthat,
     igraph,
     knitr
-Copyright: The Mapper construction was originally developed by Gurjeet Singh, Facundo Memoli, and Gunnar Carlsson. 
-    Some of the code was inspired from direct translation from the Python Mapper library, copyright by Daniel Muellner and Aravindakshan Babu.  
+Copyright: The Mapper construction was originally developed by Gurjeet Singh, Facundo Mémoli, and Gunnar Carlsson. 
+    Some of the code was inspired by source scripts in the Python Mapper library, copyright by Daniel Müellner and Aravindakshan Babu.  
     All other code is copyright by Matt Piekenbrock.
 Encoding: UTF-8
 LazyData: true

@@ -19,33 +19,33 @@ dashboard <- function(mapper_obj, X = mapper_obj$X, node_color_f = "default"){
 
   ## Make sure shorthand 'M' is defined
   if (!"MapperRef" %in% class(mapper_obj)){ stop("'dashboard' must take as input a mapper reference object.") }
-  M <- mapper_obj
-  G <- Mapper::grapher(M)
-  if (is(X, "dist")){ X <- data.frame(index=1:attr(M$X, "Size")) }
-  else { X <- as.data.frame(X) }
-
-  ## Get the UI components
-  ui_file <- system.file(file.path("dashboard", "ui.R"), package = "Mapper")
-  source(file = ui_file, local = TRUE)
-
-  ## Node color functions
-  if (missing(node_color_f) || node_color_f == "default"){
-    if (is(X, "dist")){ stop("Default color functions cannot be applied when 'X' is given as a dist object.") }
-    if (is.null(colnames(X))) { colnames(X) <- paste0("dim", 1:dim(X)[2]) }
-    color_funcs <- new.env(parent = .BaseNamespaceEnv)
-    color_file <- system.file(file.path("dashboard", "components", "default_color_functions.R"), package = "Mapper")
-    source(color_file, local = color_funcs)
-    sapply(colnames(X), function(dim_name){ color_funcs[[dim_name]] <- make_Dim_f(dim_name) })
-  } else {
-    color_funcs <- node_color_f
-  }
-
-  ## Get the server components
-  server_file <- system.file(file.path("dashboard", "server.R"), package = "Mapper")
-  source(file = server_file, local = TRUE)
-
-  ## Return the shiny app
-  shiny::shinyApp(ui = ui, server = server)
+  # M <- mapper_obj
+  # G <- Mapper::grapher(M)
+  # if (is(X, "dist")){ X <- data.frame(index=1:attr(M$X, "Size")) }
+  # else { X <- as.data.frame(X) }
+  # 
+  # ## Get the UI components
+  # ui_file <- system.file(file.path("dashboard", "ui.R"), package = "Mapper")
+  # source(file = ui_file, local = TRUE)
+  # 
+  # ## Node color functions
+  # if (missing(node_color_f) || node_color_f == "default"){
+  #   if (is(X, "dist")){ stop("Default color functions cannot be applied when 'X' is given as a dist object.") }
+  #   if (is.null(colnames(X))) { colnames(X) <- paste0("dim", 1:dim(X)[2]) }
+  #   color_funcs <- new.env(parent = .BaseNamespaceEnv)
+  #   color_file <- system.file(file.path("dashboard", "components", "default_color_functions.R"), package = "Mapper")
+  #   source(color_file, local = color_funcs)
+  #   sapply(colnames(X), function(dim_name){ color_funcs[[dim_name]] <- make_Dim_f(dim_name) })
+  # } else {
+  #   color_funcs <- node_color_f
+  # }
+  # 
+  # ## Get the server components
+  # server_file <- system.file(file.path("dashboard", "server.R"), package = "Mapper")
+  # source(file = server_file, local = TRUE)
+  # 
+  # ## Return the shiny app
+  # shiny::shinyApp(ui = ui, server = server)
 }
 
 ## Auxillary function to make a closure for each dimension of X
