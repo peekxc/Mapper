@@ -3,3 +3,20 @@
 language: R
 sudo: false
 cache: packages
+
+# Run on both linux and OS X
+os:
+  - linux
+  - osx
+
+env:
+  - BADGE=linux
+  - BADGE=osx
+
+# hack to get some OS-specific badges
+matrix:
+  exclude:
+    - os: linux
+      env: BADGE=osx
+    - os: osx
+      env: BADGE=linux
