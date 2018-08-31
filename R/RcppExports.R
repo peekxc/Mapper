@@ -9,12 +9,20 @@ adjacencyCpp <- function(ls_pairs, nodes, ls_node_map) {
     .Call('_Mapper_adjacencyCpp', PACKAGE = 'Mapper', ls_pairs, nodes, ls_node_map)
 }
 
+build_1_skeleton <- function(ls_pairs, nodes, ls_node_map, stree) {
+    invisible(.Call('_Mapper_build_1_skeleton', PACKAGE = 'Mapper', ls_pairs, nodes, ls_node_map, stree))
+}
+
 intersectNodes <- function(nodes1, nodes2, node_ids1, node_ids2) {
     .Call('_Mapper_intersectNodes', PACKAGE = 'Mapper', nodes1, nodes2, node_ids1, node_ids2)
 }
 
 valid_pairs <- function(level_set_pairs) {
     .Call('_Mapper_valid_pairs', PACKAGE = 'Mapper', level_set_pairs)
+}
+
+constructIsoAlignedLevelSets <- function(x, bnds) {
+    .Call('_Mapper_constructIsoAlignedLevelSets', PACKAGE = 'Mapper', x, bnds)
 }
 
 constructFixedLevelSets <- function(filter_values, index_set, overlap, number_intervals, filter_range, filter_len) {
@@ -57,7 +65,6 @@ createUpdateBlocks <- function(G, overlap_blocks, n_lvl_sets, n_blocks, n) {
     .Call('_Mapper_createUpdateBlocks', PACKAGE = 'Mapper', G, overlap_blocks, n_lvl_sets, n_blocks, n)
 }
 
-timesTwo <- function(fv) {
-    .Call('_Mapper_timesTwo', PACKAGE = 'Mapper', fv)
-}
+#' @export SegmentTree
+NULL
 

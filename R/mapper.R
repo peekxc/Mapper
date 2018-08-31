@@ -94,7 +94,7 @@ mapper <- function(X, filter_values, cover_type = "fixed rectangular", return_re
   ## VERTEX CONFIGURATION AND GENERATION ---------------------------
   # Performs the partial clustering and vertex creation. Note that if a 'dist' object was passed in via X, then it
   # will be subset based on the point indices within each level set. If X is a point cloud, then the metric dist
-  # object is computed locally within each level set, or a preocmputed one will be used if available.
+  # object is computed locally within each level set, or a precomputed one will be used if available.
   # If the number of intervals is high enough and the data set is sufficiently large, using the point cloud data directly
   # is preferable and may result in large improvements in efficiency.
   m$computeNodes(num_bins = getParam("num_bins", default = 10L), ...)
@@ -119,4 +119,23 @@ mapper <- function(X, filter_values, cover_type = "fixed rectangular", return_re
 print.Mapper <- function(x, ...){
   writeLines(attr(x, ".summary"))
 }
+
+#' S3 method for default plotting
+#' @param x Mapper object.
+#' @param ... unused.
+#' @export
+plot.Mapper <- function(x, ...){
+  node_sizes <- sapply(x$nodes, length)
+  g <- igraph::graph_from_adjacency_matrix(x$adjacency, mode = "undirected")
+  xy_coords <- local({ set.seed(1234); igraph::layout.fruchterman.reingold(g) })
+  edges <- apply(igraph::as_edgelist(g), 1, function(e){ list(xy_coords[e[1],], xy_coords[e[2],]) })
+  edges <- do.call(rbind, lapply(edges, function(lst) do.call(rbind, lst)))
+  params <- list(...)
+  default_params <- list(xlab=NA, ylab=NA, xaxt='n', yaxt='n', cex=(1 + (node_sizes/sum(node_sizes))), main = attr(x, ".summary")[[1]], pch = 20)
+  args <- names(default_params)
+  params[args] <- ifelse(args %in% names(params), params[args], default_params[args])
+  { params[["x"]] <- xy_coords; do.call(plot, params) }
+  { params[["x"]] <- edges; do.call(lines, params) }
+}
+
 

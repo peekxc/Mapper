@@ -19,9 +19,11 @@ Starts an interactive dashboard for analyzing Mapper constructions using Shiny.
 \details{
 The data.frame supplied by the \code{X} argument is displayed in an interactive table in the dashboard.
 By default, if \code{X} is not supplied it is assigned the original data the Mapper object was constructed with.
-This can be helpful in situations where the point cloud data Mapper was constructed required preprocessing (such as scaling), whereas the original,
-unscaled data.frame is better suited for direct analysis.
+Supplying a data.frame with named columns may be helpful in situations where the point cloud data the mapper was constructed with required 
+preprocessing (such as feature scaling), whereas the original, unprocessed data.frame is better suited for direct analysis.
 
-If supplied, \code{node_color_f} must be a named list of functions which accept as input a MapperRef object and return as output a vector of numerical values, one per node.
-These values are automatically converted to color hex codes based on the current palette. If this isn't supplied, a few default color functions are supplied.
+If supplied, \code{node_color_f} must be a named list of functions which accepts as input a MapperRef object and returns as output a vector of numerical values, one per node.
+These values are automatically converted to color hex codes based on the current palette. 
+
+If this isn't supplied, a few default color functions are supplied.
 }

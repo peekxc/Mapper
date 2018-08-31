@@ -31,6 +31,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// build_1_skeleton
+void build_1_skeleton(const IntegerMatrix& ls_pairs, const List& nodes, const List& ls_node_map, SEXP stree);
+RcppExport SEXP _Mapper_build_1_skeleton(SEXP ls_pairsSEXP, SEXP nodesSEXP, SEXP ls_node_mapSEXP, SEXP streeSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const IntegerMatrix& >::type ls_pairs(ls_pairsSEXP);
+    Rcpp::traits::input_parameter< const List& >::type nodes(nodesSEXP);
+    Rcpp::traits::input_parameter< const List& >::type ls_node_map(ls_node_mapSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type stree(streeSEXP);
+    build_1_skeleton(ls_pairs, nodes, ls_node_map, stree);
+    return R_NilValue;
+END_RCPP
+}
 // intersectNodes
 List intersectNodes(const List& nodes1, const List& nodes2, const IntegerVector& node_ids1, const IntegerVector& node_ids2);
 RcppExport SEXP _Mapper_intersectNodes(SEXP nodes1SEXP, SEXP nodes2SEXP, SEXP node_ids1SEXP, SEXP node_ids2SEXP) {
@@ -53,6 +66,18 @@ BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const IntegerMatrix& >::type level_set_pairs(level_set_pairsSEXP);
     rcpp_result_gen = Rcpp::wrap(valid_pairs(level_set_pairs));
+    return rcpp_result_gen;
+END_RCPP
+}
+// constructIsoAlignedLevelSets
+List constructIsoAlignedLevelSets(NumericMatrix& x, NumericMatrix& bnds);
+RcppExport SEXP _Mapper_constructIsoAlignedLevelSets(SEXP xSEXP, SEXP bndsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix& >::type bnds(bndsSEXP);
+    rcpp_result_gen = Rcpp::wrap(constructIsoAlignedLevelSets(x, bnds));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -188,23 +213,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// timesTwo
-NumericVector timesTwo(const NumericMatrix& fv);
-RcppExport SEXP _Mapper_timesTwo(SEXP fvSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const NumericMatrix& >::type fv(fvSEXP);
-    rcpp_result_gen = Rcpp::wrap(timesTwo(fv));
-    return rcpp_result_gen;
-END_RCPP
-}
+
+RcppExport SEXP _rcpp_module_boot_st_module();
+RcppExport SEXP _rcpp_module_boot_simplex_tree_module();
 
 static const R_CallMethodDef CallEntries[] = {
     {"_Mapper_edgeList_int", (DL_FUNC) &_Mapper_edgeList_int, 3},
     {"_Mapper_adjacencyCpp", (DL_FUNC) &_Mapper_adjacencyCpp, 3},
+    {"_Mapper_build_1_skeleton", (DL_FUNC) &_Mapper_build_1_skeleton, 4},
     {"_Mapper_intersectNodes", (DL_FUNC) &_Mapper_intersectNodes, 4},
     {"_Mapper_valid_pairs", (DL_FUNC) &_Mapper_valid_pairs, 1},
+    {"_Mapper_constructIsoAlignedLevelSets", (DL_FUNC) &_Mapper_constructIsoAlignedLevelSets, 2},
     {"_Mapper_constructFixedLevelSets", (DL_FUNC) &_Mapper_constructFixedLevelSets, 6},
     {"_Mapper_constructRestrainedLevelSets", (DL_FUNC) &_Mapper_constructRestrainedLevelSets, 5},
     {"_Mapper_createCoverMap", (DL_FUNC) &_Mapper_createCoverMap, 3},
@@ -215,7 +234,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Mapper_concatDist", (DL_FUNC) &_Mapper_concatDist, 3},
     {"_Mapper_dist_from_to", (DL_FUNC) &_Mapper_dist_from_to, 2},
     {"_Mapper_createUpdateBlocks", (DL_FUNC) &_Mapper_createUpdateBlocks, 5},
-    {"_Mapper_timesTwo", (DL_FUNC) &_Mapper_timesTwo, 1},
+    {"_rcpp_module_boot_st_module", (DL_FUNC) &_rcpp_module_boot_st_module, 0},
+    {"_rcpp_module_boot_simplex_tree_module", (DL_FUNC) &_rcpp_module_boot_simplex_tree_module, 0},
     {NULL, NULL, 0}
 };
 

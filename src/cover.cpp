@@ -61,6 +61,31 @@ List getUpdateBlocks(const NumericMatrix& overlap, const IntegerMatrix& target_l
   return(output);
 }
 
+// Given a matrix of min/max bounds of any 'iso-oriented' rectangles in the plane, i.e. whose edges are parallel to the coordinate axes, 
+// and a matrix of point cloud data 'x', return a list of indices of points in x which fall in the level set bounds given by 'bnds'.
+// [[Rcpp::export]]
+List constructIsoAlignedLevelSets(NumericMatrix& x, NumericMatrix& bnds){
+  
+  const int n = x.nrow(), d = x.ncol();
+  NumericMatrix ls_bnds = NumericMatrix(2, d);
+  
+  // // 
+  // List level_sets = List(n);
+  // for (int i = 0; i < n; ++i){
+  //   IntegerVector ls_idx  = index_set(i, _) - 1;
+  //   
+  //   
+  //   // Reset to all true prior to doing logical range checks
+  //   std::fill(level_set_test.begin(), level_set_test.end(), true);
+  //   for (int d_i = 0; d_i < d; ++d_i){
+  //     level_set_test = level_set_test & ((filter_values.column(d_i) >= ls_bnds(0, d_i)) & (filter_values.column(d_i) <= ls_bnds(1, d_i)));
+  //   }
+  //   
+  //   // Don't explicitly need to save the bounds, but they may useful later
+  //   level_sets[i] = List::create(_["points_in_level_set"] = which_true(level_set_test), _["bounds"] = clone(ls_bnds));
+  // }
+}
+
 // [[Rcpp::export]]
 List constructFixedLevelSets(const NumericMatrix& filter_values,
                              const IntegerMatrix& index_set,
