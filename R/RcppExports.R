@@ -9,8 +9,8 @@ adjacencyCpp <- function(ls_pairs, nodes, ls_node_map) {
     .Call('_Mapper_adjacencyCpp', PACKAGE = 'Mapper', ls_pairs, nodes, ls_node_map)
 }
 
-build_1_skeleton <- function(ls_pairs, nodes, ls_node_map, stree) {
-    invisible(.Call('_Mapper_build_1_skeleton', PACKAGE = 'Mapper', ls_pairs, nodes, ls_node_map, stree))
+build_1_skeleton <- function(ls_pairs, vertices, ls_vertex_map, stree) {
+    invisible(.Call('_Mapper_build_1_skeleton', PACKAGE = 'Mapper', ls_pairs, vertices, ls_vertex_map, stree))
 }
 
 intersectNodes <- function(nodes1, nodes2, node_ids1, node_ids2) {
@@ -21,8 +21,12 @@ valid_pairs <- function(level_set_pairs) {
     .Call('_Mapper_valid_pairs', PACKAGE = 'Mapper', level_set_pairs)
 }
 
-constructIsoAlignedLevelSets <- function(x, bnds) {
-    .Call('_Mapper_constructIsoAlignedLevelSets', PACKAGE = 'Mapper', x, bnds)
+constructLevelSetIndex <- function(x, bnds) {
+    .Call('_Mapper_constructLevelSetIndex', PACKAGE = 'Mapper', x, bnds)
+}
+
+constructIsoAlignedLevelSets <- function(x, bnds, save_bounds = TRUE) {
+    .Call('_Mapper_constructIsoAlignedLevelSets', PACKAGE = 'Mapper', x, bnds, save_bounds)
 }
 
 constructFixedLevelSets <- function(filter_values, index_set, overlap, number_intervals, filter_range, filter_len) {
@@ -65,6 +69,27 @@ createUpdateBlocks <- function(G, overlap_blocks, n_lvl_sets, n_blocks, n) {
     .Call('_Mapper_createUpdateBlocks', PACKAGE = 'Mapper', G, overlap_blocks, n_lvl_sets, n_blocks, n)
 }
 
-#' @export SegmentTree
-NULL
+dist_to_boxes <- function(positions, interval_length, num_intervals, dist_to_lower, dist_to_upper) {
+    .Call('_Mapper_dist_to_boxes', PACKAGE = 'Mapper', positions, interval_length, num_intervals, dist_to_lower, dist_to_upper)
+}
+
+multiscale <- function(pt_idx) {
+    invisible(.Call('_Mapper_multiscale', PACKAGE = 'Mapper', pt_idx))
+}
+
+test_merge <- function(data) {
+    .Call('_Mapper_test_merge', PACKAGE = 'Mapper', data)
+}
+
+test_merge2 <- function(data) {
+    .Call('_Mapper_test_merge2', PACKAGE = 'Mapper', data)
+}
+
+test_it <- function(x) {
+    .Call('_Mapper_test_it', PACKAGE = 'Mapper', x)
+}
+
+test_map <- function(index_set) {
+    invisible(.Call('_Mapper_test_map', PACKAGE = 'Mapper', index_set))
+}
 

@@ -3,9 +3,18 @@ title: "R Notebook"
 output: html_notebook
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
 
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+```{r}
+library("Mapper")
+ls_pairs <- t(combn(4, 2))
+nodes <- list(1:5, 2:6, 3:7, 4:8)
+ls_node_map <- list(1:2, 2:3, 3:4, c(1, 4)) 
+
+n_vertices <- 5L
+stree <- Mapper::simplex_tree()
+stree_ptr <- stree$as_XPtr()
+Mapper:::build_1_skeleton(ls_pairs = ls_pairs, nodes = nodes, ls_node_map = ls_node_map, stree = stree_ptr)
+```
 
 ```{Rcpp}
 

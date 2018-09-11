@@ -18,7 +18,7 @@ noisy_circle <- cbind(r*cos(t), r*sin(t))
 
 ## Define filter values equal to the distance from each point to the left-most point in the circle 
 left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
-f_x <- sqrt(colSums(apply(noisy_circle, 1, function(pt) (pt - left_pt)^2)))
+f_x <- apply(noisy_circle, 1, function(pt) (pt - left_pt)[1])
 
 ## Bin the data onto a sufficiently high-resolution rainbow gradient from blue (low) to red (high), 
 ## and plot the original circle  with these values
@@ -84,6 +84,7 @@ If not explicity called, the cover will be constructed when the Mapper reference
 ## 3.  Apply a partial clustering to the data subsets indexed by the cover 
 m <- Mapper::MapperRef$new(noisy_circle)
 m$cover <- rec_cover
+
 ## Equivalent to Mapper::MapperRef$new(noisy_circle, cover = rec_cover)
 ```
 
@@ -127,16 +128,20 @@ m$compute_k_skeleton(k = 1L)
 
 All the methods can chained. 
 ```{r}
-MapperRef$new(noisy_circle)$
-  set_cover({
-    FixedRectangularCover$new(filter_values = f_x)$
-      set_parameter(number_intervals = 5L, percent_overlap = 0.35)$
-      construct_cover()
-  })
-  set_clustering_algorithm(cl = "single", num_bins = 10)$
-  set_distance_measure(measure = "euclidean")$
-  compute_k_skeleton(k = 1L)
+m <- MapperRef$new(noisy_circle)$
+  use_cover(filter_values = f_x, type = "fixed rectangular", number_intervals = 5L, percent_overlap = 0.35)$
+  use_clustering_algorithm(cl = "single")$
+  use_distance_measure(measure = "euclidean")$
+  compute_vertices(num_bins = 10)$
+  compute_edges()
 ```
+
+To plot an interactive, force-directed version of the topological graph, just call `$plot_interactive` function.
+```{r}
+m$plot_interactive()
+```
+
+This returns 
 
 With R6, this provides a nice way to interactively build the construction. It also, however can be useful. 
 

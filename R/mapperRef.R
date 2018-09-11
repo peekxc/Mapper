@@ -5,12 +5,14 @@
 #' @import methods
 #' @export MapperRef
 MapperRef <- R6Class("MapperRef", 
-  private = list(.X=NA, .cover=NA, .clustering_algorithm=NA, .measure=NA, k_skeleton=NA, config=NA)
+  private = list(.X=NA, .cover=NA, .clustering_algorithm=NA, .measure=NA, .simplicial_complex = NA, .vertices=NA, .config=NA)
 )
 
-MapperRef$set("public", "initialize", function(X, cover){
+MapperRef$set("public", "initialize", function(X){
+  stopifnot(is.numeric(X))
+  if (is.null(dim(X)) && !is(X, "dist")){ X <- as.matrix(X) }
   private$.X <- X
-  self$cover <- cover
+  private$.simplicial_complex <- simplex_tree()
 })
 
 ## The cover stores the filter values
@@ -25,6 +27,27 @@ MapperRef$set("active", "cover",
     }
   }
 )
+
+MapperRef$set("active", "vertices", 
+  function(value){
+    if(missing(value)){
+      private$.vertices
+    } else {
+      stop("`$vertices` is read-only. To update the vertex membership, use the 'compute_vertices' function.", call. = FALSE)
+    }
+  }  
+)
+
+## Mapper stores the simplicial complex as a simplex tree.
+MapperRef$set("active", "simplicial_complex", 
+  function(value){
+    if (missing(value)){ private$.simplicial_complex }
+    else {
+      stop("`$simplicial_complex` is read-only. To change the complex, use the objects (simplex tree) methods directly.", call. = FALSE)
+    }
+  }
+)
+
   # if (is.null(dim(fv)) && is.numeric(fv)){ fv <- matrix(fv, nrow = length(fv), ncol = 1) }
   # if (is.null(dim(fv)) || (!"matrix" %in% class(fv))) { stop("Filter values must be numeric and in matrix form") }
   # if (missing(type) || type == "restrained rectangular"){
@@ -47,7 +70,7 @@ MapperRef$set("active", "clustering_algorithm",
 
 ## Changes the clustering algorithm used by mapper.
 ## Must accept a 'dist' object and return a static or 'flat' clustering result
-MapperRef$set("public", "set_clustering_algorithm", 
+MapperRef$set("public", "use_clustering_algorithm", 
   function(cl = c("single", "ward.D", "ward.D2", "complete", "average", "mcquitty", "median", "centroid"), num_bins = 10L, ...){
     ## Use a linkage criterion + cutting rule
     if (missing(cl)) { cl <- "single" }
@@ -61,126 +84,145 @@ MapperRef$set("public", "set_clustering_algorithm",
         cutoff_first_bin(hcl, num_bins)
       }
     }
+    invisible(self)
   }
 )
 
 ## Sets the distance measure to use
 ## Supports any measure in proxy::pr_DB$get_entry_names()
-MapperRef$set("public", "set_distance_measure", function(measure){
+MapperRef$set("public", "use_distance_measure", function(measure){
   available_measures <- toupper(proxy::pr_DB$get_entry_names())
   stopifnot(is.character(measure))
   stopifnot(toupper(measure) %in% available_measures)
   private$.measure <- measure
+  invisible(self)
+})
+
+MapperRef$set("public", "use_cover", function(filter_values, type=c("fixed rectangular", "restrained rectangular"), ...){
+  if (missing(type)){ type <- "fixed rectangular"}
+  self$cover <- switch(type, 
+    "fixed rectangular"=FixedRectangularCover$new(filter_values, ...)$construct_cover(), 
+    "restrained rectangular"=RestrainedRectangularCover$new(filter_values, ...)$construct_cover(),
+    stop(sprintf("Unknown cover type: %s", type))
+  )
+  invisible(self)
 })
 
 
 ## Computes the distance matrix for each level set
-MapperRef$set("public", "computeLevelSetDist", function(...){
-  for (i in 1:length(self$cover$level_sets)){
-    pt_idx <- self$cover$level_sets[[i]]$points_in_level_set
-    if (length(pt_idx) <= 1){ self$cover$level_sets[[i]]$dist <- dist(0L) }
-    else {
-      if ("dist" %in% class(X)){
-        self$cover$level_sets[[i]]$dist <- dist_subset(dist = self$X, idx = pt_idx)
-      } else {
-        if (is.character(measure)){
-          self$cover$level_sets[[i]]$dist <- parallelDist::parallelDist(self$X[pt_idx,], method = measure)
-        } else if (is.function(measure)){
-          self$cover$level_sets[[i]]$dist <- measure(self$X[pt_idx,], ...)
-        } else {
-          stop("Unknown 'measure' argument. Must be either character string or function.")
-        }
-      }
-    }
-  }
-  return(self)
-})
+# MapperRef$set("public", "computeLevelSetDist", function(...){
+#   for (i in 1:length(self$cover$level_sets)){
+#     pt_idx <- self$cover$level_sets[[i]]$points_in_level_set
+#     if (length(pt_idx) <= 1){ self$cover$level_sets[[i]]$dist <- dist(0L) }
+#     else {
+#       if ("dist" %in% class(X)){
+#         self$cover$level_sets[[i]]$dist <- dist_subset(dist = self$X, idx = pt_idx)
+#       } else {
+#         if (is.character(measure)){
+#           self$cover$level_sets[[i]]$dist <- parallelDist::parallelDist(self$X[pt_idx,], method = measure)
+#         } else if (is.function(measure)){
+#           self$cover$level_sets[[i]]$dist <- measure(self$X[pt_idx,], ...)
+#         } else {
+#           stop("Unknown 'measure' argument. Must be either character string or function.")
+#         }
+#       }
+#     }
+#   }
+#   return(self)
+# })
 
 ## Computes the K-skeleton in a similar fashion as described by Singh et. al, section 3.2. Note that this
 ## procedure implicitly assumes the full abstract simplicial complex produced by Mapper can be treated as
 ## a flag complex.
 MapperRef$set("public", "compute_k_skeleton", function(k, ...){
   stopifnot(k >= 0)
-  if (k >= 0L){ self$computeNodes(...) }
-  if (k >= 1L){ self$computeEdges(...) }
-  if (k >= 3L){
-    k_simplex <- vector(mode = "list", length = k - 2L)
-    for (k_i in 3L:k){
-      pt_map <- lapply(1:length(m$nodes), function(lsfi) cbind(pt_id = m$nodes[[lsfi]], node_id = rep(lsfi)))
-      pt_map <- data.table::data.table(do.call(rbind, pt_map))
-      intersection_pts <- pt_map[, .(n_intersects = nrow(.SD)), by = pt_id][n_intersects == k_i]$pt_id
-      simplex_pts <- pt_map[pt_id %in% intersection_pts, .SD, by = pt_id]
-      index <- (seq(nrow(simplex_pts))-1) %% k_i
-      k_simplex_mat <- unique(do.call(cbind, lapply(0:(k_i - 1L), function(idx){ simplex_pts$node_id[index == idx] })))
-      k_simplex[[k_i - 2L]] <- lapply(1:nrow(k_simplex_mat), function(i) k_simplex_mat[i,])
-    }
+  if (k >= 0L){ self$compute_vertices(...) }
+  if (k >= 1L){ self$compute_edges(...) }
+  if (k >= 2L){
+    # k_simplex <- vector(mode = "list", length = k - 2L)
+    # for (k_i in 3L:k){
+    #   pt_map <- lapply(1:length(m$nodes), function(lsfi) cbind(pt_id = m$nodes[[lsfi]], node_id = rep(lsfi)))
+    #   pt_map <- data.table::data.table(do.call(rbind, pt_map))
+    #   intersection_pts <- pt_map[, .(n_intersects = nrow(.SD)), by = pt_id][n_intersects == k_i]$pt_id
+    #   simplex_pts <- pt_map[pt_id %in% intersection_pts, .SD, by = pt_id]
+    #   index <- (seq(nrow(simplex_pts))-1) %% k_i
+    #   k_simplex_mat <- unique(do.call(cbind, lapply(0:(k_i - 1L), function(idx){ simplex_pts$node_id[index == idx] })))
+    #   k_simplex[[k_i - 2L]] <- lapply(1:nrow(k_simplex_mat), function(i) k_simplex_mat[i,])
+    # }
   }
 })
 
-## The cover stores the filter values
-MapperRef$set("public", "compute_vertices", function(...){
+## Executes the clustering algorithm for the level sets indexed by the 'which_levels' parameter. If not given, 
+## runs the clustering algorithm and computes the subsequent vertices for all the available level sets. Additional 
+## parameters passed via the '...' are passed to the clustering algorithm. 
+MapperRef$set("public", "compute_vertices", function(which_levels=NULL, ...){
   stopifnot(!is.na(self$cover$level_sets))
+  stopifnot(is.function(private$.clustering_algorithm))
   
-  ## Initialize the graph as an empty list
-  self$k_skeleton <- list()
+  browser()
+  if (missing(which_levels) || is.null(which_levels)) { 
+    which_levels <- seq(1L, length(self$cover$level_sets)) 
+  }
 
-  ## Iterate through the 'dist' objects stored for each level set, perform the clustering
-  cl_res <- lapply(self$cover$level_sets, function(ls) {
-    if (length(ls$dist) > 0) clustering_algorithm(ls$dist, ...)
+  ## TODO: Optimize this via parallel execution
+  ## Perform the clustering for the chosen level sets
+  cl_res <- lapply(self$cover$level_sets[which_levels], function(ls) {
+    self$clustering_algorithm(X = private$.X, idx = as.integer(ls), ...)
   })
-
+  
   ## Precompute useful variables to know
   n_vertices <- sum(sapply(cl_res, function(cl) length(unique(cl))))
   vertice_idx <- unlist(mapply(function(cl, ls_i) if (length(cl) > 0) paste0(ls_i, ".", unique(cl)), cl_res, 1:length(cl_res)))
   n_lvlsets <- length(self$cover$level_sets)
+  
+  ## Add the 0-simplexes to the simplex tree
+  private$.simplicial_complex$add_vertices(n_vertices)
 
   ## Agglomerate the nodes into a list. This matches up the original indexes of the filter values with the
   ## the clustering results, such that each node stores the original filter index values as well as the
   ## creating a correspondence between the node and it's corresponding level set flat index (lsfi)
   ## TODO: Cleanup and either vectorize or send down to C++
-  self$k_skeleton$vertices <- vector(mode = "list", length = n_vertices)
+  private$.vertices <- vector(mode = "list", length = n_vertices)
   v_i <- 1L
   for (lsfi in 1:n_lvlsets){
     cl_i <- cl_res[[lsfi]]
     if (!is.null(cl_i)){
       ## Extract the vertex point indices for each cluster
-      vertex_pt_idx <- lapply(unique(cl_i), function(cl_idx) self$cover$level_sets[[lsfi]]$points_in_level_set[which(cl_i == cl_idx)])
+      vertex_pt_idx <- lapply(unique(cl_i), function(cl_idx) self$cover$level_sets[[lsfi]][which(cl_i == cl_idx)])
       for (vertex in vertex_pt_idx){
         attr(vertex, "level_set") <- lsfi
         if (any(is.na(vertex))){ browser() }
-        self$k_skeleton$vertices[[v_i]] <- vertex
+        private$.vertices[[v_i]] <- vertex
         v_i <- v_i + 1L
       }
     }
   }
+  invisible(self)
 })
 
 ## Computes the edges composing the topological graph (1-skeleton). 
 ## Assumes the nodes have been computed. 
 MapperRef$set("public", "compute_edges", function(level_sets = NULL){
-
-    ## Retrieve the level set flat indices (LSFI) for each corresponding node
-    node_lsfi <- sapply(self$k_skeleton$vertices, function(vertex) attr(node, "level_set")) # which level set (by value) each node (by index) is in
+  ## Retrieve the level set flat indices (LSFI) for each corresponding node
+  vertex_lsfi <- sapply(private$.vertices, function(vertex) attr(vertex, "level_set")) # which level set (by value) each node (by index) is in
   
-    ## Create map from the level set flat index (by index) to the node indices the level set stores
-    ## Note in this map empty level sets are NULL
-    ls_node_map <- lapply(seq(length(self$cover$level_sets)), function(lvl_set_idx) {
-      node_indices <- which(node_lsfi == lvl_set_idx)
-      if (length(node_indices) == 0){ return(NULL) } else { return(node_indices) }
-    })
-    
-    ## Retrieve the valid level set index pairs to compare. In the worst case, with no cover-specific optimization
-    ## or 1-skeleton assumption, this may just be all pairwise combinations of LSFI's for the full simplicial complex.
-    ## If the specific set of LSFI's were given
-    if (missing(self$cover$level_sets) || is.null(self$cover$level_sets)){
-      ## Let Rcpp handle the O(n^2) non-empty intersection checks
-      ls_to_compare <- self$cover$valid_pairs()
-      self$k_skeleton$adjacency <- adjacencyCpp(ls_pairs = ls_to_compare, nodes = self$k_skeleton$nodes, ls_node_map = ls_node_map);
-    } else {
-      self$k_skeleton$edgelist <- Mapper:::edgeList_int(ls_pairs = level_sets, nodes = self$k_skeleton$nodes, ls_node_map = ls_node_map)
-    }
-  }
-)
+  ## Create map from the level set flat index (by index) to the node indices the level set stores
+  ## Note in this map empty level sets are NULL
+  ls_vertex_map <- lapply(seq(length(self$cover$level_sets)), function(lvl_set_idx) {
+    vertex_indices <- which(vertex_lsfi == lvl_set_idx)
+    if (length(vertex_indices) == 0){ return(NULL) } else { return(vertex_indices) }
+  })
+  
+  ## Retrieve the valid level set index pairs to compare. In the worst case, with no cover-specific optimization
+  ## or 1-skeleton assumption, this may just be all pairwise combinations of LSFI's for the full simplicial complex.
+  ## If the specific set of LSFI's were given
+  stree_ptr <- private$.simplicial_complex$as_XPtr()
+  ls_pairs <- self$cover$level_sets_to_compare()
+  build_1_skeleton(ls_pairs = ls_pairs, vertices = private$.vertices, ls_vertex_map = ls_vertex_map, stree = stree_ptr)
+
+  ## Return self
+  invisible(self)
+})
 
 
 ## plotNetwork uses the 'network' package to plot the Mapper construction, w/ suitable defaults
@@ -223,12 +265,59 @@ MapperRef$set("public", "compute_edges", function(level_sets = NULL){
 
 ## S3-like print override
 MapperRef$set("public", "format", function(...){
-  if ("dist" %in% class(self$X)){ n <- attr(self$X, "Size") } else { n <- nrow(self$X) }
+  if ("dist" %in% class(private$.X)){ n <- attr(private$.X, "Size") } else { n <- nrow(private$.X) }
   # if (!is.null(self$config$call))
   #   cat("\nCall:\n", deparse(self$config$call), "\n\n", sep = "")
   message <- sprintf("Mapper construction for %d objects", n)
   message <- append(message, format(self$cover))
   return(message)
+})
+
+
+MapperRef$set("public", "plot_interactive", function(...){
+  require("grapher")
+  json_config <- list()
+  rbw_pal <- rev(rainbow(100, start = 0, end = 4/6))
+  
+  ## Color nodes and edges by a default rainbow palette
+  agg_node_val <- sapply(sapply(private$.vertices, function(v_idx){ 
+    apply(as.matrix(self$cover$filter_values[v_idx,]), 1, mean)
+  }), mean)
+  binned_idx <- cut(agg_node_val, breaks = 100, labels = F)
+  vertex_colors <- rbw_pal[binned_idx]
+  
+  ## Vertex sizes 
+  vertex_sizes <- sapply(private$.vertices, length) 
+  
+  ## Make the igraph graph
+  am <- private$.simplicial_complex$as_adjacency_matrix()
+  G <- igraph::graph_from_adjacency_matrix(am, mode = "undirected", add.colnames = NA) 
+
+  ## Normalize between 0-1, unless all the same
+  normalize <- function(x) { 
+    if (all(x == x[1])){ return(rep(1, length(x))) }
+    else {  (x - min(x))/(max(x) - min(x)) }
+  }
+    
+  ## Create the vertices. By default, color them on a rainbow palette according to their mean filter value.
+  if (length(igraph::V(G)) > 0){
+    vertex_radii <- (15L - 10L)*normalize(log(vertex_sizes)) + 10L
+    vertex_xy <- apply(igraph::layout.auto(G), 2, normalize)
+    json_config$nodes <- data.frame(x=vertex_xy[, 1], y=vertex_xy[, 2], r=vertex_radii,
+                                    color=grapher::hex2rgba(vertex_colors),
+                                    index = 0:(length(vertex_sizes)-1))
+  }
+    
+  ## Create the edges w/ a similar coloring scheme.
+  if (length(igraph::E(G)) > 0){
+    el <- igraph::as_edgelist(G, names = FALSE)
+    edge_binned_idx <- apply(el, 1, function(vertex_ids) { (binned_idx[vertex_ids[1]] + binned_idx[vertex_ids[2]])/2 })
+    edge_links <- cbind(as.data.frame(apply(el, 2, as.integer) - 1L), substr(rbw_pal[edge_binned_idx], start = 0, stop = 7))
+    json_config$links <- structure(edge_links, names = c("from", "to", "color"))
+  }
+    
+  ## Return the grapher instance
+  grapher::grapher(json_config)
 })
 
 only_combinations <- function(mat){
@@ -262,20 +351,20 @@ only_combinations <- function(mat){
 ##                    contains attribute data storing the level set flat index of the level set the node is in.
 ## 2. adjacency := adjacency matrix of the resulting graph.
 # MapperRef$methods(exportMapper = function(){
-#   result <- .self$G
-#   node_lsfi <- sapply(result$nodes, function(node) attr(node, "level_set"))
-#   result$level_sets <- lapply(1:length(cover$level_sets), function(lsfi){ which(node_lsfi == lsfi) })
-#   names(result$level_sets) <- apply(cover$index_set, 1, function(lsmi) paste0("(", paste(lsmi, collapse = ","), ")"))
-#   cover_type <- paste0(toupper(substr(cover$type, start = 1, stop = 1)), tolower(substr(cover$type, start = 2, stop = nchar(cover$type))))
-#   z_d <- ncol(cover$filter_values)
-#   attr(result, ".summary") <- c(sprintf("Mapper object with filter function f: %s -> %s",
-#                                         ifelse(is(X, "dist"), "dist(X)",
-#                                                ifelse(ncol(X) > 1, sprintf("X^%d", ncol(X)), "X")),
-#                                         ifelse(z_d > 1, sprintf("Z^%d", z_d), "Z")),
-#                                 sprintf("Configured with a %s cover comprising %d open sets", cover$type, length(cover$level_sets)),
-#                                 sprintf("The 1-skeleton contains %d nodes and %d edges", length(G$nodes), sum(G$adjacency == 1L)/2L))
-#   class(result) <- "Mapper"
-#   return(result)
+  # result <- self$
+  # node_lsfi <- sapply(result$nodes, function(node) attr(node, "level_set"))
+  # result$level_sets <- lapply(1:length(cover$level_sets), function(lsfi){ which(node_lsfi == lsfi) })
+  # names(result$level_sets) <- apply(cover$index_set, 1, function(lsmi) paste0("(", paste(lsmi, collapse = ","), ")"))
+  # cover_type <- paste0(toupper(substr(cover$type, start = 1, stop = 1)), tolower(substr(cover$type, start = 2, stop = nchar(cover$type))))
+  # z_d <- ncol(cover$filter_values)
+  # attr(result, ".summary") <- c(sprintf("Mapper object with filter function f: %s -> %s",
+  #                                       ifelse(is(X, "dist"), "dist(X)",
+  #                                              ifelse(ncol(X) > 1, sprintf("X^%d", ncol(X)), "X")),
+  #                                       ifelse(z_d > 1, sprintf("Z^%d", z_d), "Z")),
+  #                               sprintf("Configured with a %s cover comprising %d open sets", cover$type, length(cover$level_sets)),
+  #                               sprintf("The 1-skeleton contains %d nodes and %d edges", length(G$nodes), sum(G$adjacency == 1L)/2L))
+  # class(result) <- "Mapper"
+  # return(result)
 # })
 
 

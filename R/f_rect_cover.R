@@ -10,16 +10,15 @@
 #' @export
 FixedRectangularCover <- R6Class("FixedRectangularCover",
   inherit = CoverRef,
-  private = list(.number_intervals=NA, .percent_overlap=NA), 
-  lock_objects = TRUE
+  private = list(.number_intervals=NA, .percent_overlap=NA)
 )
 
 #' @export
 FixedRectangularCover$set("public", "initialize", function(filter_values, ...){
-  super$initialize(filter_values, type="Fixed Rectangular", ...)
+  super$initialize(filter_values, type="Fixed Rectangular")
   params <- list(...)
-  if ("number_intervals" %in% names(params)){ self$number_intervals <- number_intervals }
-  if ("percent_overlap" %in% names(params)){ self$percent_overlap <- percent_overlap }
+  if ("number_intervals" %in% names(params)){ self$number_intervals <- params[["number_intervals"]] }
+  if ("percent_overlap" %in% names(params)){ self$percent_overlap <- params[["percent_overlap"]] }
 })
 
 ## Set overlap/gain threshold
@@ -53,43 +52,45 @@ FixedRectangularCover$set("active", "number_intervals",
 )
 
 FixedRectangularCover$set("public", "format", function(...){
-  type_pretty <- paste0(toupper(substr(private$.type, start = 1, stop = 1)), tolower(substr(private$.type, start = 2, stop = nchar(private$.type))))
+  type_pretty <- paste0(toupper(substr(self$type, start = 1, stop = 1)), tolower(substr(self$type, start = 2, stop = nchar(self$type))))
   sprintf("Cover: (type = %s, number intervals = [%s], overlap = [%s])",
           type_pretty,
           paste0(private$.number_intervals, collapse = ", "),
           paste0(format(private$.percent_overlap, digits = 3), collapse = ", "))
 })
 
-FixedRectangularCover$set("public", "set_fields", function(...){
-  params <- list(...)
-  if ("number_intervals" %in% names(params)){ self$number_intervals <- params[["number_intervals"]] }
-  if ("percent_overlap" %in% names(params)){ self$percent_overlap <- params[["percent_overlap"]] }
-})
+# FixedRectangularCover$set("public", "set_fields", function(...){
+#   params <- list(...)
+#   if ("number_intervals" %in% names(params)){ self$number_intervals <- params[["number_intervals"]] }
+#   if ("percent_overlap" %in% names(params)){ self$percent_overlap <- params[["percent_overlap"]] }
+# })
 
 ## Given the current set of parameter values, construct the level sets whose union covers the filter space
 FixedRectangularCover$set("public", "construct_cover", function(...){
   stopifnot(!is.na(private$.percent_overlap))
   stopifnot(!is.na(private$.number_intervals))
   
-  ## Setup unexpanded and full indexing set (the full indexing set is the cartesian product of each unexpanded index set)
-  indices <- lapply(self$number_intervals, function(k_l) 1:k_l) ## per-dimension possible indexes
-  self$index_set <- structure(eval(as.call(append(quote(expand.grid), indices))), names = paste0("d", 1:private$.filter_dim)) ## full indexing set
-
+  ## Setup a valid index set (e.g. cartesian product)
+  indices <- lapply(self$number_intervals, function(k) seq(k)) ## per-dimension possible indexes
+  cart_prod <- as.matrix(do.call(expand.grid, structure(indices, names = paste0("d", 1:private$.filter_dim))))
+  self$index_set <- apply(cart_prod, 1, function(x){ sprintf("(%s)", paste0(x, collapse = ", ")) })
+  
   ## Get filter min and max ranges
   filter_rng <- apply(self$filter_values, 2, range)
   { filter_min <- filter_rng[1,]; filter_max <- filter_rng[2,] }
   filter_len <- diff(filter_rng)
 
   ## Construct the level sets
-  browser()
-  self$level_sets <- constructFixedLevelSets(
-    filter_values = matrix(self$filter_values, ncol = private$.filter_dim),
-    index_set = as.matrix(self$index_set),
-    overlap = as.numeric(self$percent_overlap),
-    number_intervals = as.numeric(self$number_intervals),
-    filter_range = matrix(filter_rng, ncol = private$.filter_dim),
-    filter_len = as.numeric(filter_len)
-  )
+  base_interval_length <- filter_len/self$number_intervals
+  interval_length <- base_interval_length + (base_interval_length * self$percent_overlap)/(1.0 - self$percent_overlap)
+  eps <- interval_length/2.0
+  ls_bnds <- t(apply(cart_prod, 1, function(idx){
+    centroid <- filter_min + ((as.integer(idx)-1L)*base_interval_length) + base_interval_length/2.0
+    c(centroid - eps, centroid + eps)
+  }))
+  self$level_sets <- constructIsoAlignedLevelSets(self$filter_values, as.matrix(ls_bnds))
+  # all(which(filter_values[, 1] >= 3.247658 & filter_values[, 2] >= 3.247658 & filter_values[, 1] <= 4.295289 & filter_values[, 2] <= 4.295289) == level_sets[[25]]$points_in_level_set)
+
   invisible(self)
   #  ## length(unique(unlist(lapply(level_sets, function(ls) ls$points_in_level_set))))
 })

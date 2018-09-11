@@ -13,7 +13,7 @@ Maintainer: Matt Piekenbrock <matt.piekenbrock@gmail.com>
 Description: This package provides an efficient open source implementation of the Mapper algorithm, and other related algorithms used in Topological Data Analysis. 
 Imports: Rcpp, DT, htmlwidgets, methods, parallelDist, shiny
 LinkingTo: Rcpp
-RcppModules: st_module
+RcppModules: segment_tree_module, simplex_tree_module
 License: file LICENSE
 BugReports: https://github.com/peekxc/mapper
 Suggests: 

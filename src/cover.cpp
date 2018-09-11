@@ -3,6 +3,8 @@ using namespace Rcpp;
 
 #include <vector>
 #include <array>
+#include <limits>
+
 // Given a logical vector, returns an integer vector (1-based) of the positions in the vector which are true
 IntegerVector which_true( LogicalVector x) {
   int nx = x.size();
@@ -61,29 +63,48 @@ List getUpdateBlocks(const NumericMatrix& overlap, const IntegerMatrix& target_l
   return(output);
 }
 
-// Given a matrix of min/max bounds of any 'iso-oriented' rectangles in the plane, i.e. whose edges are parallel to the coordinate axes, 
+// Must be disjoint cover 
+// [[Rcpp::export]]
+IntegerVector constructLevelSetIndex(const NumericMatrix& x, const NumericMatrix& bnds){
+  if (x.ncol() != (bnds.ncol()/2)){ Rcpp::stop("dimension of points != dimension of bounds matrix / 2."); }
+  const int n_level_sets = bnds.nrow(), d = bnds.ncol()/2;
+  LogicalVector level_set_test = LogicalVector(x.nrow(), true); // which pts lie in the set; use logical vector to shorten code and use vectorized &
+  IntegerVector res = IntegerVector(x.nrow(), -1);
+  double eps = std::numeric_limits<double>::epsilon();
+  for (int i = 0; i < n_level_sets; ++i){
+    NumericMatrix::ConstRow ls_bnds = bnds.row(i); // Update level set bounds
+    std::fill(level_set_test.begin(), level_set_test.end(), true);// Reset to all true prior to doing logical range checks
+    for (int d_i = 0; d_i < d; ++d_i){
+      Rcout << "testing level set: min = " << ls_bnds[d_i] <<  ", max = " << ls_bnds[d + d_i] << std::endl;
+      level_set_test = level_set_test & ((x.column(d_i) >= (ls_bnds[d_i] - eps)) & (x.column(d_i) <= (ls_bnds[d + d_i] + eps)));
+    }
+    Rcout << level_set_test << std::endl; 
+    res[level_set_test] = i+1; // Record which level set each point lies in
+  }
+  return(res);
+}
+
+// Given an (n x 2d) matrix of min/max bounds of any 'iso-oriented' rectangles in the plane, i.e. whose edges are parallel to the coordinate axes, 
 // and a matrix of point cloud data 'x', return a list of indices of points in x which fall in the level set bounds given by 'bnds'.
 // [[Rcpp::export]]
-List constructIsoAlignedLevelSets(NumericMatrix& x, NumericMatrix& bnds){
-  
-  const int n = x.nrow(), d = x.ncol();
-  NumericMatrix ls_bnds = NumericMatrix(2, d);
-  
-  // // 
-  // List level_sets = List(n);
-  // for (int i = 0; i < n; ++i){
-  //   IntegerVector ls_idx  = index_set(i, _) - 1;
-  //   
-  //   
-  //   // Reset to all true prior to doing logical range checks
-  //   std::fill(level_set_test.begin(), level_set_test.end(), true);
-  //   for (int d_i = 0; d_i < d; ++d_i){
-  //     level_set_test = level_set_test & ((filter_values.column(d_i) >= ls_bnds(0, d_i)) & (filter_values.column(d_i) <= ls_bnds(1, d_i)));
-  //   }
-  //   
-  //   // Don't explicitly need to save the bounds, but they may useful later
-  //   level_sets[i] = List::create(_["points_in_level_set"] = which_true(level_set_test), _["bounds"] = clone(ls_bnds));
-  // }
+List constructIsoAlignedLevelSets(const NumericMatrix& x, const NumericMatrix& bnds, bool save_bounds=true){
+  if (x.ncol() != (bnds.ncol()/2)){ Rcpp::stop("dimension of points != dimension of bounds matrix / 2."); }
+  const int n_level_sets = bnds.nrow(), d = bnds.ncol()/2;
+  List level_sets = List(n_level_sets);
+  LogicalVector level_set_test = LogicalVector(x.nrow(), true); // which pts lie in the set; use logical vector to shorten code and use vectorized &
+  for (int i = 0; i < n_level_sets; ++i){
+    NumericMatrix::ConstRow ls_bnds = bnds.row(i); // Update level set bounds
+    std::fill(level_set_test.begin(), level_set_test.end(), true);// Reset to all true prior to doing logical range checks
+    for (int d_i = 0; d_i < d; ++d_i){
+      level_set_test = level_set_test & ((x.column(d_i) >= ls_bnds[d_i]) & (x.column(d_i) <= ls_bnds[d + d_i]));
+    }
+
+    // Save the level set
+    IntegerVector ls = which_true(level_set_test);
+    if (save_bounds){ ls.attr("bounds") = ls_bnds; }
+    level_sets[i] = ls;
+  }
+  return(level_sets);
 }
 
 // [[Rcpp::export]]

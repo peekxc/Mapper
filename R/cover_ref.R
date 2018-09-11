@@ -7,8 +7,10 @@
 #' @import R6
 #' @export CoverRef
 CoverRef <- R6Class("CoverRef", 
-  public = list(filter_values=NA, index_set=NA, level_sets=NA),
+  public = list(filter_values=NA),
   private = list(
+    .level_sets=NA,
+    .index_set = NA,
     .filter_size = NA,
     .filter_dim = NA, 
     .type = character(0)
@@ -25,17 +27,62 @@ CoverRef$set("public", "initialize", function(filter_values, type){
 })
 
 CoverRef$set("public", "format", function(...){
-  message <- c(sprintf("Open cover for %d objects (d = %d)", nrow(filter_values), private$.filter_dim))
-  # message <- append(message, sprintf("Parameters: number intervals = [%s], overlap = [%s]",
-  #                                    paste0(num_intervals, collapse = ", "),
-  #                                    paste0(format(percent_overlap, digits = 2), collapse = ", ")))
+  browser()
+  message <- c(sprintf("Open cover for %d objects (d = %d)", nrow(self$filter_values), private$.filter_dim))
   return(message)
 })
 
+## Type field
+CoverRef$set("active", "type", 
+  function(value){
+    if (missing(value)){ private$.type } else {
+      stop("Cover 'type' member is read-only.")
+    }
+})
+
+## The index set may be composed of any data type, but the collection of indices must uniquely
+## index the level sets list via the `[[` operator.
+CoverRef$set("active", "index_set", 
+ function(value){
+   if (missing(value)){
+     private$.index_set
+   } else {
+     stopifnot(is.vector(value))
+     tmp <- structure(vector("list", length = length(value)), names = value)
+     stopifnot(length(unique(names(tmp))) == length(value))
+     private$.index_set <- names(tmp)
+   }
+})
+
+## The level sets must be a list indexed by the index set. It's up to the user to ensure they are proper indices. 
+CoverRef$set("active", "level_sets", 
+  function(value){
+    if (missing(value)){
+      private$.level_sets
+    } else {
+      stopifnot(is.list(value) && (length(value) == length(private$.index_set)))
+      private$.level_sets <- structure(value, names = private$.index_set)
+    }
+  }
+)
+
 ## Default cover 
 CoverRef$set("public", "construct_cover", function(){
-  self$level_sets <- list(seq(private$.filter_size))
+  stop("Base class cover construction called. This method must be overridden.")
 })
+
+## Which level sets (in terms of their corresponding indices in the index set) should be compared? 
+## This can be customized based on the cover to (dramatically) reduce the number of intersection checks
+## needed to generate the k-skeletons, where k >= 1. Defaults to every pairwise combination of level sets. 
+CoverRef$set("public", "level_sets_to_compare", function(){
+  n_level_sets <- length(self$level_sets)
+  return(t(combn(x = n_level_sets, m = 2L)))
+})
+
+# ## Generic method which 
+# CoverRef$set("public", "plot_cover", function(){
+#   
+# })
 
 
 # CoverRef$methods(getLSMI = function(lsfi){

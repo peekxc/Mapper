@@ -71,45 +71,25 @@ mapper <- function(X, filter_values, cover_type = "fixed rectangular", return_re
   extra <- list(...)
   getParam <- function(param, default){  ifelse(is.null(extra[[param]]), default, extra[[param]]) }
 
-  ## SETUP ---------------------------
-  # Constructs a MapperRef instance, a mutable R5 class for generating the Mapper construction
+  ## Setup 
   if (!is.null(dim(X)) && !methods::is(X, "dist")){ X <- as.matrix(X) } ## convert to matrix
   if (!class(X) %in% c("matrix", "dist")){ stop("Mapper expects 'X' to be either a matrix-coercible data type or a 'dist' object.") }
-  m <- mapper_ref$new(X = X)
-
-  ## COVER CONFIGURATION ---------------------------
-  # The level set flat index (lsfi) is implicitly represented by the position of the level set in the
-  # level sets list (cover$level_sets). The name of each level set corresponds with its level set multi index (lsmi),
-  # and thus can be used alternatively as a key into the level sets map.
-  # (The looping construct and point queries have been optimized in 'setCover')
-  if (is.list(filter_values)){ filter_values <- do.call(cbind, filter_values) }
-  m$setCover(fv = filter_values, type = cover_type, ...)
-  m$computeLevelSetDist(measure = getParam("measure", default = "euclidean"), ...) ## precompute the data-space distances in the level sets
-
-  ## CLUSTER CONFIGURATION ---------------------------
-  # Through the reference class, other clustering algorithms can be used. At this high-level API call, makes assumptions that
-  # single-linkage w/ histogram-bin cutting heuristic is preferred.
-  m$setClusteringAlgorithm(cl = getParam("cl", default = "single"), ...)
-
-  ## VERTEX CONFIGURATION AND GENERATION ---------------------------
-  # Performs the partial clustering and vertex creation. Note that if a 'dist' object was passed in via X, then it
-  # will be subset based on the point indices within each level set. If X is a point cloud, then the metric dist
-  # object is computed locally within each level set, or a precomputed one will be used if available.
-  # If the number of intervals is high enough and the data set is sufficiently large, using the point cloud data directly
-  # is preferable and may result in large improvements in efficiency.
-  m$computeNodes(num_bins = getParam("num_bins", default = 10L), ...)
-
-  ## SIMPLICIAL COMPLEX CONFIGURATION AND GENERATION ---------------------------
-  # At this high-level interface call, only the 1-skeleton (graph) is computed within 'G.'
-  m$computeEdges()
+  m <- MapperRef$new(X = X)
+  
+  ## Configure mapper 
+  m$use_cover(filter_values = filter_values, type = cover_type, getParam("number_intervals", 5L), getParam("percent_overlap", 0.35))$
+    use_clustering_algorithm(cl = getParam("cl", "single"))$
+    use_distance_measure(measure = getParam("measure", "euclidean"))$
+    compute_vertices(num_bins = getParam("num_bins", 10L))$
+    compute_edges()
 
   ## Convert to 'Mapper' object or, if the reference class is wanted, return that. The .summary attribute
   ## stores a useful string used for default printing characteristics of the Mapper.
-  mapperoutput <- if (return_reference) m else m$exportMapper()
-  if (class(mapperoutput) == "Mapper"){
-    attr(mapperoutput, ".summary") <- c(attr(mapperoutput, ".summary"), paste0("\nCall:  ", paste0(trimws(deparse(match.call())), collapse = " "), sep = ""))
-  }
-  return(mapperoutput)
+  # mapperoutput <- if (return_reference) m else m$exportMapper()
+  # if (class(mapperoutput) == "Mapper"){
+  #   attr(mapperoutput, ".summary") <- c(attr(mapperoutput, ".summary"), paste0("\nCall:  ", paste0(trimws(deparse(match.call())), collapse = " "), sep = ""))
+  # }
+  return(m)
 }
 
 #' S3 method for default printing
