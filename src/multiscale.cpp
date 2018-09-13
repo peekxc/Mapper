@@ -4,11 +4,18 @@ using namespace Rcpp;
 #include <array>
 #include <cstdint>
 #include <stack>
+#include <set>
 #include "MultiSegmentTree.h"
 
 typedef std::vector< uint_fast8_t > index_t;
 typedef std::vector< std::shared_ptr<uint_fast8_t> > index_ptr_t;
 typedef std::ptrdiff_t s_size_t;
+
+std::string index_to_str(index_t idx){
+  std::stringstream result;
+  std::copy(idx.begin(), idx.end(), std::ostream_iterator<int>(result, " "));
+  return(result.str());
+}
 
 uint_fast8_t make_index_t(const int idx){
   return(static_cast<uint_fast8_t>(idx));
@@ -21,6 +28,18 @@ std::shared_ptr<uint_fast8_t> make_index_ptr_t(const int idx){
 }
 
 #define SWAP(x, y, T) do { T SWAP = x; x = y; y = SWAP; } while (0)
+
+template<typename ForwardIterator>
+std::map<int, int> get_unique_indices(ForwardIterator first, ForwardIterator last){
+  std::map<int, int> pt_to_unique_idx;
+  for(std::size_t i = 0; first != last; ++i, ++first){
+    auto it = pt_to_unique_idx.find(*first);
+    if (it == pt_to_unique_idx.end()) { // value doesn't exist
+      pt_to_unique_idx.emplace(*first, i);
+    }
+  }
+  return pt_to_unique_idx;
+}
 
 // Computes the absolute distances from a given point to the closest endpoint of each level set. This distance should 
 // represent 1/2 the smallest interval length the target level set would have to be (via expansion) to intersect the given point.
@@ -86,6 +105,7 @@ struct MultiScale {
   const NumericMatrix& data;
   const Function clustering_function;
   const int d;
+  int n;
   // Rcpp::XPtr<SegmentTree> tr; // the segment tree contains the level sets 
   // std::vector<LS_idx> level_set_idx;
   // std::vector< std::vector<uint> > level_sets;
@@ -99,6 +119,9 @@ struct MultiScale {
   std::vector< index_ptr_t > ls_idx; // tracks the per dimension endpt configuration
   std::map< index_t, uint_fast8_t > ls_map;
   std::map< index_ptr_t, uint_fast8_t > endpt_to_ls_map;
+  std::vector< std::vector< uint_fast8_t > > pt_segment_idx; 
+  
+  std::map< index_t, std::vector< int > > segment_map; 
   // std::vector< IntegerVector > segment_pts;
   
   MultiScale(const NumericMatrix& X, const Function f, const IntegerVector& k) : data(X), clustering_function(f), d(k.size()) { //, tr(stree) {
@@ -115,6 +138,10 @@ struct MultiScale {
     ls_idx = std::vector< index_ptr_t >(d);
     dist_to_box = std::vector< NumericVector >(d);
     swap_dist = std::vector< NumericVector >(d);
+    pt_segment_idx = std::vector< std::vector< uint_fast8_t > >(d);
+    
+    // Multi-dimensional testing
+    segment_map = std::map< index_t, std::vector< int > >(); 
     // Rcout << resolution << std::endl;
     
     
@@ -228,6 +255,26 @@ struct MultiScale {
   // }
   
   // Generates the level set multi-indexes as a vector of integer vectors
+  std::vector< IntegerVector > get_cart_prod(std::vector< IntegerVector > elems){
+    Function expand_grid = getFunctionR("expand.grid");
+    List cp_args = List();
+    for (int i = 0; i < elems.size(); ++i){
+      std::string key("d"); 
+      key += std::to_string(i);
+      cp_args[key] = elems.at(i);
+    }
+    DataFrame ls_multi_idx = expand_grid(cp_args);
+    
+    // Convert the indices to vector of indices 
+    std::vector< IntegerVector > indices =  std::vector< IntegerVector >();
+    for (int i = 0; i < elems.size(); ++i){
+      std::string key = "d" + std::to_string(i);
+      indices.push_back( ls_multi_idx[key] );
+    }
+    return(indices);
+  }
+  
+  // Generates the level set multi-indexes as a vector of integer vectors
   std::vector< IntegerVector > get_multi_indexes(){
     Function expand_grid = getFunctionR("expand.grid");
     List cp_args = List();
@@ -338,16 +385,127 @@ struct MultiScale {
   void build_segment_trees(const List& endpts, const NumericMatrix& filter_pts){
     mtree = std::shared_ptr<MultiSegmentTree>(new MultiSegmentTree(endpts));
     mtree->insert_pts(filter_pts);
+    
+    // Setup up cached index to store which segment the points fall in
+    const std::size_t n = filter_pts.nrow();
+    Rcout << "n: " << n << std::endl; 
+    for (int d_i = 0; d_i < d; ++d_i){
+      std::vector< uint_fast8_t > tmp = std::vector< uint_fast8_t >(n, -1);
+      uint_fast8_t i = 0; 
+      const std::shared_ptr<SegmentTree>& ctree = mtree->tr.at(d_i);
+      std::vector< std::vector<int> >::iterator leaf_it;
+      for (leaf_it = ctree->leaves.begin(); leaf_it != ctree->leaves.end(); ++leaf_it, ++i){
+        // For each leaf, assign to values of tmp at the corresponding point indices the current segment index i
+        std::for_each((*leaf_it).begin(), (*leaf_it).end(), [&tmp, &i](const int pt){
+          tmp.at(pt - 1) = i;
+        });
+      }
+      pt_segment_idx.at(d_i) = tmp;
+    }
   }
   
-  // void build_multiscale_configuration(
-  //   const IntegerVector& from_level_set_idx,
-  //   const IntegerVector& to_level_set_idx,
-  //   const IntegerVector& point_idx,
-  //   const NumericVector& interval_thresh,
-  // ){
-  // 
-  // }
+  List get_segment_map(){
+    List res = List();
+    for (auto& key_pair: segment_map){
+      std::string key = index_to_str(key_pair.first); 
+      res[key] = wrap(key_pair.second);
+    }
+    return(res);
+  }
+  
+  void build_multiscale_configuration(const IntegerMatrix& A, const NumericMatrix& filter_pts){
+    if (A.nrow() != filter_pts.nrow() || A.ncol() != filter_pts.ncol()){
+      stop("Dimensionality of inputs do not match.");
+    }
+    const int n = A.nrow();
+    index_t key = index_t(d);
+    for (std::size_t i = 0; i < n; ++i){
+      IntegerMatrix::ConstRow pt_idx = A.row(i);
+      std::transform(pt_idx.begin(), pt_idx.end(), key.begin(), make_index_t);
+      auto it = segment_map.lower_bound(key);
+      if (it != segment_map.end() && it->first == key) {
+        it->second.push_back(static_cast<int>(i));
+      } else {
+        std::vector< int > v = { static_cast<int>(i) };
+        segment_map.emplace_hint(it, key, v);
+      }
+    }
+    
+    
+    // if (filter_pts.ncol() != d){ stop("Filter points dimensionality does not match resolution dimension."); }
+    // Function findInterval = getFunctionR("findInterval"), rle = getFunctionR("rle"), order = getFunctionR("order");
+    // List tmp = List();
+    // std::vector< IntegerVector > int_len_v = std::vector< IntegerVector >();
+    // std::vector< IntegerVector > int_val_v = std::vector< IntegerVector >();
+    // std::vector< IntegerVector > o_pts_v = std::vector< IntegerVector >();
+    // for (int d_i = 0; d_i < d; ++d_i){
+    //   NumericVector pts = filter_pts.column(d_i);
+    //   NumericVector endpoints = endpts.at(d_i);
+    // 
+    //   // Extratc the order of the sorted endpoints
+    //   NumericVector s_endpts = clone(endpoints).sort(); // store the (sorted) endpoints
+    //   IntegerVector o_endpts = match(s_endpts, endpoints); // save the original ordering for interval queries
+    //   
+    //   // Sort the point / retrieve the original ordering
+    //   IntegerVector o_pts = order(pts); // sorted ordering
+    //   NumericVector s_pts = pts[o_pts - 1]; // sort coordinates
+    //   
+    //   // Partition the points into the given intervals
+    //   IntegerVector pt_int = findInterval(_["x"] = s_pts, _["vec"] = s_endpts, _["rightmost.closed"] = false, _["all.inside"] = true);
+    //   
+    //   // Use run-length encoding to get the interval sizes
+    //   const List rle_pt_int = rle(pt_int);
+    //   const IntegerVector int_len = rle_pt_int["lengths"];
+    //   const IntegerVector int_val = rle_pt_int["values"];
+    //   
+    //   // Store the needed intermediate result prior to building the map
+    //   // tmp.at(d_i) = List::create(_["int_len"] = int_len, _["int_val"] = int_val, _["o_pts"] = o_pts);
+    //   int_len_v.push_back(int_len);
+    //   int_val_v.push_back(int_val);
+    //   o_pts_v.push_back(o_pts);
+    // }
+    
+    // std::vector< IntegerVector > segment_idx = std::vector< IntegerVector >();
+    // std::transform(tmp.begin(), tmp.end(), segment_idx.begin(), [](const List& l_i){
+    //   as<IntegerVector>(l_i["int_val"]);
+    // });
+    // Assign the point indices to the leaves. The indices are sorted on copy.
+    // const int ne_int = int_len.size(); // number of non-empty intervals
+    // for (int i = 0, ci = 0; i < ne_int; ++i){
+    //   const int int_index = int_val.at(i) - 1, interval_len = int_len.at(i);
+    //   leaves.at(int_index).resize(interval_len);
+    //   std::partial_sort_copy(o_pts.begin() + ci, o_pts.begin() + ci + interval_len,
+    //                          leaves.at(int_index).begin(), leaves.at(int_index).end());
+    //   ci += interval_len;
+    // }
+    // LogicalVector
+    
+    // std::vector< IntegerVector > segment_multi_idx = get_cart_prod(int_val_v);
+    // const int n_idx = segment_multi_idx.at(0).size();
+    // std::vector<uint_fast8_t> dim_idx(d), multi_key(d);
+    // std::iota(dim_idx.begin(), dim_idx.end(), 0);
+    // for (int i = 0; i < n_idx; ++i){
+    //   std::transform(dim_idx.begin(), dim_idx.end(), multi_key.begin(), [&](const uint_fast8_t d_i){
+    //     segment_multi_idx.at(i).at(d_i);
+    //   });
+    //   std::vector<int> pt_idx = std::vector<int>();
+    //   std::for_each(dim_idx.begin(), dim_idx.end(), [&](const uint_fast8_t d_i){
+    //     int_
+    //   });
+    //   // segment_map.emplace(multi_key, );
+    // }
+    // 
+    // 
+    //   for (const auto &key_pair : endpt_to_ls_map){
+    //     IntegerVector query_l, query_r;
+    //     std::for_each(dim_idx.begin(), dim_idx.end(), [&](const int_fast8_t d_i){
+    //       const index_ptr_t& idx =  key_pair.first;
+    //       query_l.push_back(*idx.at(2*d_i));
+    //       query_r.push_back((*idx.at(2*d_i + 1)) + 1);
+    //     });
+    //     ls_pts.at(static_cast<int>(key_pair.second)) = mtree->query(query_l, query_r);
+    //   }
+  }
   
   // inline void swap_ls_index(std::size_t from, std::size_t to){
   //   if (from > level_set_idx.size() || to > level_set_idx.size()){ stop("Indexing error."); }
@@ -364,6 +522,7 @@ struct MultiScale {
   //     level_set_idx[from].endpt1 = tmp;
   //   }
   // }
+
   
   // inline void swap_ls(std::size_t i){
   //   if (i == 0 || i >= (ls_idx.size()/2)) { stop("Invalid swap configuration."); }
@@ -380,7 +539,7 @@ struct MultiScale {
   void update_cover(const s_size_t target_index, const s_size_t d_i){
     if (target_index < -1 || target_index >= pt_idx.at(d_i).size()){ stop("'next_index' must be non-negative and less than the size of the filtration."); }
     // Rcout << "current index: " << current_index.at(d_i) << std::endl;
-    // if we're already at the solution 
+    // If we're already at the solution, return
     if (current_index.at(d_i) == target_index){ return; }
     
     // Otherwise, check which direction we're going
@@ -392,6 +551,7 @@ struct MultiScale {
     const IntegerVector& c_swap_idx = swap_idx.at(d_i);
     const IntegerVector& c_from_ls = from_ls_idx.at(d_i);
     const IntegerVector& c_to_ls = to_ls_idx.at(d_i);
+    std::shared_ptr<SegmentTree>& c_tree = mtree->tr.at(d_i);
     
     // Loop through the parameterization
     if (is_increasing){
@@ -417,8 +577,8 @@ struct MultiScale {
         int to_leaf = from_ls < to_ls ? current_ls_config.at(to_ls*2) : current_ls_config.at(to_ls*2 + 1) - 1; // exclusive outer
         // Rprintf("Swapping point %d from leaf %d (in ls %d) to leaf %d (in ls %d)\n", c_pt_idx.at(i), from_leaf, from_ls, to_leaf, to_ls);
         
-        // TODO: improve this! remove segment tree and replace w/ index mapped list updated by reference! 
-        mtree->tr.at(d_i)->swap(from_leaf, to_leaf, c_pt_idx.at(i));
+        // Swap in the segemnt trees
+        c_tree->swap(from_leaf, to_leaf, c_pt_idx.at(i));
       }
       // Final update, since the current index is exclusive 
       //update_index();
@@ -446,7 +606,7 @@ struct MultiScale {
         // Rprintf("Swapping point %d from leaf %d (in ls %d) to leaf %d (in ls %d)\n", c_pt_idx.at(i), from_leaf, from_ls, to_leaf, to_ls);
         
         // TODO: improve this! remove segment tree and replace w/ index mapped list updated by reference! 
-        mtree->tr.at(d_i)->swap(from_leaf, to_leaf, c_pt_idx.at(i));
+        c_tree->swap(from_leaf, to_leaf, c_pt_idx.at(i));
       }
       // Final update, since the current index is exclusive 
       //update_index();
@@ -460,6 +620,150 @@ struct MultiScale {
       index_t new_ls_idx = compute_ls_idx(0, d_i);
       assign_ls_idx(new_ls_idx, ls_idx.at(d_i)); // dynamically update the indices
     }
+  }
+  
+  void update_multi_cover(const IntegerVector target_index){
+    if (target_index.size() != d){ stop("Invalid query, doesn't match dimensionality of filter space."); }
+    int d_i = 0; 
+    bool all_equal = std::all_of(target_index.begin(), target_index.end(), [&](const int ti){ return(ti == current_index.at(d_i++)); });
+    if (all_equal) { return; }
+    std::vector< std::vector<int> > pts_to_change_per_d(d); 
+    std::vector< std::vector<uint_fast8_t> > pt_seg_from(d); 
+    std::vector< std::vector<uint_fast8_t> > pt_seg_to(d); 
+    std::vector< std::vector<std::size_t> > pt_absolute_idx(d); 
+    std::unordered_set<int> pts_to_change;
+    for (d_i = 0; d_i < d; ++d_i){
+      const bool is_increasing = current_index.at(d_i) < target_index.at(d_i); // Otherwise, check which direction we're going
+      const int start_idx = is_increasing ? current_index.at(d_i)+1 : current_index.at(d_i);
+      const int end_idx = is_increasing ? target_index.at(d_i) : target_index.at(d_i) + 1;
+      const IntegerVector& c_swap_idx = swap_idx.at(d_i);
+      const IntegerVector& c_pt_idx = pt_idx.at(d_i);
+      const IntegerVector& c_from_ls = from_ls_idx.at(d_i);
+      const IntegerVector& c_to_ls = to_ls_idx.at(d_i);
+      std::vector< int > pt_idx_vec = std::vector<int>(c_pt_idx.begin() + start_idx, c_pt_idx.begin() + end_idx);
+      // IntegerVector pt_ids = wrap(pt_idx_vec);
+      // Rcout << pt_ids << std::endl; 
+      std::map<int, int> pt_uniq_idx = get_unique_indices(pt_idx_vec.rbegin(), pt_idx_vec.rend());
+      for (auto& pidx: pt_uniq_idx){
+        const int idx = pt_idx_vec.size() - pidx.second - 1; // relative index
+        // Rprintf("pt id: %d, relative idx: %d, start idx: %d, end_idx: %d\n", pidx.first, idx, start_idx, end_idx);
+        index_t new_ls_idx = compute_ls_idx(c_swap_idx.at(start_idx + idx), d_i);
+        const int from_ls = c_from_ls.at(idx), to_ls = c_to_ls.at(idx);
+        const int pt = pidx.first;
+        const int from_segment = pt_segment_idx.at(d_i).at(pt - 1);
+        const int to_segment = from_ls < to_ls ? new_ls_idx.at(to_ls*2) : new_ls_idx.at(to_ls*2 + 1) - 1; // exclusive outer
+        Rprintf("pt id: %d (rel idx=%d) going from ls %d to %d (segment %d to %d)\n", pidx.first, idx, from_ls, to_ls, from_segment, to_segment);
+        pts_to_change_per_d.at(d_i).push_back(pt);
+        pt_seg_from.at(d_i).push_back(from_segment);
+        pt_seg_to.at(d_i).push_back(to_segment);
+        pts_to_change.insert(pt);
+        pt_absolute_idx.at(d_i).push_back(start_idx + idx);
+      } // given the unique pts and their indices, get their corresponding segment locations
+    }
+    Rcout << "finsihg preprocessing " << std::endl; 
+    // Prepare vector of dimension indices
+    std::vector<int> dim_idx(d);
+    std::iota(dim_idx.begin(), dim_idx.end(), 0);
+    
+    // Swap the points the between the appropriate segments!  
+    index_t key_from(d), key_to(d); 
+    std::for_each(pts_to_change.begin(), pts_to_change.end(), [&](const int pt){
+      std::for_each(dim_idx.begin(), dim_idx.end(), [&](const int d_i){
+        std::vector<int> candidate_pts = pts_to_change_per_d.at(d_i);
+        ptrdiff_t pos = std::distance(candidate_pts.begin(), std::find(candidate_pts.begin(), candidate_pts.end(), pt));
+        if (pos == candidate_pts.size()) { // doesn't exist
+          Rprintf("Using point %d's (dim=%d) default current positon %d\n", pt, d_i, pt-1);
+          key_from.at(d_i) = pt_segment_idx.at(d_i).at(pt-1); // use wherever it's at 
+          key_to.at(d_i) = pt_segment_idx.at(d_i).at(pt-1); // use wherever it's at 
+        } else {
+          key_from.at(d_i) = pt_seg_from.at(d_i).at(pos);
+          key_to.at(d_i) = pt_seg_to.at(d_i).at(pos);
+        }
+      });
+      std::string key_str_from = index_to_str(key_from);
+      std::string key_str_to = index_to_str(key_to);
+      Rprintf("pt: %d from %s to %s\n", pt, key_str_from.c_str(), key_str_to.c_str());
+    });
+
+    
+    
+    // s_size_t i; 
+    // std::vector< index_t > from_segments(d), to_segments(d);
+    // for (d_i = 0; d_i < d; ++d_i){
+    //   const bool is_increasing = current_index.at(d_i) < target_index.at(d_i); // Otherwise, check which direction we're going
+    //   auto update_index = [&i, is_increasing](){ is_increasing ? ++i : --i; };
+    //   const IntegerVector& c_pt_idx = pt_idx.at(d_i);
+    //   const IntegerVector& c_swap_idx = swap_idx.at(d_i);
+    //   const IntegerVector& c_from_ls = from_ls_idx.at(d_i);
+    //   const IntegerVector& c_to_ls = to_ls_idx.at(d_i);
+    //   // std::shared_ptr<SegmentTree>& c_tree = mtree->tr.at(d_i);
+    //   if (is_increasing){
+    //     for (i = current_index.at(d_i) + 1; i <= target_index.at(d_i); update_index()){
+    //       // Rcout << "index: " << i << std::endl;
+    //       if (current_cover.at(d_i) != c_swap_idx.at(i)){ // Update the level set segment index
+    //         current_cover.at(d_i) = c_swap_idx.at(i);
+    //         index_t new_ls_idx = compute_ls_idx(c_swap_idx.at(i), d_i);
+    //         assign_ls_idx(new_ls_idx, ls_idx.at(d_i)); // dynamically update the indices
+    //       }
+    //       IntegerVector current_ls_config = get_ls_idx(c_swap_idx.at(i), d_i);
+    //       const int from_ls = c_from_ls.at(i), to_ls = c_to_ls.at(i);
+    //       from_segments.at(d_i).push_back(pt_segment_idx.at(d_i).at(c_pt_idx.at(i)));
+    //       to_segments.at(d_i).push_back(from_ls < to_ls ? current_ls_config.at(to_ls*2) : current_ls_config.at(to_ls*2 + 1) - 1); // exclusive outer
+    //     }
+    //   } else {
+    //     for(i = current_index.at(d_i); i > target_index.at(d_i); update_index()){
+    //       if (current_cover.at(d_i) != c_swap_idx.at(i)){ // Update the level set segment index
+    //         current_cover.at(d_i) = c_swap_idx.at(i);
+    //         index_t new_ls_idx = compute_ls_idx(c_swap_idx.at(i), d_i);
+    //         assign_ls_idx(new_ls_idx, ls_idx.at(d_i)); // dynamically update the indices
+    //       }
+    //       IntegerVector current_ls_config = get_ls_idx(c_swap_idx.at(i), d_i);
+    //       const int from_ls = c_to_ls.at(i), to_ls = c_from_ls.at(i);
+    //       from_segments.at(d_i).push_back(pt_segment_idx.at(d_i).at(c_pt_idx.at(i)));
+    //       to_segments.at(d_i).push_back(to_ls < from_ls ? from_segments.at(d_i).back() - 1 : from_segments.at(d_i).back() + 1);
+    //     }
+    //   }
+    // }
+    // 
+
+    // 
+    // // Update the segments appropriately
+    // std::vector<int> from_update, to_update;
+    // std::unique_copy(from_segments.at(d_i).rbegin(), from_segments.at(d_i).rend(), std::back_inserter(from_update));
+    // std::unique_copy(to_segments.at(d_i).rbegin(), to_segments.at(d_i).rend(), std::back_inserter(to_update));
+    // // std::map<int, int> sti_from, sti_to;
+    // // std::for_each(dim_idx.begin(), dim_idx.end(), [&](const int d_i){
+    // //   sti_from = get_unique_indices(from_segments.at(d_i).rbegin(), from_segments.at(d_i).rend());
+    // //   sti_to = get_unique_indices(to_segments.at(d_i).rbegin(), to_segments.at(d_i).rend());
+    // //   for (auto& key_pair: sti_from){
+    // //     int segment_from = key_pair.first
+    // //     int pt_idx = 
+    // //   }
+    // // });
+    // 
+    // // std::find_first_of(pt_idx.)
+    // // c_tree->swap(from_leaf, to_leaf, c_pt_idx.at(i));
+    // for (auto& key_pair: segment_map){
+    //   std::string key = index_to_str(key_pair.first); 
+    //   res[key] = wrap(key_pair.second);
+    // }
+    // segment_map.
+    // 
+    // // Finish up
+    // std::copy(target_index.begin(), target_index.end(), current_index.begin());
+    // 
+    // // If we updated all the way to start, set cover to original disjoint cover
+    // for (int d_i = 0; d_i < d; ++d_i){
+    //   if (current_index.at(d_i) == -1){
+    //     current_cover.at(d_i) = 0;
+    //     index_t new_ls_idx = compute_ls_idx(0, d_i);
+    //     assign_ls_idx(new_ls_idx, ls_idx.at(d_i)); // dynamically update the indices
+    //   }
+    // }
+  } // update_multi_cover 
+  
+  IntegerVector get_segment_idx(const int d_i){
+    return wrap(pt_segment_idx.at(d_i));
   }
   
   // Generates the level sets given the current cover parameterization, i.e. a list of which points (by index) intersect each level set. 
@@ -697,8 +1001,10 @@ RCPP_MODULE(multiscale_module) {
   // .method( "get_base_cover_ls", &MultiScale::get_base_cover_ls )
   .method( "compute_ls_idx", &MultiScale::compute_ls_idx )
   .method( "get_level_sets", &MultiScale::get_level_sets )
-  // .method( "create_flat_sets", &MultiScale::create_flat_sets )
-  // .method( "get_flat_sets", &MultiScale::get_flat_sets )
+  .method( "get_segment_idx", &MultiScale::get_segment_idx )
+  .method( "build_multiscale_configuration", &MultiScale::build_multiscale_configuration )
+  .method( "get_segment_map", &MultiScale::get_segment_map )
+  .method( "update_multi_cover", &MultiScale::update_multi_cover )
   ;
 }
 

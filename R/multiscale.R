@@ -17,14 +17,14 @@ MapperRef$set("public", "multiscale",
     data("noisy_circle")
     left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
     f_x <- apply(noisy_circle, 1, function(pt) (pt - left_pt)[1])[1:10]
-    filter_values <- matrix(f_x)
-    # filter_values <- cbind(f_x, (max(f_x) - f_x^2) + rnorm(length(f_x), sd = 2))
+    # filter_values <- matrix(f_x)
+    filter_values <- cbind(f_x, (max(f_x) - f_x^2) + rnorm(length(f_x), sd = 2))
     
     # m <- MapperRef$new(noisy_circle)
     # m$set_cover(filter_values = fv, type = "fixed rectangular", number_intervals = 5L, percent_overlap = 0.35)
     # 
-    filter_dim <- 1L
-    number_intervals <- 7L
+    filter_dim <- 2L
+    number_intervals <- rep(7L, filter_dim)
     
     ## Extract the cartesian product of the level sets (index set)
     indices <- lapply(number_intervals, seq) ## per-dimension possible indexes
@@ -104,12 +104,19 @@ MapperRef$set("public", "multiscale",
     }
     ms_mapper$build_segment_trees(endpts = endpts, filter_pts = filter_values)
 
+    ms_mapper$build_multiscale_configuration((A-1L)*2, filter_values);
+    ms_mapper$get_segment_map()
+    ms_mapper$update_multi_cover(c(1L, 1L))
+    
     ms_mapper$update_cover(0L, 0L)
     ms_mapper$update_cover(1L, 0L)
     ms_mapper$update_cover(2L, 0L)
     ms_mapper$update_cover(3L, 0L)
 
     ms_mapper$update_cover(0L, 0L)
+    
+    
+    
     
     mtree <- Mapper:::MultiSegmentTree$new(endpts = endpts)
     mtree$insert_pts(filter_values)
@@ -124,11 +131,93 @@ MapperRef$set("public", "multiscale",
       invisible(readline(prompt="Press [enter] to continue"))
     }
 
+    
+    make_square <- function(x, y, ...){
+      lines(x = c(x[1], x[2]), y = c(y[1], y[1]), ...)
+      lines(x = c(x[2], x[2]), y = c(y[1], y[2]), ...)
+      lines(x = c(x[2], x[1]), y = c(y[2], y[2]), ...)
+      lines(x = c(x[1], x[1]), y = c(y[2], y[1]), ...)
+    }
+    get_range <- function(x){ range(x)+c(-1, 1)*diff(range(x))*0.10 }
+    
+    plot_2d <- function(idx){
+      if (length(idx) != length(dist_to_ls)){stop("nope")}
+    
+      ## Construct the level sets
+      ls_endpts <- lapply(1L:filter_dim, function(d_i){
+        ## Choose the interval (half) width to plot 
+        eps <- (base_interval_length/2) + dist_to_ls[[d_i]]$target_dist[dist_order[[d_i]]][idx[d_i]] ## parameterized overlap
+        tmp <- as.vector(sapply(0L:(number_intervals[d_i] - 1L), function(idx){
+          centroid <- filter_min[d_i] + (as.integer(idx)*base_interval_length[d_i]) + base_interval_length[d_i]/2.0
+          c(centroid - eps[d_i], centroid + eps[d_i])
+        }))
+        matrix(tmp, ncol = 2, byrow = TRUE)
+      })
+  
+      plot(filter_values, pch = 20, 
+           xlim = get_range(filter_values[, 1L]), ylim = get_range(filter_values[, 2L]),
+           xlab = "", ylab = "") # xaxt = "n", yaxt = "n"
+      text(filter_values, labels = 1:10, pos = 3)
+      # abline(h = 0, col = "gray", lty = 3, lwd = 1.5)
+      binned_color <- rev(rainbow(nrow(cart_prod), start = 0, end = 4/6))
+      cc <- 0L
+      for (i in 1:nrow(cart_prod)){
+        { ii <- cart_prod[i,1]; jj <- cart_prod[i,2] }
+        { cls1 <- ls_endpts[[1]]; cls2 <- ls_endpts[[2]] }
+        col <- binned_color[ii*jj]
+        make_square(cls1[ii,], cls2[jj,], col = col)
+        points(x = mean(cls1[ii,]), y = mean(cls2[jj,]), col = col, pch = 3)
+        text(x = mean(cls1[ii,]), y = mean(cls2[jj,]), labels = trimws(paste0(c(ii, jj), collapse = ",")), cex = 0.50, pos = 3)
+      }
+    }
+    
+    # plot_segments <- function(d_i, fix_y = TRUE, fixed = max(filter_values[, d_i])){
+    #   cls <- ls_endpts[[d_i]]
+    #   for (i in 1:nrow(cls)){
+    #     ls <- cls[i, ]
+    #     if (i %in% c(1, nrow(cls))){
+    #       if (i == 1){
+    #         if (fix_y){ params <- list() }
+    #         lines(x = c(ls[1], cls[i+1L, 1L]), y = rep(0.51, 2))
+    #         text(x = mean(c(ls[1], cls[i+1L, 1L])), y = 0.5, pos = 3, labels = as.character(cc))
+    #         cc <- cc + 1
+    #         lines(x = c(cls[i+1L, 1L], ls[2]), y = rep(0.51, 2))
+    #         text(x = mean(c(cls[i+1L, 1L], ls[2])), y = 0.5, pos = 3, labels = as.character(cc))
+    #         cc <- cc + 1
+    #       }
+    #       else if (i == nrow(cls)){
+    #         lines(x = c(cls[i-1L, 2L], ls[2]), y = rep(0.51, 2))
+    #         text(x = mean(c(cls[i-1L, 2L], ls[2])), y = 0.5, pos = 3, labels = as.character(cc))
+    #         cc <- cc + 1
+    #       }
+    #     } else {
+    #       lines(x = c(cls[i-1L, 2L], cls[i+1L, 1L]), y = rep(0.51, 2))
+    #       text(x = mean(c(cls[i-1L, 2L], cls[i+1L, 1L])), y = 0.5, pos = 3, labels = as.character(cc))
+    #       cc <- cc + 1
+    #       lines(x = c(cls[i+1L, 1L], ls[2]), y = rep(0.51, 2))
+    #       text(x = mean(c(cls[i+1L, 1L], ls[2])), y = 0.5, pos = 3, labels = as.character(cc))
+    #       cc <- cc + 1
+    #     }
+    #   }
+    # }
+ 
+      lines(x = c(ls[1], ls[2]), y = c(-0.5, -0.5), col = binned_color[i])
+      lines(x = c(ls[2], ls[2]), y = c(-0.5, 0.5), col = binned_color[i])
+      lines(x = c(ls[2], ls[1]), y = c(0.5, 0.5), col = binned_color[i])
+      lines(x = c(ls[1], ls[1]), y = c(0.5, -0.5), col = binned_color[i])
+      text(labels = as.character(i - 1L), x = mean(c(ls[1], ls[2])), y = -0.5, col = binned_color[i], pos = 1)
+      points(x = mean(c(ls[1], ls[2])), y = 0, pch = 3, col = binned_color[i])
+      i <- i + 1
+
+    points(filter_values[, d_i], rep(0, 10), pch = 20)
+    points(filter_values[pt_idx[[d_i]][idx], d_i], 0, pch = 21, cex = 1.5, col = "purple")
+    text(filter_values[, d_i], 0, labels = 1:10, pos = 3)
+    
     animation::saveGIF({
       for (i in 1:length(pt_idx[[1]])){ plot_configuration(1L, i) }
     }, movie.name = "expanding_boxes.gif", interval = 0.2)
     
-    
+    idx <- 0L
     plot_configuration <- function(d_i, idx){
       ## Choose the interval (half) width to plot 
       eps <- (base_interval_length/2) + dist_to_ls[[d_i]]$target_dist[dist_order[[d_i]]][idx] ## parameterized overlap
