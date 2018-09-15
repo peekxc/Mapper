@@ -2,13 +2,13 @@
 title: "Using the Mapper package"
 author: "Matt Piekenbrock"
 output:
+  html_notebook: default
   html_document:
     df_print: paged
-  html_notebook: default
   pdf_document: default
 ---
 
-Consider a noisy sampling along the perimeter of a circle 
+Consider a noisy sampling of points along the perimeter of a circle in $\mathbb{R}^2$
 ```{r}
 ## Generate noisy points around the perimeter of a circle 
 n <- 1500
@@ -104,8 +104,8 @@ m$clustering_algorithm <- custom_clustering_f
 
 To simplify these choices, the user may alternatively simply choose from the list of widely-supported hierarchical clustering algorithms (i.e. linkage criteria) and distance measures with the `set_clustering_algorithm` and `set_distance_measure` functions, respectively. 
 ```{r}
-m$set_clustering_algorithm(cl = "single")
-m$set_distance_measure(measure = "euclidean")
+m$use_clustering_algorithm(cl = "single")
+m$use_distance_measure(measure = "euclidean")
 ```
 For a complete list of the available linkage criteria and distance/similarity measures, see `?stats::hclust` and `?proxy::pr_DB`, respectively.
 
@@ -130,39 +130,23 @@ All the methods can chained.
 ```{r}
 m <- MapperRef$new(noisy_circle)$
   use_cover(filter_values = f_x, type = "fixed rectangular", number_intervals = 5L, percent_overlap = 0.35)$
-  use_clustering_algorithm(cl = "single")$
+  use_clustering_algorithm(cl = "single", num_bins = 10)$
   use_distance_measure(measure = "euclidean")$
-  compute_vertices(num_bins = 10)$
+  compute_vertices()$
   compute_edges()
 ```
 
-To plot an interactive, force-directed version of the topological graph, just call `$plot_interactive` function.
-```{r}
-m$plot_interactive()
-```
-
-This returns 
-
-With R6, this provides a nice way to interactively build the construction. It also, however can be useful. 
-
-Keep in mind that to keep the reference object around, copies of the original data and filter values are stored internally. Thus, the reference object takes up significantly more memory than the bare components.
-```{r}
-suppressMessages(library("pryr", quietly = TRUE))
-pryr::object_size(m)
-pryr::object_size(m_ref)
-```
-
-If the dimensionality is low enough, there's default methods to plot the network or look at the filter space: 
-```{r}
-m_ref$plotNetwork()
-m_ref$cover$plotFilterSpace()
-```
-
-The Mapper packages provides a [force-directed](https://github.com/d3/d3-force) [htmlwidget](https://www.htmlwidgets.org/) implementation of Ayasdi's open source [grapher](https://github.com/ayasdi/grapher) library, which can be used to visualize the Mapper network. 
+The `grapher` packages provides a [force-directed](https://github.com/d3/d3-force) [htmlwidget](https://www.htmlwidgets.org/) implementation of Ayasdi's open source [grapher](https://github.com/ayasdi/grapher) library, which can be used to visualize the Mapper network.  
 ```{r}
 library("grapher")
-g <- grapher::grapher(m_ref)
-g
+g <- grapher(m$simplicial_complex$as_adjacency_matrix())
+g %>% 
+  center()
+```
+
+To customize the visualization, refer to graphers [documentation](). The `$plot_interactive` function provides a few default coloring and sizing options.
+```{r}
+m$plot_interactive()
 ```
 
 A simple interface class `grapher` is provided to programmatically interact with the widget. The methods can be printed as follows: 

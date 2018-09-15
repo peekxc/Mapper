@@ -622,9 +622,50 @@ struct MultiScale {
     }
   }
   
+  // Retrieves the last known target segment a point would've merged to, w/ increasing overlap,
+  // up to and including the given target index of the filtration.
+  std::map<int, int> last_known_target_segment(std::vector<int> pt_ids, const int target_idx, const int d_i){
+    const IntegerVector& c_swap_idx = swap_idx.at(d_i);
+    const IntegerVector& c_pt_idx = pt_idx.at(d_i);
+    const IntegerVector& c_from_ls = from_ls_idx.at(d_i);
+    const IntegerVector& c_to_ls = to_ls_idx.at(d_i);
+    std::vector< int > pt_idx_vec = std::vector<int>(c_pt_idx.begin(), c_pt_idx.begin() + target_idx + 1);
+    
+    // Retrieve the unique point indices that last changed along the range, going backwards
+    std::map<int, int> pt_uniq_idx = get_unique_indices(pt_idx_vec.rbegin(), pt_idx_vec.rend()); 
+    
+    // For each point, retrieve its last target segment
+    std::map<int, int> pt_to_res; 
+    for (auto& pidx: pt_uniq_idx){
+      const int global_idx = pt_idx_vec.size() - pidx.second - 1; // relative index 
+      index_t new_ls_idx = compute_ls_idx(c_swap_idx.at(global_idx), d_i);
+      const int from_ls = c_from_ls.at(global_idx), to_ls = c_to_ls.at(global_idx);
+      const int pt = pidx.first;
+      const int to_segment = (from_ls < to_ls ? new_ls_idx.at(to_ls*2) : new_ls_idx.at(to_ls*2 + 1) - 1); 
+      pt_to_res.emplace(pidx.first, to_segment);
+    }
+    
+    // Any point not in the map is in its default position
+    std::for_each(pt_ids.begin(), pt_ids.end(), [&](const int pt){
+      std::map<int, int>::iterator it = pt_to_res.find(pt);
+      if (it == pt_to_res.end()){ // pt wasn't found in the map
+        std::size_t first_pt_idx = std::distance(pt_idx.at(d_i).begin(), std::find(pt_idx.at(d_i).begin(), pt_idx.at(d_i).end(), pt));
+        int first_ls = from_ls_idx.at(d_i).at(first_pt_idx);
+        pt_to_res.emplace_hint(it, pt, first_ls*2); // every point initially exists in the lower segment of its initial level set
+      }
+    });
+    
+    // Return the map
+    return(pt_to_res);
+  }
+  
   void update_multi_cover(const IntegerVector target_index){
     if (target_index.size() != d){ stop("Invalid query, doesn't match dimensionality of filter space."); }
     int d_i = 0; 
+    bool invalid = std::any_of(target_index.begin(), target_index.end(), [&](const int ti){ 
+      return(ti < -1 || ti >= pt_idx.at(d_i++).size());
+    });
+    d_i = 0;
     bool all_equal = std::all_of(target_index.begin(), target_index.end(), [&](const int ti){ return(ti == current_index.at(d_i++)); });
     if (all_equal) { return; }
     std::vector< std::vector<int> > pts_to_change_per_d(d); 
@@ -634,31 +675,71 @@ struct MultiScale {
     std::unordered_set<int> pts_to_change;
     for (d_i = 0; d_i < d; ++d_i){
       const bool is_increasing = current_index.at(d_i) < target_index.at(d_i); // Otherwise, check which direction we're going
-      const int start_idx = is_increasing ? current_index.at(d_i)+1 : current_index.at(d_i);
-      const int end_idx = is_increasing ? target_index.at(d_i) : target_index.at(d_i) + 1;
+      const int start_idx = is_increasing ? current_index.at(d_i)+1 : target_index.at(d_i)+1; // inclusive
+      const int end_idx = is_increasing ? target_index.at(d_i) : current_index.at(d_i); // inclusive
+      Rprintf("is increasing? %s  ==> start: %d, end: %d\n", is_increasing ? "YES" : "NO", start_idx, end_idx);
       const IntegerVector& c_swap_idx = swap_idx.at(d_i);
       const IntegerVector& c_pt_idx = pt_idx.at(d_i);
       const IntegerVector& c_from_ls = from_ls_idx.at(d_i);
       const IntegerVector& c_to_ls = to_ls_idx.at(d_i);
-      std::vector< int > pt_idx_vec = std::vector<int>(c_pt_idx.begin() + start_idx, c_pt_idx.begin() + end_idx);
-      // IntegerVector pt_ids = wrap(pt_idx_vec);
-      // Rcout << pt_ids << std::endl; 
-      std::map<int, int> pt_uniq_idx = get_unique_indices(pt_idx_vec.rbegin(), pt_idx_vec.rend());
-      for (auto& pidx: pt_uniq_idx){
-        const int idx = pt_idx_vec.size() - pidx.second - 1; // relative index
-        // Rprintf("pt id: %d, relative idx: %d, start idx: %d, end_idx: %d\n", pidx.first, idx, start_idx, end_idx);
-        index_t new_ls_idx = compute_ls_idx(c_swap_idx.at(start_idx + idx), d_i);
-        const int from_ls = c_from_ls.at(idx), to_ls = c_to_ls.at(idx);
-        const int pt = pidx.first;
-        const int from_segment = pt_segment_idx.at(d_i).at(pt - 1);
-        const int to_segment = from_ls < to_ls ? new_ls_idx.at(to_ls*2) : new_ls_idx.at(to_ls*2 + 1) - 1; // exclusive outer
-        Rprintf("pt id: %d (rel idx=%d) going from ls %d to %d (segment %d to %d)\n", pidx.first, idx, from_ls, to_ls, from_segment, to_segment);
-        pts_to_change_per_d.at(d_i).push_back(pt);
-        pt_seg_from.at(d_i).push_back(from_segment);
-        pt_seg_to.at(d_i).push_back(to_segment);
-        pts_to_change.insert(pt);
-        pt_absolute_idx.at(d_i).push_back(start_idx + idx);
-      } // given the unique pts and their indices, get their corresponding segment locations
+      std::vector< int > pt_idx_vec = std::vector<int>(c_pt_idx.begin() + start_idx, c_pt_idx.begin() + end_idx + 1);
+      
+      IntegerVector pt_ids = wrap(pt_idx_vec);
+      Rcout << pt_ids << std::endl; 
+      
+      std::map<int, int> pt_uniq_idx; 
+      if (is_increasing){
+        pt_uniq_idx = get_unique_indices(pt_idx_vec.rbegin(), pt_idx_vec.rend()); 
+        for (auto& pidx: pt_uniq_idx){
+          const int pt = pidx.first;
+          const int global_idx = start_idx + (pt_idx_vec.size() - pidx.second - 1); // global pt index
+          const int from_ls = c_from_ls.at(global_idx), to_ls = c_to_ls.at(global_idx);
+          
+          // Update the level set configuration, retrieve which segment(s) the point is going to/coming from
+          index_t new_ls_idx = compute_ls_idx(c_swap_idx.at(global_idx), d_i);
+          const int from_segment = pt_segment_idx.at(d_i).at(pt - 1);
+          const int to_segment = (from_ls < to_ls ? new_ls_idx.at(to_ls*2) : new_ls_idx.at(to_ls*2 + 1) - 1);
+          
+          // Record the changes that need to happen
+          Rprintf("pt id: %d (global=%d) going from ls %d to %d (segment %d to %d)\n", pidx.first, global_idx, from_ls, to_ls, from_segment, to_segment);
+          pts_to_change_per_d.at(d_i).push_back(pt);
+          pt_seg_from.at(d_i).push_back(from_segment);
+          pt_seg_to.at(d_i).push_back(to_segment);
+          pts_to_change.insert(pt);
+          
+          // Update the 'from' segment cache 
+          pt_segment_idx.at(d_i).at(pt - 1) = to_segment;
+        }
+      } else {
+        pt_uniq_idx = get_unique_indices(pt_idx_vec.begin(), pt_idx_vec.end());
+        std::vector<int> target_pt_ids = std::vector<int>();
+        target_pt_ids.reserve(pt_uniq_idx.size());
+        for(std::map<int,int>::iterator it = pt_uniq_idx.begin(); it != pt_uniq_idx.end(); ++it) {
+          target_pt_ids.push_back(it->first);
+        }
+        std::map<int, int> pt_target_seg = last_known_target_segment(target_pt_ids, target_index.at(d_i), d_i);
+        
+        for (auto& pidx: pt_uniq_idx){
+          const int pt = pidx.first;
+          const int global_idx = start_idx + pidx.second; // global pt index
+          const int from_ls = c_from_ls.at(global_idx), to_ls = c_to_ls.at(global_idx);
+          
+          // Update the level set configuration, retrieve which segment(s) the point is going to/coming from
+          index_t new_ls_idx = compute_ls_idx(c_swap_idx.at(global_idx), d_i);
+          const int from_segment = pt_segment_idx.at(d_i).at(pt - 1);
+          const int to_segment = pt_target_seg.at(pt);
+          
+          // Record the changes that need to happen
+          Rprintf("pt id: %d (global=%d) going from ls %d to %d (segment %d to %d)\n", pidx.first, global_idx, from_ls, to_ls, from_segment, to_segment);
+          pts_to_change_per_d.at(d_i).push_back(pt);
+          pt_seg_from.at(d_i).push_back(from_segment);
+          pt_seg_to.at(d_i).push_back(to_segment);
+          pts_to_change.insert(pt);
+          
+          // Update the 'from' segment cache 
+          pt_segment_idx.at(d_i).at(pt - 1) = to_segment;
+        }
+      }
     }
     Rcout << "finsihg preprocessing " << std::endl; 
     // Prepare vector of dimension indices
@@ -683,7 +764,21 @@ struct MultiScale {
       std::string key_str_from = index_to_str(key_from);
       std::string key_str_to = index_to_str(key_to);
       Rprintf("pt: %d from %s to %s\n", pt, key_str_from.c_str(), key_str_to.c_str());
+      std::vector<int>& from_pts = segment_map[key_from];
+      std::remove_if(from_pts.begin(), from_pts.end(), [pt](const int x_i){ return(x_i == pt); });
+      segment_map[key_to].push_back(pt);
+    
     });
+    
+    // If we updated all the way to start, set cover to original disjoint cover
+    for (d_i = 0; d_i < d; ++d_i){
+      current_index.at(d_i) = target_index.at(d_i);
+      if (current_index.at(d_i) == -1){
+        current_cover.at(d_i) = 0;
+        index_t new_ls_idx = compute_ls_idx(0, d_i);
+        assign_ls_idx(new_ls_idx, ls_idx.at(d_i)); // dynamically update the indices
+      }
+    }
 
     
     

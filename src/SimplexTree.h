@@ -47,6 +47,7 @@ struct SimplexTree {
   
   // User-facing API 
   void add_vertices(const uint v_i);
+  void remove_vertices(IntegerVector vertex_ids);
   void remove_edge(IntegerVector labels);
   void insert_simplex(std::vector<uint> labels);
   bool find_simplex(const IntegerVector& simplex);

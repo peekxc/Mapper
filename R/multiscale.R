@@ -17,7 +17,7 @@ MapperRef$set("public", "multiscale",
     data("noisy_circle")
     left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
     f_x <- apply(noisy_circle, 1, function(pt) (pt - left_pt)[1])[1:10]
-    # filter_values <- matrix(f_x)
+    #filter_values <- matrix(f_x)
     filter_values <- cbind(f_x, (max(f_x) - f_x^2) + rnorm(length(f_x), sd = 2))
     
     # m <- MapperRef$new(noisy_circle)
@@ -106,7 +106,15 @@ MapperRef$set("public", "multiscale",
 
     ms_mapper$build_multiscale_configuration((A-1L)*2, filter_values);
     ms_mapper$get_segment_map()
-    ms_mapper$update_multi_cover(c(1L, 1L))
+    
+    ## 1D case
+    ms_mapper$update_multi_cover(c(1L))
+    ms_mapper$update_multi_cover(c(0L))
+    
+    ms_mapper$update_multi_cover(c(0L, -1L))
+    plot_2d(c(1, 1))
+    ms_mapper$update_multi_cover(c(0L, -1L))
+    ms_mapper$update_multi_cover(c(1L, -1L))
     
     ms_mapper$update_cover(0L, 0L)
     ms_mapper$update_cover(1L, 0L)
@@ -146,7 +154,11 @@ MapperRef$set("public", "multiscale",
       ## Construct the level sets
       ls_endpts <- lapply(1L:filter_dim, function(d_i){
         ## Choose the interval (half) width to plot 
-        eps <- (base_interval_length/2) + dist_to_ls[[d_i]]$target_dist[dist_order[[d_i]]][idx[d_i]] ## parameterized overlap
+        if (idx[d_i] == 0){
+          eps <- (base_interval_length/2)
+        } else {
+          eps <- (base_interval_length/2) + dist_to_ls[[d_i]]$target_dist[dist_order[[d_i]]][idx[d_i]] ## parameterized overlap
+        }
         tmp <- as.vector(sapply(0L:(number_intervals[d_i] - 1L), function(idx){
           centroid <- filter_min[d_i] + (as.integer(idx)*base_interval_length[d_i]) + base_interval_length[d_i]/2.0
           c(centroid - eps[d_i], centroid + eps[d_i])
@@ -217,11 +229,15 @@ MapperRef$set("public", "multiscale",
       for (i in 1:length(pt_idx[[1]])){ plot_configuration(1L, i) }
     }, movie.name = "expanding_boxes.gif", interval = 0.2)
     
-    idx <- 0L
+    plot_configuration(1L, 0)
     plot_configuration <- function(d_i, idx){
-      ## Choose the interval (half) width to plot 
-      eps <- (base_interval_length/2) + dist_to_ls[[d_i]]$target_dist[dist_order[[d_i]]][idx] ## parameterized overlap
-      
+      if (idx == 0){
+        eps <- (base_interval_length/2)
+      } else {
+        ## Choose the interval (half) width to plot 
+        eps <- (base_interval_length/2) + dist_to_ls[[d_i]]$target_dist[dist_order[[d_i]]][idx] ## parameterized overlap
+      }
+    
       ## Construct the level sets
       ls_endpts <- lapply(1L:filter_dim, function(d_i){
         tmp <- as.vector(sapply(0L:(number_intervals[d_i] - 1L), function(idx){
@@ -261,6 +277,7 @@ MapperRef$set("public", "multiscale",
           text(x = mean(c(cls[i+1L, 1L], ls[2])), y = 0.5, pos = 3, labels = as.character(cc))
           cc <- cc + 1
         }
+        
         lines(x = c(ls[1], ls[2]), y = c(-0.5, -0.5), col = binned_color[i])
         lines(x = c(ls[2], ls[2]), y = c(-0.5, 0.5), col = binned_color[i])
         lines(x = c(ls[2], ls[1]), y = c(0.5, 0.5), col = binned_color[i])
@@ -269,8 +286,11 @@ MapperRef$set("public", "multiscale",
         points(x = mean(c(ls[1], ls[2])), y = 0, pch = 3, col = binned_color[i])
         i <- i + 1
       }
+      text(x = cls[nrow(cls), 2L], y = 0.5, pos = 3, labels = as.character(cc))
       points(filter_values[, d_i], rep(0, 10), pch = 20)
-      points(filter_values[pt_idx[[d_i]][idx], d_i], 0, pch = 21, cex = 1.5, col = "purple")
+      if (idx > 0){
+        points(filter_values[pt_idx[[d_i]][idx], d_i], 0, pch = 21, cex = 1.5, col = "purple")
+      }
       text(filter_values[, d_i], 0, labels = 1:10, pos = 3)
     }
    

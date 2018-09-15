@@ -5,7 +5,7 @@
 #' @import methods
 #' @export MapperRef
 MapperRef <- R6Class("MapperRef", 
-  private = list(.X=NA, .cover=NA, .clustering_algorithm=NA, .measure=NA, .simplicial_complex = NA, .vertices=NA, .config=NA)
+  private = list(.X=NA, .cover=NA, .clustering_algorithm=NA, .measure=NA, .simplicial_complex = NA, .vertices=list(), .cl_map=list(), .config=NA)
 )
 
 MapperRef$set("public", "initialize", function(X){
@@ -13,6 +13,28 @@ MapperRef$set("public", "initialize", function(X){
   if (is.null(dim(X)) && !is(X, "dist")){ X <- as.matrix(X) }
   private$.X <- X
   private$.simplicial_complex <- simplex_tree()
+})
+
+## Internal method which returns the next 'n_vertices' available vertex indices (1-based). '.config' stores a logical vector 
+## which grow with the number of vertices added to the mapper. The boolean at each index represents whether 
+## that vertex id is available. This method is necessary to dynamically grow/shrink the Mapper. Any indices included in 'remove' 
+## are first set to TRUE in .config.
+MapperRef$set("public", "get_new_vertex_ids", function(n_vertices, remove=NULL){
+  # browser()
+  if (!missing(remove) && !is.null(remove) && is.integer(remove)){ private$.config[remove] <- TRUE } 
+  if (any(is.na(private$.config))){
+    private$.config <- rep(FALSE, n_vertices)
+    return(seq(n_vertices))
+  } else {
+    idx_available <- which(private$.config)
+    n_available <- length(idx_available)
+    if (n_available < n_vertices){
+      private$.config <- c(private$.config, rep(TRUE, n_vertices - n_available))
+    }
+    allocated_vertices <- head(which(private$.config), n_vertices)
+    private$.config[allocated_vertices] <- FALSE
+    return(allocated_vertices)
+  }
 })
 
 ## The cover stores the filter values
@@ -77,12 +99,24 @@ MapperRef$set("public", "use_clustering_algorithm",
     if (class(cl) == "character"){
       hclust_opts <- c("single", "ward.D", "ward.D2", "complete", "average", "mcquitty", "median", "centroid")
       if (!cl %in% hclust_opts){ stop(sprint("Unknown linkage method passed. Please use one of (%s). See ?hclust for details.", paste0(hclust_opts, collapse = ", "))) }
-      self$clustering_algorithm <- function(X, idx, num_bins = num_bins, ...){
-        if (length(idx) <= 1){ return(1L); }
-        dist_x <- parallelDist::parallelDist(X[idx,], method = "euclidean")
-        hcl <- fastcluster::hclust(dist_x, method = cl)
-        cutoff_first_bin(hcl, num_bins)
+      
+      ## Closured representation bypasses reevaluation of the recursive default argument by creating a new frame. 
+      ## This allows the arguments to have the same name the clustering function as above. 
+      create_cl <- function(cl, num_bins.default, ...){
+        function(X, idx, num_bins = num_bins.default, ...){
+          if (length(idx) <= 1){ return(1L); }
+          dist_x <- parallelDist::parallelDist(X[idx,], method = "euclidean")
+          hcl <- fastcluster::hclust(dist_x, method = cl)
+          cutoff_first_bin(hcl, num_bins)
+        }
       }
+      # self$clustering_algorithm <- function(X, idx, num_bins = default_num_bins, ...){
+      #   if (length(idx) <= 1){ return(1L); }
+      #   dist_x <- parallelDist::parallelDist(X[idx,], method = "euclidean")
+      #   hcl <- fastcluster::hclust(dist_x, method = cl)
+      #   cutoff_first_bin(hcl, num_bins)
+      # }
+      self$clustering_algorithm <- create_cl(cl = cl, num_bins.default = force(num_bins), ...)
     }
     invisible(self)
   }
@@ -139,6 +173,7 @@ MapperRef$set("public", "compute_k_skeleton", function(k, ...){
   if (k >= 0L){ self$compute_vertices(...) }
   if (k >= 1L){ self$compute_edges(...) }
   if (k >= 2L){
+    stop("k-skeletons for k > 1 are an experimental feature!")
     # k_simplex <- vector(mode = "list", length = k - 2L)
     # for (k_i in 3L:k){
     #   pt_map <- lapply(1:length(m$nodes), function(lsfi) cbind(pt_id = m$nodes[[lsfi]], node_id = rep(lsfi)))
@@ -158,67 +193,93 @@ MapperRef$set("public", "compute_k_skeleton", function(k, ...){
 MapperRef$set("public", "compute_vertices", function(which_levels=NULL, ...){
   stopifnot(!is.na(self$cover$level_sets))
   stopifnot(is.function(private$.clustering_algorithm))
+  if (!missing(which_levels) && !is.null(which_levels)){
+    if (!all(which_levels %in% self$cover$index_set)){
+      stop("If specified, 'which_levels' must be a vector of indexes in the covers index set.")
+    }
+  } else { which_levels <- self$cover$index_set }
   
-  browser()
-  if (missing(which_levels) || is.null(which_levels)) { 
-    which_levels <- seq(1L, length(self$cover$level_sets)) 
-  }
-
   ## TODO: Optimize this via parallel execution
   ## Perform the clustering for the chosen level sets
-  cl_res <- lapply(self$cover$level_sets[which_levels], function(ls) {
-    self$clustering_algorithm(X = private$.X, idx = as.integer(ls), ...)
-  })
-  
-  ## Precompute useful variables to know
-  n_vertices <- sum(sapply(cl_res, function(cl) length(unique(cl))))
-  vertice_idx <- unlist(mapply(function(cl, ls_i) if (length(cl) > 0) paste0(ls_i, ".", unique(cl)), cl_res, 1:length(cl_res)))
-  n_lvlsets <- length(self$cover$level_sets)
-  
-  ## Add the 0-simplexes to the simplex tree
-  private$.simplicial_complex$add_vertices(n_vertices)
-
-  ## Agglomerate the nodes into a list. This matches up the original indexes of the filter values with the
-  ## the clustering results, such that each node stores the original filter index values as well as the
-  ## creating a correspondence between the node and it's corresponding level set flat index (lsfi)
-  ## TODO: Cleanup and either vectorize or send down to C++
-  private$.vertices <- vector(mode = "list", length = n_vertices)
-  v_i <- 1L
-  for (lsfi in 1:n_lvlsets){
-    cl_i <- cl_res[[lsfi]]
-    if (!is.null(cl_i)){
-      ## Extract the vertex point indices for each cluster
-      vertex_pt_idx <- lapply(unique(cl_i), function(cl_idx) self$cover$level_sets[[lsfi]][which(cl_i == cl_idx)])
-      for (vertex in vertex_pt_idx){
-        attr(vertex, "level_set") <- lsfi
-        if (any(is.na(vertex))){ browser() }
-        private$.vertices[[v_i]] <- vertex
-        v_i <- v_i + 1L
-      }
+  for (index in which_levels){
+    ls <- as.integer(self$cover$level_sets[[index]])
+    cl_res <- self$clustering_algorithm(X = private$.X, idx = ls, ...)
+    cids <- unique(cl_res) ## cluster ids 
+    vertices <- lapply(cids, function(cid){ ls[which(cl_res == cid)] }) # point indices 
+    n_vertices <- length(cids)
+    
+    ## Ensure vertex ids are contiguous. 
+    if (is.null(private$.cl_map[[index]])){ v_ids <- self$get_new_vertex_ids(n_vertices) } 
+    else { v_ids <- self$get_new_vertex_ids(n_vertices, remove = private$.cl_map[[index]]) }
+   
+    for (i in 1L:n_vertices){
+      v <- structure(as.vector(vertices[[i]]), level_set = index)
+      private$.vertices[[as.character(v_ids[[i]])]] <- v ## Store the vertex
+      private$.simplicial_complex$insert_simplex(v_ids[[i]]) ## Insert 0-simplex into simplicial complex
     }
+    private$.cl_map[[index]] <- v_ids
   }
+  
+  ## Ensure the ordering is sequential by name and index
+  v_idx <- as.integer(names(private$.vertices))
+  if (is.unsorted(v_idx)){
+    private$.vertices <- private$.vertices[order(v_idx)]
+  }
+  
+  ## Return self
   invisible(self)
+  # cl_res <- lapply(self$cover$level_sets[which_levels], function(ls) {
+  #   self$clustering_algorithm(X = private$.X, idx = as.integer(ls), ...)
+  # })
+  # 
+  # ## Precompute useful variables to know
+  # n_vertices <- sum(sapply(cl_res, function(cl) length(unique(cl))))
+  # vertice_idx <- unlist(mapply(function(cl, ls_i) if (length(cl) > 0) paste0(ls_i, ".", unique(cl)), cl_res, 1:length(cl_res)))
+  # n_lvlsets <- length(self$cover$level_sets)
+  # 
+  # ## Add the 0-simplexes to the simplex tree
+  # private$.simplicial_complex$add_vertices(n_vertices)
+  # 
+  # ## Agglomerate the nodes into a list. This matches up the original indexes of the filter values with the
+  # ## the clustering results, such that each node stores the original filter index values as well as the
+  # ## creating a correspondence between the node and it's corresponding level set flat index (lsfi)
+  # ## TODO: Cleanup and either vectorize or send down to C++
+  # private$.vertices <- vector(mode = "list", length = n_vertices)
+  # v_i <- 1L
+  # for (lsfi in 1:n_lvlsets){
+  #   cl_i <- cl_res[[lsfi]]
+  #   if (!is.null(cl_i)){
+  #     ## Extract the vertex point indices for each cluster
+  #     vertex_pt_idx <- lapply(unique(cl_i), function(cl_idx) self$cover$level_sets[[lsfi]][which(cl_i == cl_idx)])
+  #     for (vertex in vertex_pt_idx){
+  #       attr(vertex, "level_set") <- lsfi
+  #       if (any(is.na(vertex))){ browser() }
+  #       private$.vertices[[v_i]] <- vertex
+  #       v_i <- v_i + 1L
+  #     }
+  #   }
+  # }
+  # invisible(self)
 })
 
 ## Computes the edges composing the topological graph (1-skeleton). 
 ## Assumes the nodes have been computed. 
-MapperRef$set("public", "compute_edges", function(level_sets = NULL){
-  ## Retrieve the level set flat indices (LSFI) for each corresponding node
-  vertex_lsfi <- sapply(private$.vertices, function(vertex) attr(vertex, "level_set")) # which level set (by value) each node (by index) is in
-  
-  ## Create map from the level set flat index (by index) to the node indices the level set stores
-  ## Note in this map empty level sets are NULL
-  ls_vertex_map <- lapply(seq(length(self$cover$level_sets)), function(lvl_set_idx) {
-    vertex_indices <- which(vertex_lsfi == lvl_set_idx)
-    if (length(vertex_indices) == 0){ return(NULL) } else { return(vertex_indices) }
-  })
+MapperRef$set("public", "compute_edges", function(which_level_pairs = NULL){
+  stopifnot(!is.na(self$cover$level_sets))
+  if (!missing(which_level_pairs) && !is.null(which_level_pairs)){
+    stopifnot(is.matrix(which_level_pairs))
+    stopifnot(dim(which_level_pairs)[[2]] == 2)
+    if (!all(apply(which_level_pairs, 2, function(x) x %in% self$cover$index_set))){
+      stop("If specified, 'which_levels' must be an (n x 2) matrix of level set indexes to compare.")
+    }
+  } else { which_level_pairs <- self$cover$level_sets_to_compare() }
   
   ## Retrieve the valid level set index pairs to compare. In the worst case, with no cover-specific optimization
   ## or 1-skeleton assumption, this may just be all pairwise combinations of LSFI's for the full simplicial complex.
   ## If the specific set of LSFI's were given
   stree_ptr <- private$.simplicial_complex$as_XPtr()
-  ls_pairs <- self$cover$level_sets_to_compare()
-  build_1_skeleton(ls_pairs = ls_pairs, vertices = private$.vertices, ls_vertex_map = ls_vertex_map, stree = stree_ptr)
+  ls_pairs <- apply(which_level_pairs, 2, function(x) match(x, self$cover$index_set)) ## get integer indexing
+  build_1_skeleton(ls_pairs = ls_pairs, vertices = private$.vertices, ls_vertex_map = private$.cl_map, stree = stree_ptr)
 
   ## Return self
   invisible(self)
@@ -320,12 +381,12 @@ MapperRef$set("public", "plot_interactive", function(...){
   grapher::grapher(json_config)
 })
 
-only_combinations <- function(mat){
-  mn <- pmin(mat[, 2], mat[, 1])
-  mx <- pmax(mat[, 2], mat[, 1])
-  int <- as.numeric(interaction(mn, mx))
-  mat[match(unique(int), int),]
-}
+# only_combinations <- function(mat){
+#   mn <- pmin(mat[, 2], mat[, 1])
+#   mx <- pmax(mat[, 2], mat[, 1])
+#   int <- as.numeric(interaction(mn, mx))
+#   mat[match(unique(int), int),]
+# }
 
 ## Exports the internal mapper core structures to a TDAmapper output
 # MapperRef$methods(exportTDAmapper = function(){

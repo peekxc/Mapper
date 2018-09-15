@@ -75,8 +75,7 @@ CoverRef$set("public", "construct_cover", function(){
 ## This can be customized based on the cover to (dramatically) reduce the number of intersection checks
 ## needed to generate the k-skeletons, where k >= 1. Defaults to every pairwise combination of level sets. 
 CoverRef$set("public", "level_sets_to_compare", function(){
-  n_level_sets <- length(self$level_sets)
-  return(t(combn(x = n_level_sets, m = 2L)))
+  return(t(combn(private$.index_set, m = 2L)))
 })
 
 # ## Generic method which 

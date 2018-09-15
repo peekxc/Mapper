@@ -1,6 +1,11 @@
 #include <Rcpp.h>
 using namespace Rcpp;
 
+
+void update_vertices(){
+  
+}
+
 // Given 
 // Creates a list of elements, one per block, where each element is itself a list containing: 
 // 1) lsfi := the level set flat index of the level set to update 

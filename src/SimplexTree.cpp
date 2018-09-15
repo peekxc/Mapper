@@ -35,17 +35,6 @@ SimplexTree::~SimplexTree() {
   // delete_tree(root);
 }
 
-void SimplexTree::remove_edge(IntegerVector edge){
-  if (edge.size() != 2){ stop("Invalid query. 'remove_edge' takes as input a vector of length 2."); }
-  if (edge[0] > edge[1]){ int tmp = edge[0]; edge[0] = edge[1]; edge[1] = tmp; }
-  bool edge_exists = find_simplex(edge);
-  if (!edge_exists){ return; }
-  else {
-    std::shared_ptr<node> v_ptr = root->children.at(edge[0]);
-    remove_child(v_ptr, edge[1], 1);
-  }
-}
-
 SEXP SimplexTree::as_XPtr(){
   Rcpp::XPtr< SimplexTree> p(this, false);
   return(p);
@@ -67,6 +56,32 @@ void SimplexTree::add_vertices(const uint v_i){
   }
   record_new_simplexes(0, v_i);
 }
+
+// Removes a vertex from the simplex tree, including all edges connected to it.
+void SimplexTree::remove_vertices(IntegerVector vertex_ids){
+  std::map< uint, std::shared_ptr<node> > top_vertices = root->children;
+  IntegerVector edge_to_remove = IntegerVector::create(0, 0);
+  for (IntegerVector::const_iterator vid = vertex_ids.begin(); vid != vertex_ids.end(); ++vid){
+    for (auto& top_vertex: top_vertices){
+      if (top_vertex.first > *vid){ continue; }
+      edge_to_remove[0] = top_vertex.first;
+      edge_to_remove[1] = *vid;
+      remove_edge(edge_to_remove);
+    }
+    remove_child(root, *vid, 0);
+  }
+}
+
+void SimplexTree::remove_edge(IntegerVector edge){
+  if (edge.size() != 2){ stop("Invalid query. 'remove_edge' takes as input a vector of length 2."); }
+  if (edge[0] > edge[1]){ int tmp = edge[0]; edge[0] = edge[1]; edge[1] = tmp; }
+  bool edge_exists = find_simplex(edge);
+  if (!edge_exists){ return; }
+  else {
+    std::shared_ptr<node> v_ptr = root->children.at(edge[0]);
+    remove_child(v_ptr, edge[1], 1);
+  }
+}
   
 
 // Remove a child node directly to the parent if it exists
@@ -74,7 +89,17 @@ void SimplexTree::remove_child(node_ptr c_parent, uint child_label, uint depth){
   std::map<uint, node_ptr>& parents_children = c_parent->children;
   std::map<uint, node_ptr>::iterator key_lb = parents_children.find(child_label); 
   if (key_lb == parents_children.end()) { return; } 
-  else { parents_children.erase(key_lb); }
+  else { 
+    // Remove any children if they exist, recursively
+    // node_ptr& c_node = key_lb->second;
+    // if (c_node->children.size() > 0){
+    //   std::for_each(c_node->children.begin(), c_node->children.end(), [&](std::map<uint, node_ptr>::value_type& pair)   {
+    //     remove_child(c_node, pair.first, depth+1);
+    //   });
+    // }
+    // Finally, remove the intended node
+    parents_children.erase(key_lb); 
+  }
   record_new_simplexes(depth, -1);
 }
   
@@ -373,6 +398,7 @@ RCPP_MODULE(simplex_tree_module) {
   .field_readonly("n_simplexes", &SimplexTree::n_simplexes)
   .method( "as_XPtr", &SimplexTree::as_XPtr)
   .method( "add_vertices", &SimplexTree::add_vertices)
+  .method( "remove_vertices", &SimplexTree::remove_vertices)
   .method( "insert_simplex", &SimplexTree::insert_simplex)
   .method( "find_simplex", &SimplexTree::find_simplex)
   .method( "remove_edge", &SimplexTree::remove_edge)

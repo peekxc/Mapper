@@ -55,6 +55,7 @@
 #' @importFrom Rcpp sourceCpp
 #'
 #' @author Matt Piekenbrock, \email{matt.piekenbrock@@gmail.com}
+#' @encoding UTF-8
 #' @references Singh, Gurjeet, Facundo Memoli, and Gunnar E. Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.
 #' @examples
 #'

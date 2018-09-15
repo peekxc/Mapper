@@ -107,9 +107,9 @@ IntegerMatrix adjacencyCpp(const IntegerMatrix& ls_pairs, const List& nodes, con
 
 // Builds the 1-skeleton by inserting 1-simplexes for each pair of vertices whose points have non-empty 
 // intersections. Will only compare vertices given by the 'ls_pairs' matrix.
-//  ls_pairs := (n x 2) Integer Matrix of n level index pairs to consider
-//  nodes := List of nodes (each element of which is a vector containing the point indices contained in the node)
-//  node_map := List where each index corresponds to the ordered level set flat indices, and each element the indices of the nodes in that level set
+//  ls_pairs := (n x 2) Integer Matrix of n level set index pairs (by flat index) to consider
+//  vertices := List of nodes (each element of which is a vector containing the point indices contained in the node)
+//  ls_vertex_map := List where each index corresponds to the ordered level set flat indices, and each element the indices of the nodes in that level set
 //  stree := SimplexTree object
 // [[Rcpp::export]]
 void build_1_skeleton(const IntegerMatrix& ls_pairs, const List& vertices, const List& ls_vertex_map, SEXP stree){
@@ -132,8 +132,7 @@ void build_1_skeleton(const IntegerMatrix& ls_pairs, const List& vertices, const
         const IntegerVector& n1_idx = vertices[*n1 - 1];
         const IntegerVector& n2_idx = vertices[*n2 - 1];
         
-
-        // Add edge between the two if they share a data point
+        // Add edge between the two if they share a data point. This also retrieves the size of the intersection.
         // int intersect_size = std::count_if(n1_idx.begin(), n1_idx.end(), [&](int k) { 
         //   return(std::find(n2_idx.begin(), n2_idx.end(), k) != n2_idx.end());
         // });
@@ -143,10 +142,7 @@ void build_1_skeleton(const IntegerMatrix& ls_pairs, const List& vertices, const
         if (intersect_check){
           std::vector<uint> simplex = { uint(*n1), uint(*n2) };
           stree_ptr->insert_simplex(simplex);
-          /// edgelist.push_back(IntegerVector::create(*n1 - 1, *n2 - 1));
         }
-        //   bool intersect_check = any_is_in(n1_idx, n2_idx);
-      
       }
     }
   }
