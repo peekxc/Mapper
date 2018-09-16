@@ -24,7 +24,7 @@ MapperRef$set("public", "multiscale",
     # m$set_cover(filter_values = fv, type = "fixed rectangular", number_intervals = 5L, percent_overlap = 0.35)
     # 
     filter_dim <- 2L
-    number_intervals <- rep(7L, filter_dim)
+    number_intervals <- c(5L, 4L)# rep(7L, filter_dim)
     
     ## Extract the cartesian product of the level sets (index set)
     indices <- lapply(number_intervals, seq) ## per-dimension possible indexes
@@ -107,11 +107,24 @@ MapperRef$set("public", "multiscale",
     ms_mapper$build_multiscale_configuration((A-1L)*2, filter_values);
     ms_mapper$get_segment_map()
     
+    ms_mapper$update_multi_cover(c(0L, 0L))
+    
+    ## 
+    mapply(function(d_i, k_i) swap_idx[[d_i]][k_i], 1:filter_dim, c(1, 1))
+    
+    plot_2d(c(1L, 1L))
+    
+    data.frame(A, sep="", ms_mapper$get_ls_that_change(c(0, 0), A))
+    
+    m <- MapperRef$new(matrix(noisy_circle[1:10,]))$
+      use_cover(filter_values = filter_values, type = "fixed rectangular", number_intervals = number_intervals, percent_overlap = 0)
+    m$cover$index_set
+    
     ## 1D case
     ms_mapper$update_multi_cover(c(1L))
     ms_mapper$update_multi_cover(c(0L))
     
-    ms_mapper$update_multi_cover(c(0L, -1L))
+
     plot_2d(c(1, 1))
     ms_mapper$update_multi_cover(c(0L, -1L))
     ms_mapper$update_multi_cover(c(1L, -1L))

@@ -41,6 +41,16 @@ std::map<int, int> get_unique_indices(ForwardIterator first, ForwardIterator las
   return pt_to_unique_idx;
 }
 
+template <typename T> 
+std::vector<T> merge_vectors(const std::vector< std::vector<T>* >& vec){
+  std::size_t total_vec_size = 0;
+  std::for_each(vec.begin(), vec.end(), [&](const std::vector<T>* v){ total_vec_size += v->size(); });
+  std::vector< T > final_res = std::vector< T >();
+  final_res.reserve(total_vec_size);
+  std::for_each(vec.begin(), vec.end(), [&](const std::vector<T>* v){ std::copy(v->begin(), v->end(), std::back_inserter(final_res)); });
+  return(final_res);
+}
+
 // Computes the absolute distances from a given point to the closest endpoint of each level set. This distance should 
 // represent 1/2 the smallest interval length the target level set would have to be (via expansion) to intersect the given point.
 // [[Rcpp::export]]
@@ -122,6 +132,7 @@ struct MultiScale {
   std::vector< std::vector< uint_fast8_t > > pt_segment_idx; 
   
   std::map< index_t, std::vector< int > > segment_map; 
+  StringVector index_set; 
   // std::vector< IntegerVector > segment_pts;
   
   MultiScale(const NumericMatrix& X, const Function f, const IntegerVector& k) : data(X), clustering_function(f), d(k.size()) { //, tr(stree) {
@@ -163,6 +174,10 @@ struct MultiScale {
     // TODO: inspect these
     make_ls_map();
     make_endpt_ls_map();
+  }
+  
+  void set_index_set(const StringVector& _index_set){
+    index_set = _index_set;
   }
   
   void set_everything(const IntegerVector& _pt_idx, 
@@ -413,6 +428,7 @@ struct MultiScale {
     return(res);
   }
   
+  // Builds the initial set of segment to point index mappings. Generates 1-based point indices, 0-based segment indices. 
   void build_multiscale_configuration(const IntegerMatrix& A, const NumericMatrix& filter_pts){
     if (A.nrow() != filter_pts.nrow() || A.ncol() != filter_pts.ncol()){
       stop("Dimensionality of inputs do not match.");
@@ -424,9 +440,9 @@ struct MultiScale {
       std::transform(pt_idx.begin(), pt_idx.end(), key.begin(), make_index_t);
       auto it = segment_map.lower_bound(key);
       if (it != segment_map.end() && it->first == key) {
-        it->second.push_back(static_cast<int>(i));
+        it->second.push_back(static_cast<int>(i+1));
       } else {
-        std::vector< int > v = { static_cast<int>(i) };
+        std::vector< int > v = { static_cast<int>(i+1) };
         segment_map.emplace_hint(it, key, v);
       }
     }
@@ -659,6 +675,116 @@ struct MultiScale {
     return(pt_to_res);
   }
   
+  List test(){
+    std::vector<int> test_pts = std::vector<int>(10);
+    std::iota(test_pts.begin(), test_pts.end(), 1);
+    std::map<int, int> last_from = last_known_from_ls(test_pts, 3, 10, 0);
+    List res = List();
+    for (auto& pair: last_from){
+      res[std::to_string(pair.first).c_str()] = pair.second;
+    }
+    return(res);
+  }
+  
+  std::map<int, int> last_known_from_ls(std::vector<int> pt_ids, const int start_idx, const int target_idx, const int d_i){
+    const IntegerVector& c_swap_idx = swap_idx.at(d_i);
+    const IntegerVector& c_pt_idx = pt_idx.at(d_i);
+    const IntegerVector& c_from_ls = from_ls_idx.at(d_i);
+    const IntegerVector& c_to_ls = to_ls_idx.at(d_i);
+    std::vector< int > pt_idx_vec = std::vector<int>(c_pt_idx.begin(), c_pt_idx.begin() + target_idx + 1);
+    
+    // Retrieve the unique point indices that last changed along the range, going backwards
+    std::map<int, int> pt_uniq_idx = get_unique_indices(pt_idx_vec.rbegin(), pt_idx_vec.rend()); 
+    
+    // For each point, retrieve its last from ls index
+    std::map<int, int> pt_to_res; 
+    for (auto& pidx: pt_uniq_idx){
+      const int global_idx = pt_idx_vec.size() - pidx.second - 1; // relative index 
+      index_t new_ls_idx = compute_ls_idx(c_swap_idx.at(global_idx), d_i);
+      const int from_ls = c_from_ls.at(global_idx);
+      pt_to_res.emplace(pidx.first, from_ls);
+    }
+    
+    // Any point not in the map is in its default position
+    std::for_each(pt_ids.begin(), pt_ids.end(), [&](const int pt){
+      std::map<int, int>::iterator it = pt_to_res.find(pt);
+      if (it == pt_to_res.end()){ // pt wasn't found in the map
+        std::size_t first_pt_idx = std::distance(pt_idx.at(d_i).begin(), std::find(pt_idx.at(d_i).begin(), pt_idx.at(d_i).end(), pt));
+        int first_ls = from_ls_idx.at(d_i).at(first_pt_idx);
+        pt_to_res.emplace_hint(it, pt, first_ls); // every point initially exists in the lower segment of its initial level set
+      }
+    });
+    
+    // Return the map
+    return(pt_to_res);
+  }
+  
+  
+  // TODO: return to this problem. One option is to represent each of the n level sets with an integer, then preallocate 
+  // a vector of size choose(n, 2), filling in 1's in the vector when a level set comparison is needed. This requires 
+  // choose(k^d, 2) space though, so may be too memory intensive compare to the simpler approach of bounding which 
+  // level sets must be compared via the swap indices. 
+  IntegerMatrix get_ls_that_change(const IntegerVector target_index, const IntegerMatrix& A){
+    if (target_index.size() != d){ stop("Invalid query, doesn't match dimensionality of filter space."); }
+    int d_i = 0; 
+    bool invalid = std::any_of(target_index.begin(), target_index.end(), [&](const int ti){ 
+      return(ti < -1 || ti >= pt_idx.at(d_i++).size());
+    });
+    const int n_pts = A.nrow(); 
+    IntegerMatrix A_tmp = clone(A);
+    for (d_i = 0; d_i < d; ++d_i){
+      const bool is_increasing = current_index.at(d_i) < target_index.at(d_i); // Otherwise, check which direction we're going
+      const int start_idx = is_increasing ? current_index.at(d_i)+1 : target_index.at(d_i)+1, end_idx = is_increasing ? target_index.at(d_i) : current_index.at(d_i); // inclusive
+      const IntegerVector& c_swap_idx = swap_idx.at(d_i), &c_pt_idx = pt_idx.at(d_i), &c_from_ls = from_ls_idx.at(d_i), &c_to_ls = to_ls_idx.at(d_i);
+      std::vector< int > pt_idx_vec = std::vector<int>(c_pt_idx.begin() + start_idx, c_pt_idx.begin() + end_idx + 1);
+      std::map<int, int> pt_uniq_idx_forwards, pt_uniq_idx_backwards; 
+      std::vector< std::map<int, int> > start_ls(d), end_ls(d);
+      if (is_increasing){
+        pt_uniq_idx_forwards = get_unique_indices(pt_idx_vec.begin(), pt_idx_vec.end()); 
+        pt_uniq_idx_backwards = get_unique_indices(pt_idx_vec.rbegin(), pt_idx_vec.rend()); 
+        
+        for (auto& pidx: pt_uniq_idx_backwards){
+          const int pt = pidx.first;
+          const int global_idx = start_idx + (pt_idx_vec.size() - pidx.second - 1); // global pt index
+          const int from_ls = c_from_ls.at(global_idx), to_ls = c_to_ls.at(global_idx);
+          A_tmp.at(pt-1, d_i) = to_ls+1;
+        }
+        for (auto& pidx: pt_uniq_idx_forwards){
+          const int pt = pidx.first;
+          const int global_idx = start_idx + pidx.second;  // global pt index
+          const int from_ls = c_from_ls.at(global_idx), to_ls = c_to_ls.at(global_idx);
+        }
+      }
+    }
+    return(A_tmp);
+  }
+  
+  void ls_to_change(const IntegerVector target_index){
+    std::vector<int> k_diff(d);
+    //std::transform();
+    for (int d_i = 0; d_i < d; ++d_i){
+      swap_idx.at(d_i).at(target_index.at(d_i));
+    }
+    
+    
+    
+  }
+  
+  void ls_change(const int d_i){
+    if (d_i > d){ return; }
+    else if (d_i == d){
+      
+    }
+    for (int i = 0; i < resolution.at(d_i); ++i){
+      ls_change(d_i);
+    }
+  }
+  
+  
+  
+  
+  // Main functionality of the class. Given a set of indices into the filtration, updates the segment mapping to reflect that 
+  // progression state of the cover. 
   void update_multi_cover(const IntegerVector target_index){
     if (target_index.size() != d){ stop("Invalid query, doesn't match dimensionality of filter space."); }
     int d_i = 0; 
@@ -671,7 +797,6 @@ struct MultiScale {
     std::vector< std::vector<int> > pts_to_change_per_d(d); 
     std::vector< std::vector<uint_fast8_t> > pt_seg_from(d); 
     std::vector< std::vector<uint_fast8_t> > pt_seg_to(d); 
-    std::vector< std::vector<std::size_t> > pt_absolute_idx(d); 
     std::unordered_set<int> pts_to_change;
     for (d_i = 0; d_i < d; ++d_i){
       const bool is_increasing = current_index.at(d_i) < target_index.at(d_i); // Otherwise, check which direction we're going
@@ -765,21 +890,29 @@ struct MultiScale {
       std::string key_str_to = index_to_str(key_to);
       Rprintf("pt: %d from %s to %s\n", pt, key_str_from.c_str(), key_str_to.c_str());
       std::vector<int>& from_pts = segment_map[key_from];
-      std::remove_if(from_pts.begin(), from_pts.end(), [pt](const int x_i){ return(x_i == pt); });
+      std::vector<int>::iterator from_end = std::remove_if(from_pts.begin(), from_pts.end(), [pt](const int x_i){ return(x_i == pt); });
+      from_pts.resize(std::distance(from_pts.begin(), from_end));
       segment_map[key_to].push_back(pt);
-    
     });
+    
+    // Return the level sets that changed in the update. 
+    // LogicalVector ls_to_include = LogicalVector(index_set.size(), FALSE);
+    // std::for_each(dim_idx.begin(), dim_idx.end(), [&](const int d_i){
+    //   
+    // });
+    // for (int i = current_index.at(d_i))
+
     
     // If we updated all the way to start, set cover to original disjoint cover
     for (d_i = 0; d_i < d; ++d_i){
       current_index.at(d_i) = target_index.at(d_i);
-      if (current_index.at(d_i) == -1){
-        current_cover.at(d_i) = 0;
-        index_t new_ls_idx = compute_ls_idx(0, d_i);
-        assign_ls_idx(new_ls_idx, ls_idx.at(d_i)); // dynamically update the indices
-      }
+      const int ls_config = current_index.at(d_i) == -1 ? 0 : swap_idx.at(d_i).at(current_index.at(d_i));
+      current_cover.at(d_i) = ls_config;
+      index_t new_ls_idx = compute_ls_idx(ls_config, d_i);
+      assign_ls_idx(new_ls_idx, ls_idx.at(d_i)); // dynamically update the indices
     }
-
+    
+    // return(List::create(_["max_ls_diff"] = wrap(current_cover)));
     
     
     // s_size_t i; 
@@ -890,6 +1023,7 @@ struct MultiScale {
     // Generate the segment indices 
     std::vector< IntegerVector > ls_segment_idx = std::vector< IntegerVector >(d);
     std::transform(dim_idx.begin(), dim_idx.end(), ls_segment_idx.begin(), [&](const int d_i){
+      // Rprintf("")
       return(compute_ls_idx(current_cover.at(d_i), d_i));
     });
     
@@ -898,19 +1032,42 @@ struct MultiScale {
     List res = List(); 
     IntegerVector segment_query_starts = IntegerVector(d);
     IntegerVector segment_query_ends = IntegerVector(d);
-    for (int i = 0; i < n_level_sets; ++i){
+    for (int l_i = 0; l_i < n_level_sets; ++l_i){
       std::vector<int> idx = std::vector<int>(d);
       std::string key = "( ";
-      std::for_each(dim_idx.begin(), dim_idx.end(), [&, i](const int d_i){
-        const int idx = indices.at(d_i).at(i) - 1;
+      std::vector< IntegerVector > segment_ranges(d); 
+      std::for_each(dim_idx.begin(), dim_idx.end(), [&, l_i](const int d_i){
+        const int idx = indices.at(d_i).at(l_i) - 1;
         key += std::to_string(idx + 1) + (d_i == (d - 1) ? " " : ", ");
         const int seg_start = ls_segment_idx.at(d_i).at(idx*2);
         const int seg_end = ls_segment_idx.at(d_i).at((idx*2) + 1);
         segment_query_starts.at(d_i) = seg_start;
         segment_query_ends.at(d_i) = seg_end;
+        segment_ranges.at(d_i) = seq(seg_start, seg_end-1); // segment queries are of the form [s, e)
       });
       key += ")";
-      res[key] = mtree->query(segment_query_starts, segment_query_ends);
+      // Rcout << "current level set: " << key << std::endl; 
+      std::vector< IntegerVector > all_segments = get_cart_prod(segment_ranges);
+      const std::size_t n_segments = all_segments.at(0).size();
+      index_t current_segment = index_t(d);
+      std::vector< std::vector<int>* > segments;
+      segments.reserve(n_segments);
+
+      for (int s_i = 0; s_i < n_segments; ++s_i){
+        // Extract the current segment
+        // Rcout << "current segment:";
+        std::transform(dim_idx.begin(), dim_idx.end(), current_segment.begin(), [&all_segments, s_i](const int d_i){
+          // Rcout << all_segments.at(d_i).at(s_i) << " ";
+          return(all_segments.at(d_i).at(s_i));
+        });
+        // Rcout << std::endl; 
+
+        if (segment_map.find(current_segment) != segment_map.end()){
+          segments.push_back(&segment_map.at(current_segment));
+        }
+      }
+      res[key] = merge_vectors(segments);
+      // res[key] = mtree->query(segment_query_starts, segment_query_ends);
     }
     return(res);
     
@@ -1100,6 +1257,8 @@ RCPP_MODULE(multiscale_module) {
   .method( "build_multiscale_configuration", &MultiScale::build_multiscale_configuration )
   .method( "get_segment_map", &MultiScale::get_segment_map )
   .method( "update_multi_cover", &MultiScale::update_multi_cover )
+  .method( "test", &MultiScale::test )  
+  .method( "get_ls_that_change", &MultiScale::get_ls_that_change )
   ;
 }
 
