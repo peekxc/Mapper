@@ -73,8 +73,8 @@ dist_to_boxes <- function(positions, interval_length, num_intervals, dist_to_low
     .Call('_Mapper_dist_to_boxes', PACKAGE = 'Mapper', positions, interval_length, num_intervals, dist_to_lower, dist_to_upper)
 }
 
-multiscale <- function(pt_idx) {
-    invisible(.Call('_Mapper_multiscale', PACKAGE = 'Mapper', pt_idx))
+multiscale <- function() {
+    invisible(.Call('_Mapper_multiscale', PACKAGE = 'Mapper'))
 }
 
 test_merge <- function(data) {

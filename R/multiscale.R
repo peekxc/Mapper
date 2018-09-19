@@ -15,8 +15,10 @@ MapperRef$set("public", "multiscale",
     
     library("Mapper")
     data("noisy_circle")
-    left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
-    f_x <- apply(noisy_circle, 1, function(pt) (pt - left_pt)[1])[1:10]
+    X <- noisy_circle
+    X <- cbind(rnorm(1000), rnorm(1000), rnorm(1000))
+    left_pt <- X[which.min(X[, 1]),]
+    f_x <- apply(X, 1, function(pt) (pt - left_pt)[1])
     #filter_values <- matrix(f_x)
     filter_values <- cbind(f_x, (max(f_x) - f_x^2) + rnorm(length(f_x), sd = 2))
     
@@ -98,26 +100,88 @@ MapperRef$set("public", "multiscale",
     
     ## Given a parameterization, determine the index of the filtration, then pass that index down to the multiscale structure. 
     ## The structure should then use its structure to compute which of the level sets are changing. 
-    ms_mapper <- Mapper:::MultiScale$new(X = matrix(noisy_circle[1:10,]), f = identity, k = number_intervals)
+    ms_mapper <- Mapper:::MultiScale$new(X = X, f = identity, k = number_intervals)
     for (d_i in 1L:filter_dim){
       ms_mapper$set_everything(pt_idx[[d_i]], from_ls[[d_i]], to_ls[[d_i]], swap_idx[[d_i]], interval_size[[d_i]], swap_dist[[d_i]], d_i-1L)
     }
     ms_mapper$build_segment_trees(endpts = endpts, filter_pts = filter_values)
-
     ms_mapper$build_multiscale_configuration((A-1L)*2, filter_values);
-    ms_mapper$get_segment_map()
+    # ms_mapper$get_segment_map()
+    # ms_mapper$update_multi_cover(c(0L, 0L))
     
-    ms_mapper$update_multi_cover(c(0L, 0L))
+    # mapply(function(d_i, k_i) swap_idx[[d_i]][k_i], 1:filter_dim, c(1, 1))
+    # plot_2d(c(1L, 1L))
+    # data.frame(A, sep="", ms_mapper$get_ls_that_change(c(0, 0), A))
     
-    ## 
-    mapply(function(d_i, k_i) swap_idx[[d_i]][k_i], 1:filter_dim, c(1, 1))
+    ## Build a example multiscale filtration of mappers 
+    g <- seq(0+0.005, 1-0.005, by = 0.005) ## overlap parameters 
+    target_idx <- sapply(1:filter_dim, function(d_i){
+      R_hat <- base_interval_length[[d_i]] + (base_interval_length[[d_i]]*g)/(1 - g)
+      tmp <- sapply(R_hat, function(r_hat) {
+        idx_lt_thresh <- interval_size[[d_i]] <= r_hat
+        if (all(idx_lt_thresh == FALSE)){ 0L }
+        else { max(which(idx_lt_thresh))}
+      })
+      tmp
+    })
+    # Iso::biviso(sapply(1:filter_dim, function(d_i){
+    #   base_interval_length[[d_i]] + (base_interval_length[[d_i]]*g)/(1 - g)
+    # }))
+
+
+    ## Start with a simple Mapper reference object with a constructed, disjoint cover and trivial clustering function
+    m <- MapperRef$new(X)$
+      use_cover(filter_values = filter_values, type = "fixed rectangular", number_intervals = number_intervals, percent_overlap = 0)$
+      use_distance_measure("euclidean")
+    m$clustering_algorithm <- function(X, idx, ...){ rep(1L, length(idx)) }
     
-    plot_2d(c(1L, 1L))
+    microbenchmark::microbenchmark({
+      Gs <- vector(mode = "list", length = nrow(target_idx))
+      for (i in 1:nrow(target_idx)){
+        t_idx <- target_idx[i,] - 1L
+        ms_mapper$update_multi_cover(t_idx)
+        m$cover$level_sets <- ms_mapper$get_level_sets()
+        ls_config <- sapply(1:filter_dim, function(d_i) ifelse(t_idx[[d_i]] == -1L, 0, swap_idx[[d_i]][t_idx[[d_i]]+1L]))
+        
+        ## TODO: either control fro shrinking doing new ls updates, or fix the damn LS updater!
+        ls_pairs <- ms_mapper$ls_to_change(ls_config)+1L
+        ls_to_update <- unique(as.vector(ls_pairs))
+        if (length(ls_to_update) == 0){
+          m$compute_vertices()
+        } else {
+          m$compute_vertices(which_levels = m$cover$index_set[ls_to_update])
+          m$compute_edges(which_level_pairs = ls_pairs)
+        }      
+        Gs[[i]] <- m$simplicial_complex$as_adjacency_matrix()
+      }
+    }, times = 15L)
     
-    data.frame(A, sep="", ms_mapper$get_ls_that_change(c(0, 0), A))
+    ## -- vs. --
+    microbenchmark::microbenchmark({
+      m2 <- MapperRef$new(X)$
+        use_cover(filter_values = filter_values, type = "fixed rectangular", number_intervals = number_intervals, percent_overlap = 0)$
+        use_distance_measure("euclidean")
+      m2$clustering_algorithm <- function(X, idx, ...){ rep(1L, length(idx)) }
+      Gs2 <- vector(mode = "list", length = length(g))
+      for (i in 1:length(g)){
+        m2$cover$percent_overlap <- g[i]
+        m2$cover$construct_cover()
+        m2$compute_k_skeleton(k = 1L)
+        Gs2[[i]] <- m2$simplicial_complex$as_adjacency_matrix()
+      }
+    }, times = 15L)
     
-    m <- MapperRef$new(matrix(noisy_circle[1:10,]))$
-      use_cover(filter_values = filter_values, type = "fixed rectangular", number_intervals = number_intervals, percent_overlap = 0)
+    all.equal(Gs, Gs2)
+
+
+
+    m <- MapperRef$new(noisy_circle)$
+      use_cover(filter_values = f_x, type = "fixed rectangular", number_intervals = 5L, percent_overlap = 0.35)$
+      use_clustering_algorithm(cl = "single", num_bins = 10)$
+      use_distance_measure(measure = "euclidean")$
+      compute_vertices()$
+      compute_edges()
+    
     m$cover$index_set
     
     ## 1D case
@@ -161,24 +225,39 @@ MapperRef$set("public", "multiscale",
     }
     get_range <- function(x){ range(x)+c(-1, 1)*diff(range(x))*0.10 }
     
-    plot_2d <- function(idx){
-      if (length(idx) != length(dist_to_ls)){stop("nope")}
-    
-      ## Construct the level sets
-      ls_endpts <- lapply(1L:filter_dim, function(d_i){
-        ## Choose the interval (half) width to plot 
-        if (idx[d_i] == 0){
-          eps <- (base_interval_length/2)
-        } else {
-          eps <- (base_interval_length/2) + dist_to_ls[[d_i]]$target_dist[dist_order[[d_i]]][idx[d_i]] ## parameterized overlap
-        }
-        tmp <- as.vector(sapply(0L:(number_intervals[d_i] - 1L), function(idx){
-          centroid <- filter_min[d_i] + (as.integer(idx)*base_interval_length[d_i]) + base_interval_length[d_i]/2.0
-          c(centroid - eps[d_i], centroid + eps[d_i])
-        }))
-        matrix(tmp, ncol = 2, byrow = TRUE)
-      })
-  
+    plot_2d <- function(idx, g=NULL){
+      if (missing(idx) && !missing(g)){
+        ## Construct the level sets
+        ls_endpts <- lapply(1L:filter_dim, function(d_i){
+          ## Choose the interval (half) width to plot 
+          if (g[d_i] == 0){
+            eps <- (base_interval_length[[d_i]]/2)
+          } else {
+            eps <- (base_interval_length[[d_i]] + ((base_interval_length[[d_i]]*g[d_i])/(1 - g[d_i])))/2 # parameterized overlap
+          }
+          tmp <- as.vector(sapply(0L:(number_intervals[d_i] - 1L), function(idx){
+            centroid <- filter_min[d_i] + (as.integer(idx)*base_interval_length[d_i]) + base_interval_length[d_i]/2.0
+            c(centroid - eps, centroid + eps)
+          }))
+          matrix(tmp, ncol = 2, byrow = TRUE)
+        })
+      } else {
+        if (length(idx) != length(dist_to_ls)){stop("nope")}
+        ls_endpts <- lapply(1L:filter_dim, function(d_i){        ## Construct the level sets
+          ## Choose the interval (half) width to plot 
+          if (idx[d_i] == 0){
+            eps <- (base_interval_length/2)
+          } else {
+            eps <- (base_interval_length/2) + dist_to_ls[[d_i]]$target_dist[dist_order[[d_i]]][idx[d_i]] ## parameterized overlap
+          }
+          tmp <- as.vector(sapply(0L:(number_intervals[d_i] - 1L), function(idx){
+            centroid <- filter_min[d_i] + (as.integer(idx)*base_interval_length[d_i]) + base_interval_length[d_i]/2.0
+            c(centroid - eps[d_i], centroid + eps[d_i])
+          }))
+          matrix(tmp, ncol = 2, byrow = TRUE)
+        })
+      }
+      
       plot(filter_values, pch = 20, 
            xlim = get_range(filter_values[, 1L]), ylim = get_range(filter_values[, 2L]),
            xlab = "", ylab = "") # xaxt = "n", yaxt = "n"

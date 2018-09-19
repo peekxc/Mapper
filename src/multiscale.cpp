@@ -5,6 +5,7 @@ using namespace Rcpp;
 #include <cstdint>
 #include <stack>
 #include <set>
+#include <chrono>  // for high_resolution_clock
 #include "MultiSegmentTree.h"
 
 typedef std::vector< uint_fast8_t > index_t;
@@ -49,6 +50,17 @@ std::vector<T> merge_vectors(const std::vector< std::vector<T>* >& vec){
   final_res.reserve(total_vec_size);
   std::for_each(vec.begin(), vec.end(), [&](const std::vector<T>* v){ std::copy(v->begin(), v->end(), std::back_inserter(final_res)); });
   return(final_res);
+}
+
+// Applies the function Func to all pairwise combinations in the range [first, last)
+template<typename Iter, typename Func>
+void combine_pairwise(Iter first, Iter last, Func func)
+{
+  for(; first != last; ++first){
+    for(Iter next = std::next(first); next != last; ++next){
+      func(*first, *next);
+    }
+  }
 }
 
 // Computes the absolute distances from a given point to the closest endpoint of each level set. This distance should 
@@ -127,7 +139,7 @@ struct MultiScale {
   IntegerVector resolution; 
   std::shared_ptr<MultiSegmentTree> mtree; 
   std::vector< index_ptr_t > ls_idx; // tracks the per dimension endpt configuration
-  std::map< index_t, uint_fast8_t > ls_map;
+  std::map< index_t, std::size_t > ls_to_lsfi_map;
   std::map< index_ptr_t, uint_fast8_t > endpt_to_ls_map;
   std::vector< std::vector< uint_fast8_t > > pt_segment_idx; 
   
@@ -316,21 +328,21 @@ struct MultiScale {
   // of level sets in the map. 
   void make_ls_map(){
     std::vector< IntegerVector > ls_multi_idx = get_multi_indexes();
-    ls_map = std::map< index_t, uint_fast8_t >();
+    ls_to_lsfi_map = std::map< index_t, std::size_t >();
     
     // Prepare vector of dimension indices to use for each transform
     std::vector<uint_fast8_t> dim_idx(d); 
     std::iota(dim_idx.begin(), dim_idx.end(), 0);
   
-    // Collect the endpoint indices for each level set 
-    const uint_fast8_t n_level_sets = ls_multi_idx.at(0).size();
-    for (uint_fast8_t i = 0; i < n_level_sets; ++i){
+    // Fill in the mapping from index set --> counter 
+    const std::size_t n_level_sets = ls_multi_idx.at(0).size();
+    for (std::size_t i = 0; i < n_level_sets; ++i){
       index_t idx_key = index_t(d);
       std::for_each(dim_idx.begin(), dim_idx.end(), [&, i](const int_fast8_t d_i){
         const uint_fast8_t idx = (uint_fast8_t) ls_multi_idx.at(d_i).at(i) - 1;
         idx_key.at(d_i) = idx;
       });
-      ls_map.emplace(idx_key, i);
+      ls_to_lsfi_map.emplace(idx_key, i);
     }
   }
   
@@ -394,7 +406,7 @@ struct MultiScale {
     if (res_check){ stop("Illegal query."); }
     index_t dim_idx(d); 
     std::copy(query_idx.begin(), query_idx.end(), dim_idx.begin());
-    return(static_cast<int>(ls_map.at(dim_idx)));
+    return(static_cast<int>(ls_to_lsfi_map.at(dim_idx)));
   }
   
   void build_segment_trees(const List& endpts, const NumericMatrix& filter_pts){
@@ -759,25 +771,46 @@ struct MultiScale {
     return(A_tmp);
   }
   
-  void ls_to_change(const IntegerVector target_index){
-    std::vector<int> k_diff(d);
-    //std::transform();
-    for (int d_i = 0; d_i < d; ++d_i){
-      swap_idx.at(d_i).at(target_index.at(d_i));
-    }
-    
-    
-    
+  // Iterate through all pairwise combinations of level sets, accepting only combination pairs that are 
+  // sufficiently close, as determined by ls_config.
+  IntegerMatrix ls_to_change(const IntegerVector ls_config){
+    using kv = std::map<index_t, std::size_t>::value_type;
+    std::vector<uint_fast8_t>::iterator max_dif;
+    std::vector<bool> max_diff(d);
+    IntegerVector c1, c2; 
+    combine_pairwise(ls_to_lsfi_map.begin(), ls_to_lsfi_map.end(), [&](kv& from, kv& to){
+      std::size_t d_i = 0; 
+      std::transform(from.first.begin(), from.first.end(), to.first.begin(), max_diff.begin(), [&d_i, &ls_config](const uint_fast8_t i, const uint_fast8_t j){
+        return(std::abs(i - j) <= ls_config.at(d_i++));
+      });
+      bool valid_pair = std::all_of(max_diff.begin(), max_diff.end(), [](const bool res){ return(res); });
+      if (valid_pair){
+        c1.push_back(static_cast<int>(from.second));
+        c2.push_back(static_cast<int>(to.second));
+      }
+    });
+    IntegerMatrix res(c1.size(), 2);
+    res(_, 0) = c1, res(_, 1) = c2;
+    return(res);
   }
   
-  void ls_change(const int d_i){
-    if (d_i > d){ return; }
-    else if (d_i == d){
-      
-    }
-    for (int i = 0; i < resolution.at(d_i); ++i){
-      ls_change(d_i);
-    }
+  void ls_change(const int d_i, index_t& key, index_t& ls_config){
+    // if (d_i > d){ return; }
+    // else if (d_i == d){
+    //   for (int i = 0; i < resolution.at(d_i); ++i){
+    //     key.at(d_i) = i;
+    //     std::vector<int> tmp(ls_config.at(d_i)*2 + 1); 
+    //     std::iota(tmp.begin(), tmp.end(), i - ls_config.at(d_i));
+    //     
+    //   }
+    // }
+    // else {
+    //   for (int i = 0; i < resolution.at(d_i); ++i){ 
+    //     key.at(d_i) = i;
+    //     ls_change(d_i, key, ls_config); 
+    //   }
+    // }
+    
   }
   
   
@@ -802,15 +835,15 @@ struct MultiScale {
       const bool is_increasing = current_index.at(d_i) < target_index.at(d_i); // Otherwise, check which direction we're going
       const int start_idx = is_increasing ? current_index.at(d_i)+1 : target_index.at(d_i)+1; // inclusive
       const int end_idx = is_increasing ? target_index.at(d_i) : current_index.at(d_i); // inclusive
-      Rprintf("is increasing? %s  ==> start: %d, end: %d\n", is_increasing ? "YES" : "NO", start_idx, end_idx);
+      // Rprintf("is increasing? %s  ==> start: %d, end: %d\n", is_increasing ? "YES" : "NO", start_idx, end_idx);
       const IntegerVector& c_swap_idx = swap_idx.at(d_i);
       const IntegerVector& c_pt_idx = pt_idx.at(d_i);
       const IntegerVector& c_from_ls = from_ls_idx.at(d_i);
       const IntegerVector& c_to_ls = to_ls_idx.at(d_i);
       std::vector< int > pt_idx_vec = std::vector<int>(c_pt_idx.begin() + start_idx, c_pt_idx.begin() + end_idx + 1);
       
-      IntegerVector pt_ids = wrap(pt_idx_vec);
-      Rcout << pt_ids << std::endl; 
+      // IntegerVector pt_ids = wrap(pt_idx_vec);
+      // Rcout << pt_ids << std::endl; 
       
       std::map<int, int> pt_uniq_idx; 
       if (is_increasing){
@@ -826,7 +859,7 @@ struct MultiScale {
           const int to_segment = (from_ls < to_ls ? new_ls_idx.at(to_ls*2) : new_ls_idx.at(to_ls*2 + 1) - 1);
           
           // Record the changes that need to happen
-          Rprintf("pt id: %d (global=%d) going from ls %d to %d (segment %d to %d)\n", pidx.first, global_idx, from_ls, to_ls, from_segment, to_segment);
+          // Rprintf("pt id: %d (global=%d) going from ls %d to %d (segment %d to %d)\n", pidx.first, global_idx, from_ls, to_ls, from_segment, to_segment);
           pts_to_change_per_d.at(d_i).push_back(pt);
           pt_seg_from.at(d_i).push_back(from_segment);
           pt_seg_to.at(d_i).push_back(to_segment);
@@ -855,7 +888,7 @@ struct MultiScale {
           const int to_segment = pt_target_seg.at(pt);
           
           // Record the changes that need to happen
-          Rprintf("pt id: %d (global=%d) going from ls %d to %d (segment %d to %d)\n", pidx.first, global_idx, from_ls, to_ls, from_segment, to_segment);
+          // Rprintf("pt id: %d (global=%d) going from ls %d to %d (segment %d to %d)\n", pidx.first, global_idx, from_ls, to_ls, from_segment, to_segment);
           pts_to_change_per_d.at(d_i).push_back(pt);
           pt_seg_from.at(d_i).push_back(from_segment);
           pt_seg_to.at(d_i).push_back(to_segment);
@@ -866,7 +899,7 @@ struct MultiScale {
         }
       }
     }
-    Rcout << "finsihg preprocessing " << std::endl; 
+    // Rcout << "finsihg preprocessing " << std::endl; 
     // Prepare vector of dimension indices
     std::vector<int> dim_idx(d);
     std::iota(dim_idx.begin(), dim_idx.end(), 0);
@@ -878,7 +911,7 @@ struct MultiScale {
         std::vector<int> candidate_pts = pts_to_change_per_d.at(d_i);
         ptrdiff_t pos = std::distance(candidate_pts.begin(), std::find(candidate_pts.begin(), candidate_pts.end(), pt));
         if (pos == candidate_pts.size()) { // doesn't exist
-          Rprintf("Using point %d's (dim=%d) default current positon %d\n", pt, d_i, pt-1);
+          // Rprintf("Using point %d's (dim=%d) default current positon %d\n", pt, d_i, pt-1);
           key_from.at(d_i) = pt_segment_idx.at(d_i).at(pt-1); // use wherever it's at 
           key_to.at(d_i) = pt_segment_idx.at(d_i).at(pt-1); // use wherever it's at 
         } else {
@@ -888,7 +921,7 @@ struct MultiScale {
       });
       std::string key_str_from = index_to_str(key_from);
       std::string key_str_to = index_to_str(key_to);
-      Rprintf("pt: %d from %s to %s\n", pt, key_str_from.c_str(), key_str_to.c_str());
+      // Rprintf("pt: %d from %s to %s\n", pt, key_str_from.c_str(), key_str_to.c_str());
       std::vector<int>& from_pts = segment_map[key_from];
       std::vector<int>::iterator from_end = std::remove_if(from_pts.begin(), from_pts.end(), [pt](const int x_i){ return(x_i == pt); });
       from_pts.resize(std::distance(from_pts.begin(), from_end));
@@ -998,6 +1031,8 @@ struct MultiScale {
   List get_level_sets(){
     Function expand_grid = getFunctionR("expand.grid");
     
+    auto start = std::chrono::high_resolution_clock::now();
+    
     // Generate the level set multi-indexes
     List cp_args = List();
     for (int d_i = 0; d_i < d; ++d_i){
@@ -1008,6 +1043,11 @@ struct MultiScale {
       cp_args[key] = ls_idx;
     }
     DataFrame ls_multi_idx = expand_grid(cp_args);
+    auto finish = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start);
+    Rcout << "1: " << elapsed.count() << " ms\n";
+    
+    start = std::chrono::high_resolution_clock::now();
     
     // Convert the indices to vector of indices 
     std::vector< IntegerVector > indices =  std::vector< IntegerVector >();
@@ -1026,19 +1066,25 @@ struct MultiScale {
       // Rprintf("")
       return(compute_ls_idx(current_cover.at(d_i), d_i));
     });
+    finish = std::chrono::high_resolution_clock::now();
+    elapsed = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
+    Rcout << "2: " << elapsed.count() << " microseconds\n";
     
     // Collect the endpoint indices for each level set 
+
     const int n_level_sets = ls_multi_idx.nrow();
     List res = List(); 
     IntegerVector segment_query_starts = IntegerVector(d);
     IntegerVector segment_query_ends = IntegerVector(d);
     for (int l_i = 0; l_i < n_level_sets; ++l_i){
+      start = std::chrono::high_resolution_clock::now();
+      
       std::vector<int> idx = std::vector<int>(d);
-      std::string key = "( ";
+      std::string key = "(";
       std::vector< IntegerVector > segment_ranges(d); 
       std::for_each(dim_idx.begin(), dim_idx.end(), [&, l_i](const int d_i){
         const int idx = indices.at(d_i).at(l_i) - 1;
-        key += std::to_string(idx + 1) + (d_i == (d - 1) ? " " : ", ");
+        key += std::to_string(idx + 1) + (d_i == (d - 1) ? "" : " ");
         const int seg_start = ls_segment_idx.at(d_i).at(idx*2);
         const int seg_end = ls_segment_idx.at(d_i).at((idx*2) + 1);
         segment_query_starts.at(d_i) = seg_start;
@@ -1046,13 +1092,24 @@ struct MultiScale {
         segment_ranges.at(d_i) = seq(seg_start, seg_end-1); // segment queries are of the form [s, e)
       });
       key += ")";
+      
+      finish = std::chrono::high_resolution_clock::now();
+      elapsed = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
+      Rcout << "4: " << elapsed.count() << " microseconds\n";
+      
       // Rcout << "current level set: " << key << std::endl; 
+      start = std::chrono::high_resolution_clock::now();
       std::vector< IntegerVector > all_segments = get_cart_prod(segment_ranges);
       const std::size_t n_segments = all_segments.at(0).size();
       index_t current_segment = index_t(d);
       std::vector< std::vector<int>* > segments;
       segments.reserve(n_segments);
+      
+      finish = std::chrono::high_resolution_clock::now();
+      elapsed = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
+      Rcout << "5: " << elapsed.count() << " microseconds\n";
 
+      start = std::chrono::high_resolution_clock::now();
       for (int s_i = 0; s_i < n_segments; ++s_i){
         // Extract the current segment
         // Rcout << "current segment:";
@@ -1066,9 +1123,21 @@ struct MultiScale {
           segments.push_back(&segment_map.at(current_segment));
         }
       }
+      finish = std::chrono::high_resolution_clock::now();
+      elapsed = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
+      Rcout << "6: " << elapsed.count() << " microseconds\n";
+      
+      start = std::chrono::high_resolution_clock::now();
       res[key] = merge_vectors(segments);
+      finish = std::chrono::high_resolution_clock::now();
+      elapsed = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
+      Rcout << "7: " << elapsed.count() << " microseconds\n";
       // res[key] = mtree->query(segment_query_starts, segment_query_ends);
+      
     }
+    finish = std::chrono::high_resolution_clock::now();
+    elapsed = std::chrono::duration_cast<std::chrono::microseconds>(finish - start);
+    Rcout << "3: " << elapsed.count() << " microseconds\n";
     return(res);
     
     // TODO: go only by endpts indexing instead of segment tree
@@ -1259,6 +1328,7 @@ RCPP_MODULE(multiscale_module) {
   .method( "update_multi_cover", &MultiScale::update_multi_cover )
   .method( "test", &MultiScale::test )  
   .method( "get_ls_that_change", &MultiScale::get_ls_that_change )
+  .method( "ls_to_change", &MultiScale::ls_to_change )
   ;
 }
 
@@ -1270,8 +1340,14 @@ RCPP_MODULE(multiscale_module) {
 //  dist_thresh := 1/2th the interval size of each box at the current parameterization
 //  clustering_function := the clustering function to apply per parameterization
 // [[Rcpp::export]]
-void multiscale(const IntegerVector& pt_idx){
-  
+void multiscale(){
+  // multi_index_t<3> tmp = multi_index_t<3>(3,3,4);
+  // std::array<int, 3>::iterator it = tmp.begin(); 
+  // for(; it != tmp.end(); ++it){
+  // for(auto m: multi_index(1, 2, 3)){
+  //   // std::array<int, 3>  m = *it;
+  //   Rcout << m[0] << m[1] << m[2] << std::endl; 
+  // }
 }
 
 

@@ -59,16 +59,23 @@ void SimplexTree::add_vertices(const uint v_i){
 
 // Removes a vertex from the simplex tree, including all edges connected to it.
 void SimplexTree::remove_vertices(IntegerVector vertex_ids){
+  if (vertex_ids.size() == 0){ return; }
   std::map< uint, std::shared_ptr<node> > top_vertices = root->children;
   IntegerVector edge_to_remove = IntegerVector::create(0, 0);
   for (IntegerVector::const_iterator vid = vertex_ids.begin(); vid != vertex_ids.end(); ++vid){
     for (auto& top_vertex: top_vertices){
-      if (top_vertex.first > *vid){ continue; }
+      if (top_vertex.first >= *vid){ continue; }
       edge_to_remove[0] = top_vertex.first;
       edge_to_remove[1] = *vid;
       remove_edge(edge_to_remove);
     }
-    remove_child(root, *vid, 0);
+    if (root->children.find(*vid) != root->children.end()){
+      node_ptr c_node = root->children.at(*vid);
+      int n_children = c_node->children.size(); 
+      c_node->children.clear();
+      record_new_simplexes(1, -n_children);
+      remove_child(root, *vid, 0);
+    }
   }
 }
 
@@ -86,19 +93,22 @@ void SimplexTree::remove_edge(IntegerVector edge){
 
 // Remove a child node directly to the parent if it exists
 void SimplexTree::remove_child(node_ptr c_parent, uint child_label, uint depth){
+  //Rcout << c_parent << std::endl;
+  if (c_parent == nullptr){ return; }
   std::map<uint, node_ptr>& parents_children = c_parent->children;
-  std::map<uint, node_ptr>::iterator key_lb = parents_children.find(child_label); 
-  if (key_lb == parents_children.end()) { return; } 
-  else { 
-    // Remove any children if they exist, recursively
+  std::map<uint, node_ptr>::iterator key_lb = parents_children.find(child_label);
+  if (key_lb == parents_children.end()) { return; }
+  else {
+    // TODO: Remove the for_each loop and call .clear() instead, crashing because of iterator invalidation
     // node_ptr& c_node = key_lb->second;
     // if (c_node->children.size() > 0){
     //   std::for_each(c_node->children.begin(), c_node->children.end(), [&](std::map<uint, node_ptr>::value_type& pair)   {
     //     remove_child(c_node, pair.first, depth+1);
     //   });
     // }
+    // uint key = key_lb->first; 
     // Finally, remove the intended node
-    parents_children.erase(key_lb); 
+    parents_children.erase(key_lb);
   }
   record_new_simplexes(depth, -1);
 }
@@ -419,7 +429,7 @@ rm(stree)
 gc()
 
 stree <- Mapper::simplex_tree()
-stree_ptr <- stree$as_XPtr()
+# stree_ptr <- stree$as_XPtr()
 stree$insert_simplex(as.integer(c(1, 2)))
 stree$insert_simplex(as.integer(c(1, 3)))
 stree$insert_simplex(as.integer(c(2, 3)))
@@ -430,6 +440,8 @@ stree$insert_simplex(as.integer(c(3, 5)))
 stree$insert_simplex(as.integer(c(4, 5)))
 
 stree$print_tree()
+
+stree$remove_vertices(4)
 
 stree$expansion(2)
 

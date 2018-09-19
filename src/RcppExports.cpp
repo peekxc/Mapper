@@ -242,12 +242,11 @@ BEGIN_RCPP
 END_RCPP
 }
 // multiscale
-void multiscale(const IntegerVector& pt_idx);
-RcppExport SEXP _Mapper_multiscale(SEXP pt_idxSEXP) {
+void multiscale();
+RcppExport SEXP _Mapper_multiscale() {
 BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const IntegerVector& >::type pt_idx(pt_idxSEXP);
-    multiscale(pt_idx);
+    multiscale();
     return R_NilValue;
 END_RCPP
 }
@@ -319,7 +318,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Mapper_dist_from_to", (DL_FUNC) &_Mapper_dist_from_to, 2},
     {"_Mapper_createUpdateBlocks", (DL_FUNC) &_Mapper_createUpdateBlocks, 5},
     {"_Mapper_dist_to_boxes", (DL_FUNC) &_Mapper_dist_to_boxes, 5},
-    {"_Mapper_multiscale", (DL_FUNC) &_Mapper_multiscale, 1},
+    {"_Mapper_multiscale", (DL_FUNC) &_Mapper_multiscale, 0},
     {"_Mapper_test_merge", (DL_FUNC) &_Mapper_test_merge, 1},
     {"_Mapper_test_merge2", (DL_FUNC) &_Mapper_test_merge2, 1},
     {"_Mapper_test_it", (DL_FUNC) &_Mapper_test_it, 1},

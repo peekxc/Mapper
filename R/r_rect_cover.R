@@ -68,7 +68,7 @@ RestrainedRectangularCover$set("public", "construct_cover", function(){
   ## Setup a valid index set (e.g. cartesian product)
   indices <- lapply(self$number_intervals, function(k) seq(k)) ## per-dimension possible indexes
   cart_prod <- as.matrix(do.call(expand.grid, structure(indices, names = paste0("d", 1:private$.filter_dim))))
-  self$index_set <- apply(cart_prod, 1, function(x){ sprintf("(%s)", paste0(x, collapse = ", ")) })
+  self$index_set <- apply(cart_prod, 1, function(x){ sprintf("(%s)", paste0(x, collapse = " ")) })
   
   ## Get filter min and max ranges
   filter_rng <- apply(self$filter_values, 2, range)

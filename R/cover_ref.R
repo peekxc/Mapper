@@ -54,13 +54,15 @@ CoverRef$set("active", "index_set",
    }
 })
 
-## The level sets must be a list indexed by the index set. It's up to the user to ensure they are proper indices. 
+## The level sets must be a list indexed by the index set. If the list is named, a check is performed to make sure the 
+## names match the values of the index set, and in the proper order. Otherwise, the order is assumed to be correct. 
 CoverRef$set("active", "level_sets", 
   function(value){
     if (missing(value)){
       private$.level_sets
     } else {
       stopifnot(is.list(value) && (length(value) == length(private$.index_set)))
+      if (!is.null(value)){ stopifnot(all(names(value) == private$.index_set)) }
       private$.level_sets <- structure(value, names = private$.index_set)
     }
   }
@@ -75,7 +77,7 @@ CoverRef$set("public", "construct_cover", function(){
 ## This can be customized based on the cover to (dramatically) reduce the number of intersection checks
 ## needed to generate the k-skeletons, where k >= 1. Defaults to every pairwise combination of level sets. 
 CoverRef$set("public", "level_sets_to_compare", function(){
-  return(t(combn(private$.index_set, m = 2L)))
+  t(combn(1L:length(private$.index_set), 2))
 })
 
 # ## Generic method which 

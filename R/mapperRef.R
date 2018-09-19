@@ -25,7 +25,7 @@ MapperRef$set("public", "get_new_vertex_ids", function(n_vertices, remove=NULL){
   if (any(is.na(private$.config))){
     private$.config <- rep(FALSE, n_vertices)
     return(seq(n_vertices))
-  } else {
+  } else if (n_vertices > 0) {
     idx_available <- which(private$.config)
     n_available <- length(idx_available)
     if (n_available < n_vertices){
@@ -133,6 +133,7 @@ MapperRef$set("public", "use_distance_measure", function(measure){
 })
 
 MapperRef$set("public", "use_cover", function(filter_values, type=c("fixed rectangular", "restrained rectangular"), ...){
+  stopifnot(nrow(filter_values) == nrow(private$.X))
   if (missing(type)){ type <- "fixed rectangular"}
   self$cover <- switch(type, 
     "fixed rectangular"=FixedRectangularCover$new(filter_values, ...)$construct_cover(), 
@@ -199,19 +200,36 @@ MapperRef$set("public", "compute_vertices", function(which_levels=NULL, ...){
     }
   } else { which_levels <- self$cover$index_set }
   
-  ## TODO: Optimize this via parallel execution
+  ## Create a default mapping from the covers index set to the vertex ids
+  if (length(private$.cl_map) == 0){
+    private$.cl_map <- lapply(self$cover$index_set, function(x) integer(0L))
+    names(private$.cl_map) <- self$cover$index_set
+  }
+  
+  ## TODO: Optimize this via Rcpp + parallel execution of the clustering function
   ## Perform the clustering for the chosen level sets
   for (index in which_levels){
     ls <- as.integer(self$cover$level_sets[[index]])
+    if (length(ls) == 0){ 
+      ## Erase all data related to the vertices in the current index 
+      self$get_new_vertex_ids(0L, remove = private$.cl_map[[index]]) 
+      private$.simplicial_complex$remove_vertices(private$.cl_map[[index]])
+      private$.vertices[as.character(private$.cl_map[[index]])] <- NULL
+      private$.cl_map[[index]] <- integer(0)
+      next;
+    }
     cl_res <- self$clustering_algorithm(X = private$.X, idx = ls, ...)
     cids <- unique(cl_res) ## cluster ids 
     vertices <- lapply(cids, function(cid){ ls[which(cl_res == cid)] }) # point indices 
     n_vertices <- length(cids)
     
-    ## Ensure vertex ids are contiguous. 
-    if (is.null(private$.cl_map[[index]])){ v_ids <- self$get_new_vertex_ids(n_vertices) } 
-    else { v_ids <- self$get_new_vertex_ids(n_vertices, remove = private$.cl_map[[index]]) }
-   
+    v_ids <- self$get_new_vertex_ids(n_vertices, remove = private$.cl_map[[index]]) 
+    v_to_remove <- unique(c(private$.cl_map[[index]], v_ids))
+    private$.simplicial_complex$remove_vertices(v_to_remove)
+    private$.vertices[as.character(v_to_remove)] <- NULL
+    private$.cl_map[[index]] <- integer(0)
+    
+    ## Add the new vertices
     for (i in 1L:n_vertices){
       v <- structure(as.vector(vertices[[i]]), level_set = index)
       private$.vertices[[as.character(v_ids[[i]])]] <- v ## Store the vertex
@@ -269,8 +287,8 @@ MapperRef$set("public", "compute_edges", function(which_level_pairs = NULL){
   if (!missing(which_level_pairs) && !is.null(which_level_pairs)){
     stopifnot(is.matrix(which_level_pairs))
     stopifnot(dim(which_level_pairs)[[2]] == 2)
-    if (!all(apply(which_level_pairs, 2, function(x) x %in% self$cover$index_set))){
-      stop("If specified, 'which_levels' must be an (n x 2) matrix of level set indexes to compare.")
+    if (!all(apply(which_level_pairs, 2, function(x) x >= 1 && x <= length(self$cover$index_set)))){
+      stop("If specified, 'which_level_pairs' must be an (n x 2) matrix of integers representing which level sets to compare.")
     }
   } else { which_level_pairs <- self$cover$level_sets_to_compare() }
   
@@ -278,8 +296,7 @@ MapperRef$set("public", "compute_edges", function(which_level_pairs = NULL){
   ## or 1-skeleton assumption, this may just be all pairwise combinations of LSFI's for the full simplicial complex.
   ## If the specific set of LSFI's were given
   stree_ptr <- private$.simplicial_complex$as_XPtr()
-  ls_pairs <- apply(which_level_pairs, 2, function(x) match(x, self$cover$index_set)) ## get integer indexing
-  build_1_skeleton(ls_pairs = ls_pairs, vertices = private$.vertices, ls_vertex_map = private$.cl_map, stree = stree_ptr)
+  build_1_skeleton(ls_pairs = which_level_pairs, vertices = private$.vertices, ls_vertex_map = private$.cl_map, stree = stree_ptr)
 
   ## Return self
   invisible(self)
