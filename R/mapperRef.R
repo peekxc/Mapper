@@ -21,20 +21,25 @@ MapperRef$set("public", "initialize", function(X){
 ## are first set to TRUE in .config.
 MapperRef$set("public", "get_new_vertex_ids", function(n_vertices, remove=NULL){
   # browser()
-  if (!missing(remove) && !is.null(remove) && is.integer(remove)){ private$.config[remove] <- TRUE } 
-  if (any(is.na(private$.config))){
-    private$.config <- rep(FALSE, n_vertices)
-    return(seq(n_vertices))
-  } else if (n_vertices > 0) {
-    idx_available <- which(private$.config)
-    n_available <- length(idx_available)
-    if (n_available < n_vertices){
-      private$.config <- c(private$.config, rep(TRUE, n_vertices - n_available))
-    }
-    allocated_vertices <- head(which(private$.config), n_vertices)
-    private$.config[allocated_vertices] <- FALSE
-    return(allocated_vertices)
+  if (!is(private$.config, "Rcpp_ID_Generator")){ 
+    private$.config <- Mapper:::ID_Generator$new() 
+    return(private$.config$get_new_ids(n_vertices))
   }
+  if (!missing(remove) && !is.null(remove) && is.integer(remove)){ private$.config$remove_ids(remove) } 
+  return(private$.config$get_new_ids(n_vertices));
+  # if (any(is.na(private$.config))){
+  #   private$.config <- rep(FALSE, n_vertices)
+  #   return(seq(n_vertices))
+  # } else if (n_vertices > 0) {
+  #   idx_available <- which(private$.config)
+  #   n_available <- length(idx_available)
+  #   if (n_available < n_vertices){
+  #     private$.config <- c(private$.config, rep(TRUE, n_vertices - n_available))
+  #   }
+  #   allocated_vertices <- head(which(private$.config), n_vertices)
+  #   private$.config[allocated_vertices] <- FALSE
+  #   return(allocated_vertices)
+  # }
 })
 
 ## The cover stores the filter values
@@ -390,7 +395,7 @@ MapperRef$set("public", "plot_interactive", function(...){
   if (length(igraph::E(G)) > 0){
     el <- igraph::as_edgelist(G, names = FALSE)
     edge_binned_idx <- apply(el, 1, function(vertex_ids) { (binned_idx[vertex_ids[1]] + binned_idx[vertex_ids[2]])/2 })
-    edge_links <- cbind(as.data.frame(apply(el, 2, as.integer) - 1L), substr(rbw_pal[edge_binned_idx], start = 0, stop = 7))
+    edge_links <- cbind(data.frame(matrix(apply(el, 2, as.integer) - 1L, ncol = 2)), substr(rbw_pal[edge_binned_idx], start = 0, stop = 7))
     json_config$links <- structure(edge_links, names = c("from", "to", "color"))
   }
     
@@ -445,5 +450,7 @@ MapperRef$set("public", "plot_interactive", function(...){
   # return(result)
 # })
 
-
+## Load the exported SegmentTree class into the package namespace
+Rcpp::loadModule("simplex_tree_module", TRUE)
+Rcpp::loadModule("id_tracker_module", TRUE)
 

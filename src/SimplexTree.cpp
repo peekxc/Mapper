@@ -47,6 +47,19 @@ void SimplexTree::record_new_simplexes(const uint k, const uint n){
   n_simplexes.at(k) += n;
 }
   
+// TODO: come back to this to incoporate id_tracker
+IntegerVector SimplexTree::vertex_available(uint n_vertices){
+  std::map< uint, node_ptr > top_vertices = root->children;
+  uint max = top_vertices.size() + n_vertices;
+  IntegerVector new_idx = IntegerVector();
+  for (uint cc = 1; cc <= max; ++cc){
+    if (top_vertices.find(cc) == top_vertices.end()){
+      new_idx.push_back(cc);
+    }
+  }
+  return(new_idx);
+}
+  
 // Emplace v_i new 0-simplices. Ids are automatically assigned. 
 void SimplexTree::add_vertices(const uint v_i){
   const size_t n = root->children.size();
@@ -409,6 +422,7 @@ RCPP_MODULE(simplex_tree_module) {
   .method( "as_XPtr", &SimplexTree::as_XPtr)
   .method( "add_vertices", &SimplexTree::add_vertices)
   .method( "remove_vertices", &SimplexTree::remove_vertices)
+  .method( "vertex_available", &SimplexTree::vertex_available)
   .method( "insert_simplex", &SimplexTree::insert_simplex)
   .method( "find_simplex", &SimplexTree::find_simplex)
   .method( "remove_edge", &SimplexTree::remove_edge)

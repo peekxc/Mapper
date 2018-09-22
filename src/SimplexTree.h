@@ -46,6 +46,7 @@ struct SimplexTree {
   void record_new_simplexes(const uint k, const uint n);// record keeping
   
   // User-facing API 
+  IntegerVector vertex_available(uint n_vertices);
   void add_vertices(const uint v_i);
   void remove_vertices(IntegerVector vertex_ids);
   void remove_edge(IntegerVector labels);

@@ -15,8 +15,8 @@ MapperRef$set("public", "multiscale",
     
     library("Mapper")
     data("noisy_circle")
-    X <- noisy_circle
-    X <- cbind(rnorm(1000), rnorm(1000), rnorm(1000))
+    X <- noisy_circle[1:10,]
+    # X <- cbind(rnorm(100), rnorm(100), rnorm(100))
     left_pt <- X[which.min(X[, 1]),]
     f_x <- apply(X, 1, function(pt) (pt - left_pt)[1])
     #filter_values <- matrix(f_x)
@@ -100,6 +100,7 @@ MapperRef$set("public", "multiscale",
     
     ## Given a parameterization, determine the index of the filtration, then pass that index down to the multiscale structure. 
     ## The structure should then use its structure to compute which of the level sets are changing. 
+    f <- function(X, idx){ return(rep(1L, length(idx))) }
     ms_mapper <- Mapper:::MultiScale$new(X = X, f = identity, k = number_intervals)
     for (d_i in 1L:filter_dim){
       ms_mapper$set_everything(pt_idx[[d_i]], from_ls[[d_i]], to_ls[[d_i]], swap_idx[[d_i]], interval_size[[d_i]], swap_dist[[d_i]], d_i-1L)
@@ -108,6 +109,16 @@ MapperRef$set("public", "multiscale",
     ms_mapper$build_multiscale_configuration((A-1L)*2, filter_values);
     # ms_mapper$get_segment_map()
     # ms_mapper$update_multi_cover(c(0L, 0L))
+    ms_mapper$compute_mapper(c(0, -1))
+    ms_mapper$compute_mapper(c(1, 0))
+    ms_mapper$compute_mapper(c(0, 0))
+    
+    plot_2d(idx = c(1, 0), pt_ids = TRUE)
+    
+    ms_mapper$get_ls_that_change(c(0, 0), c(1, 0))
+    
+    wut <- t(outer(4:0, 3:0, Vectorize(function(x, y){ ms_mapper$query_ls_map(c(x, y)) })))
+    t(apply(wut, 1, rev))
     
     # mapply(function(d_i, k_i) swap_idx[[d_i]][k_i], 1:filter_dim, c(1, 1))
     # plot_2d(c(1L, 1L))
@@ -135,12 +146,15 @@ MapperRef$set("public", "multiscale",
       use_distance_measure("euclidean")
     m$clustering_algorithm <- function(X, idx, ...){ rep(1L, length(idx)) }
     
+    microbenchmark::microbenchmark({ invisible(ms_mapper$get_ls_that_change(target_idx[1,], target_idx[2,])) }, times = 15L)
     microbenchmark::microbenchmark({
       Gs <- vector(mode = "list", length = nrow(target_idx))
       for (i in 1:nrow(target_idx)){
         t_idx <- target_idx[i,] - 1L
+        # // ms_mapper$get_ls_that_change(c(1, 0))
         ms_mapper$update_multi_cover(t_idx)
-        m$cover$level_sets <- ms_mapper$get_level_sets()
+        ls_tmp <- ms_mapper$get_level_sets()
+        m$cover$level_sets <- ls_tmp[match(m$cover$index_set, names(ls_tmp))]
         ls_config <- sapply(1:filter_dim, function(d_i) ifelse(t_idx[[d_i]] == -1L, 0, swap_idx[[d_i]][t_idx[[d_i]]+1L]))
         
         ## TODO: either control fro shrinking doing new ls updates, or fix the damn LS updater!
@@ -171,7 +185,18 @@ MapperRef$set("public", "multiscale",
       }
     }, times = 15L)
     
-    all.equal(Gs, Gs2)
+    # all.equal(Gs, Gs2)
+    sapply(1:length(g), function(i){
+      g1 <- igraph::graph_from_adjacency_matrix(Gs[[i]])
+      g2 <- igraph::graph_from_adjacency_matrix(Gs2[[i]])
+      all(c(
+        igraph::vcount(g1) == igraph::vcount(g2), 
+        igraph::ecount(g1) == igraph::ecount(g2),
+        sort(igraph::local_scan(g1, k = 1)) == sort(igraph::local_scan(g2, k = 1)), 
+        sort(igraph::local_scan(g1, k = 2)) == sort(igraph::local_scan(g2, k = 2)), 
+        sort(igraph::local_scan(g1, k = 3)) == sort(igraph::local_scan(g2, k = 3))
+      ))
+    })
 
 
 
@@ -216,6 +241,41 @@ MapperRef$set("public", "multiscale",
       invisible(readline(prompt="Press [enter] to continue"))
     }
 
+    lsfi_to_lsmi <- vector(mode = "list", length = 5*4)
+    for (x in 4:0){
+      for (y in 3:0){
+        lsfi_to_lsmi[[ms_mapper$query_ls_map(c(x, y))+1]] <- c(x, y) # paste0("(", x, " ", y, ")")
+      }
+    }
+    
+    worst_case <- rep(choose(prod(number_intervals), 2), nrow(target_idx)-1)
+    rec_based <- sapply(2:nrow(target_idx), function(i){
+      c_swap <- sapply(1:filter_dim, function(d_i) swap_idx[[d_i]][i])
+      nrow(ms_mapper$ls_to_change(c_swap))
+    })
+    optimal <- sapply(2:nrow(target_idx), function(i){
+      nrow(ms_mapper$get_ls_that_change(target_idx[i-1,], target_idx[i,]))
+    })
+    suitable_g <- g[1:(length(g)-1)]
+    plot(x = suitable_g, y = log(cumsum(worst_case)), type = "l", ylim = c(0, max(log(cumsum(worst_case)))), 
+         xlab = "Overlap percentage", ylab = "Cumulative # of LS intersections (log scale)", 
+         main = "Complexity of building the 1-skeleton", 
+         col = "red", lwd = 2)
+    mtext("As a function of g")
+    lines(x = suitable_g, y = log(cumsum(rec_based)), lwd = 2, col = "blue")
+    lines(x = suitable_g, y = log(cumsum(optimal)), lwd = 2, col = "green")
+    
+    
+    sapply()
+    ms_mapper$ls_to_change(c(1, 1))
+    
+    animation::saveGIF({
+      for (i in 2:200){
+        plot_2d(idx = c(i, i), prev = c(i-1, i-1))
+      }
+    }, "boxes_changing_2d.gif", interval = 0.2)
+    
+    
     
     make_square <- function(x, y, ...){
       lines(x = c(x[1], x[2]), y = c(y[1], y[1]), ...)
@@ -225,7 +285,9 @@ MapperRef$set("public", "multiscale",
     }
     get_range <- function(x){ range(x)+c(-1, 1)*diff(range(x))*0.10 }
     
-    plot_2d <- function(idx, g=NULL){
+    lsmi <- as.matrix(expand.grid(1:5, 1:4))
+    
+    plot_2d <- function(idx, g=NULL, prev=NULL, pt_ids = FALSE){
       if (missing(idx) && !missing(g)){
         ## Construct the level sets
         ls_endpts <- lapply(1L:filter_dim, function(d_i){
@@ -261,7 +323,8 @@ MapperRef$set("public", "multiscale",
       plot(filter_values, pch = 20, 
            xlim = get_range(filter_values[, 1L]), ylim = get_range(filter_values[, 2L]),
            xlab = "", ylab = "") # xaxt = "n", yaxt = "n"
-      text(filter_values, labels = 1:10, pos = 3)
+      if (pt_ids){ text(filter_values, labels = 1:nrow(filter_values), pos = 3) }
+      # 
       # abline(h = 0, col = "gray", lty = 3, lwd = 1.5)
       binned_color <- rev(rainbow(nrow(cart_prod), start = 0, end = 4/6))
       cc <- 0L
@@ -271,9 +334,32 @@ MapperRef$set("public", "multiscale",
         col <- binned_color[ii*jj]
         make_square(cls1[ii,], cls2[jj,], col = col)
         points(x = mean(cls1[ii,]), y = mean(cls2[jj,]), col = col, pch = 3)
-        text(x = mean(cls1[ii,]), y = mean(cls2[jj,]), labels = trimws(paste0(c(ii, jj), collapse = ",")), cex = 0.50, pos = 3)
+        text(x = mean(cls1[ii,]), y = mean(cls2[jj,]), labels = trimws(paste0(c(ii, jj) - 1L, collapse = ",")), cex = 0.50, pos = 3)
       }
-    }
+      for (d_i in 1:filter_dim){
+        # browser()
+        if (idx[[d_i]] > 0){
+          pt <- pt_idx[[d_i]][[idx[[d_i]]]]
+          points(x = filter_values[pt,1], y = filter_values[pt,2], col = "purple")
+        }
+      }
+      if (!missing(prev)){
+        # browser()
+        ls_changed <- ms_mapper$get_ls_that_change(prev, idx)+1
+        if (nrow(ls_changed) > 0){
+          apply(ls_changed, 1, function(x) {
+            ls1 <- lsmi[x[1], ]
+            ls2 <- lsmi[x[2], ]
+            rect(xleft = ls_endpts[[1]][ls1[1],1], xright = ls_endpts[[1]][ls1[1],2], 
+                 ybottom = ls_endpts[[2]][ls1[2],1], ytop = ls_endpts[[2]][ls1[2],2], 
+                 col = rgb(0.8, 0, 0.8, alpha = 0.3))
+            rect(xleft = ls_endpts[[1]][ls2[1],1], xright = ls_endpts[[1]][ls2[1],2], 
+                 ybottom = ls_endpts[[2]][ls2[2],1], ytop = ls_endpts[[2]][ls2[2],2], 
+                 col = rgb(0.8, 0, 0.8, alpha = 0.3))
+          })
+        }
+      }
+    } ## plot_2d
     
     # plot_segments <- function(d_i, fix_y = TRUE, fixed = max(filter_values[, d_i])){
     #   cls <- ls_endpts[[d_i]]
@@ -858,5 +944,5 @@ MapperRef$set("public", "multiscale",
 # }
 # 
 
-## Load the exported SegmentTree class into the package namespace
+## Load the exported id generator 
 Rcpp::loadModule("multiscale_module", TRUE)
