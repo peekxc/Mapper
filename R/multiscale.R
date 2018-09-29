@@ -16,17 +16,17 @@ MapperRef$set("public", "multiscale",
     library("Mapper")
     data("noisy_circle")
     X <- noisy_circle[1:10,]
-    # X <- cbind(rnorm(100), rnorm(100), rnorm(100))
+    # X <- cbind(rnorm(1000), rnorm(1000), rnorm(1000))
     left_pt <- X[which.min(X[, 1]),]
     f_x <- apply(X, 1, function(pt) (pt - left_pt)[1])
-    #filter_values <- matrix(f_x)
-    filter_values <- cbind(f_x, (max(f_x) - f_x^2) + rnorm(length(f_x), sd = 2))
+    filter_values <- matrix(f_x)
+    # filter_values <- cbind(f_x, (max(f_x) - f_x^2) + rnorm(length(f_x), sd = 2))
     
     # m <- MapperRef$new(noisy_circle)
     # m$set_cover(filter_values = fv, type = "fixed rectangular", number_intervals = 5L, percent_overlap = 0.35)
     # 
-    filter_dim <- 2L
-    number_intervals <- c(5L, 4L)# rep(7L, filter_dim)
+    filter_dim <- 1L
+    number_intervals <- c(7L) #, 4L)#, 4L)# rep(7L, filter_dim)
     
     ## Extract the cartesian product of the level sets (index set)
     indices <- lapply(number_intervals, seq) ## per-dimension possible indexes
@@ -84,11 +84,15 @@ MapperRef$set("public", "multiscale",
     ## Below this point, all non-point *indexes* should be 0-based
     ## ---------------------------------------
     
+    ## TODO: Can the memory requirements with this be improved?
     ## Use the ordering to extract the point indices, the level set indices the points are in, the level set indices the 
     ## points will be intersecting, and the distance they'll be starting the intersection
+    
     pt_idx <- lapply(1:filter_dim, function(d_i) row(dist_to_ls[[d_i]]$target_pos)[dist_order[[d_i]]]) ## pts are still 1-based
     from_ls <- lapply(1:filter_dim, function(d_i) matrix(rep(A[, d_i], each = number_intervals[d_i]-1), ncol = number_intervals[d_i] - 1, byrow = TRUE)[dist_order[[d_i]]] - 1L)
     to_ls <- lapply(1:filter_dim, function(d_i) dist_to_ls[[d_i]]$target_pos[dist_order[[d_i]]] - 1L)
+    
+    #unique(do.call(rbind, lapply(1:nrow(dist_to_ls[[d_i]]$target_pos), function(i) dist_to_ls[[d_i]]$target_pos[i,order(dist_to_ls[[d_i]]$target_dist[i,])])))
     
     ## == The following equations require knowledge of how the cover boxes are constructed ==
     ## What interval size does each parameterization represent?
@@ -97,6 +101,46 @@ MapperRef$set("public", "multiscale",
     ## What interval sizes do the level sets change in their relative segment order?
     swap_dist <- lapply(1:filter_dim, function(d_i) ((base_interval_length[d_i]/2) * seq(2, number_intervals[d_i] - 1L))*2)
     swap_idx <- lapply(1:filter_dim, function(d_i) findInterval(interval_size[[d_i]], vec = swap_dist[[d_i]]) + 1L)
+    
+    ## More preprocessing...
+    rowmatch <- function(A,B) { 
+      # Rows in A that match the rows in B
+      f <- function(...) paste(..., sep=":")
+      if(!is.matrix(B)) B <- matrix(B, 1, length(B))
+      a <- do.call("f", as.data.frame(A))
+      b <- do.call("f", as.data.frame(B))
+      match(a, b)
+    }
+    
+    n <- nrow(A)
+    ls_paths <- vector(mode = "list", length = filter_dim)
+    uniq_ls_paths <- vector(mode = "list", length = filter_dim)
+    for (d_i in 1L:filter_dim){
+    
+      ## Extract all the unique level set paths for dimension d_i
+      pt_ls_paths <- do.call(rbind, lapply(1:n, function(i) {
+        c(A[i, d_i], with(dist_to_ls[[d_i]], { target_pos[i, order(target_dist[i,])] }))
+      }))
+      uniq_ls_paths[[d_i]] <- unique(pt_ls_paths)
+      ls_paths[[d_i]] <- rowmatch(pt_ls_paths, uniq_ls_paths[[d_i]])
+    }
+    
+    ## Testing second slimmed down version 
+    ms_mapper2 <- Mapper:::MultiScale2$new(n, as.vector(number_intervals))
+    for (d_i in 1L:filter_dim){
+      ms_mapper2$create_filtration(dist_order[[d_i]]-1L, d_i-1)
+      ls_idx_swaps <- rle(swap_idx[[d_i]]-1L)[["lengths"]]
+      ls_idx_swaps <- head(c(0L, cumsum(ls_idx_swaps)), length(ls_idx_swaps))
+      ms_mapper2$set_filtration_rle(ls_idx_swaps, d_i-1)
+      ms_mapper2$create_ls_paths(uniq_ls_paths[[d_i]]-1L, d_i-1)
+    }
+    ms_mapper2$insert_pts(A, do.call(cbind, ls_paths))
+
+    ms_mapper2$update_segments2(5L)
+    
+    ms_mapper2$update_segments2(c(5,5))
+    plot_configuration(idx = 1, d_i = 1)
+    
     
     ## Given a parameterization, determine the index of the filtration, then pass that index down to the multiscale structure. 
     ## The structure should then use its structure to compute which of the level sets are changing. 
@@ -110,8 +154,15 @@ MapperRef$set("public", "multiscale",
     # ms_mapper$get_segment_map()
     # ms_mapper$update_multi_cover(c(0L, 0L))
     ms_mapper$compute_mapper(c(0, -1))
-    ms_mapper$compute_mapper(c(1, 0))
     ms_mapper$compute_mapper(c(0, 0))
+    ms_mapper$compute_mapper(c(1, 0))
+    ms_mapper$compute_mapper(c(1, 1))
+    
+    
+
+    
+    
+    
     
     plot_2d(idx = c(1, 0), pt_ids = TRUE)
     
@@ -285,9 +336,9 @@ MapperRef$set("public", "multiscale",
     }
     get_range <- function(x){ range(x)+c(-1, 1)*diff(range(x))*0.10 }
     
-    lsmi <- as.matrix(expand.grid(1:5, 1:4))
+    lsmi <- as.matrix(do.call(expand.grid, lapply(number_intervals, seq)))-1L
     
-    plot_2d <- function(idx, g=NULL, prev=NULL, pt_ids = FALSE){
+    plot_2d <- function(idx=NULL, g=NULL, prev=NULL, pt_ids = FALSE){
       if (missing(idx) && !missing(g)){
         ## Construct the level sets
         ls_endpts <- lapply(1L:filter_dim, function(d_i){
@@ -465,11 +516,11 @@ MapperRef$set("public", "multiscale",
         i <- i + 1
       }
       text(x = cls[nrow(cls), 2L], y = 0.5, pos = 3, labels = as.character(cc))
-      points(filter_values[, d_i], rep(0, 10), pch = 20)
+      points(filter_values[, d_i], rep(0, nrow(filter_values)), pch = 20)
       if (idx > 0){
         points(filter_values[pt_idx[[d_i]][idx], d_i], 0, pch = 21, cex = 1.5, col = "purple")
       }
-      text(filter_values[, d_i], 0, labels = 1:10, pos = 3)
+      text(filter_values[, d_i], 0, labels = 1:nrow(filter_values), pos = 3)
     }
    
     # abline(v = (base_interval_length[1]*0:number_intervals[1]) + filter_min[1], col = "red")
@@ -946,3 +997,4 @@ MapperRef$set("public", "multiscale",
 
 ## Load the exported id generator 
 Rcpp::loadModule("multiscale_module", TRUE)
+Rcpp::loadModule("multiscale2_module", TRUE)

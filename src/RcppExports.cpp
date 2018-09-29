@@ -211,25 +211,14 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// timesTwo
-NumericVector timesTwo(NumericVector x);
-RcppExport SEXP _Mapper_timesTwo(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(timesTwo(x));
-    return rcpp_result_gen;
-END_RCPP
-}
 // index_test
-SEXP index_test(IntegerVector lsmi);
-RcppExport SEXP _Mapper_index_test(SEXP lsmiSEXP) {
+List index_test(IntegerVector sizes);
+RcppExport SEXP _Mapper_index_test(SEXP sizesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< IntegerVector >::type lsmi(lsmiSEXP);
-    rcpp_result_gen = Rcpp::wrap(index_test(lsmi));
+    Rcpp::traits::input_parameter< IntegerVector >::type sizes(sizesSEXP);
+    rcpp_result_gen = Rcpp::wrap(index_test(sizes));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -316,8 +305,8 @@ BEGIN_RCPP
 END_RCPP
 }
 
-RcppExport SEXP _rcpp_module_boot_id_tracker_module();
 RcppExport SEXP _rcpp_module_boot_multiscale_module();
+RcppExport SEXP _rcpp_module_boot_multiscale2_module();
 RcppExport SEXP _rcpp_module_boot_multi_segment_tree_module();
 RcppExport SEXP _rcpp_module_boot_segment_tree_module();
 RcppExport SEXP _rcpp_module_boot_simplex_tree_module();
@@ -339,7 +328,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Mapper_dist_subset", (DL_FUNC) &_Mapper_dist_subset, 2},
     {"_Mapper_concatDist", (DL_FUNC) &_Mapper_concatDist, 3},
     {"_Mapper_dist_from_to", (DL_FUNC) &_Mapper_dist_from_to, 2},
-    {"_Mapper_timesTwo", (DL_FUNC) &_Mapper_timesTwo, 1},
     {"_Mapper_index_test", (DL_FUNC) &_Mapper_index_test, 1},
     {"_Mapper_createUpdateBlocks", (DL_FUNC) &_Mapper_createUpdateBlocks, 5},
     {"_Mapper_dist_to_boxes", (DL_FUNC) &_Mapper_dist_to_boxes, 5},
@@ -348,8 +336,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Mapper_test_merge2", (DL_FUNC) &_Mapper_test_merge2, 1},
     {"_Mapper_test_it", (DL_FUNC) &_Mapper_test_it, 1},
     {"_Mapper_test_map", (DL_FUNC) &_Mapper_test_map, 1},
-    {"_rcpp_module_boot_id_tracker_module", (DL_FUNC) &_rcpp_module_boot_id_tracker_module, 0},
     {"_rcpp_module_boot_multiscale_module", (DL_FUNC) &_rcpp_module_boot_multiscale_module, 0},
+    {"_rcpp_module_boot_multiscale2_module", (DL_FUNC) &_rcpp_module_boot_multiscale2_module, 0},
     {"_rcpp_module_boot_multi_segment_tree_module", (DL_FUNC) &_rcpp_module_boot_multi_segment_tree_module, 0},
     {"_rcpp_module_boot_segment_tree_module", (DL_FUNC) &_rcpp_module_boot_segment_tree_module, 0},
     {"_rcpp_module_boot_simplex_tree_module", (DL_FUNC) &_rcpp_module_boot_simplex_tree_module, 0},

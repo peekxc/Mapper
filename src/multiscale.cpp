@@ -9,18 +9,11 @@ using namespace Rcpp;
 #include "MultiSegmentTree.h"
 
 #include "cartesian_product.h"
+#include "utility.h"
 
 typedef std::vector< uint_fast8_t > index_t;
 typedef std::vector< std::shared_ptr<uint_fast8_t> > index_ptr_t;
 typedef std::ptrdiff_t s_size_t;
-
-inline std::size_t index_lower_triangular(std::size_t from, std::size_t to, const std::size_t N){
-  if (from < to){ std::swap(from, to); }
-  return((N)*(to) - (to)*(to+1)/2 + (from) - (to) - (1));
-}
-#define INDEX_TO(k, n) n - 2 - floor(sqrt(-8*k + 4*n*(n-1)-7)/2.0 - 0.5) // expects 0-based, returns 0-based
-#define INDEX_FROM(k, n, i) k + i + 1 - n*(n-1)/2 + (n-i)*((n-i)-1)/2 // expects 0-based, returns 0-based
-
 
 std::string index_to_str(index_t idx){
   std::string result;
@@ -50,17 +43,7 @@ std::shared_ptr<uint_fast8_t> make_index_ptr_t(const int idx){
 
 #define SWAP(x, y, T) do { T SWAP = x; x = y; y = SWAP; } while (0)
 
-template<typename ForwardIterator>
-std::map<int, int> get_unique_indices(ForwardIterator first, ForwardIterator last){
-  std::map<int, int> pt_to_unique_idx;
-  for(std::size_t i = 0; first != last; ++i, ++first){
-    auto it = pt_to_unique_idx.find(*first);
-    if (it == pt_to_unique_idx.end()) { // value doesn't exist
-      pt_to_unique_idx.emplace(*first, i);
-    }
-  }
-  return pt_to_unique_idx;
-}
+
 
 // TODO
 // template<typename T> 
@@ -89,17 +72,6 @@ std::vector<T> merge_vectors(const std::vector< std::vector<T>* >& vec){
   final_res.reserve(total_vec_size);
   std::for_each(vec.begin(), vec.end(), [&](const std::vector<T>* v){ std::copy(v->begin(), v->end(), std::back_inserter(final_res)); });
   return(final_res);
-}
-
-// Applies the function Func to all pairwise combinations in the range [first, last)
-template<typename Iter, typename Func>
-void combine_pairwise(Iter first, Iter last, Func func)
-{
-  for(; first != last; ++first){
-    for(Iter next = std::next(first); next != last; ++next){
-      func(*first, *next);
-    }
-  }
 }
 
 // Computes the absolute distances from a given point to the closest endpoint of each level set. This distance should 
@@ -764,11 +736,12 @@ struct MultiScale {
   
   // A point may exist in multiple level sets. It is necessary to know the full level set index a point 
   // last intersected in the filtration (from the expansion sense).
-  std::map<int, int> last_known_ls(std::vector<int> pt_ids, const int start_idx, const int d_i){
+  std::map<int, int> previous_level_set(std::vector<int> pt_ids, const int start_idx, const int target_idx, const int d_i){
     const IntegerVector& c_swap_idx = swap_idx.at(d_i);
     const IntegerVector& c_pt_idx = pt_idx.at(d_i);
     const IntegerVector& c_from_ls = from_ls_idx.at(d_i);
     const IntegerVector& c_to_ls = to_ls_idx.at(d_i);
+    const bool expanding = start_idx < target_idx;  
     
     // Main result
     std::map<int, int> pt_to_res; // For each point, retrieve its last to ls index
@@ -801,7 +774,7 @@ struct MultiScale {
       std::map<int, int>::iterator it = pt_to_res.find(pt);
       if (it == pt_to_res.end()){ // pt wasn't found in the map
         // Extract first occurrence of point in point ids. It's from level set is where it came from originally.
-        std::size_t first_pt_idx = std::distance(pt_idx.at(d_i).begin(), std::find(pt_idx.at(d_i).begin(), pt_idx.at(d_i).end(), pt));
+        std::size_t first_pt_idx = std::distance(c_pt_idx.begin(), std::find(c_pt_idx.begin(), c_pt_idx.begin(), pt));
         int first_ls = from_ls_idx.at(d_i).at(first_pt_idx);
         pt_to_res.emplace_hint(it, pt, first_ls); // every point initially exists in the lower segment of its initial level set
       }
@@ -849,32 +822,17 @@ struct MultiScale {
     // Retrieve the last known level sets each point intersected before the current starting index 
     // std::vector< std::vector<int> > pt_ls_pos(d);
     for (int& d_i : dim_idx){
-      std::map<int, int> ls_pos = last_known_ls(all_pts, start_idx.at(d_i), d_i);
+      std::map<int, int> ls_pos = previous_level_set(all_pts, start_idx.at(d_i), target_idx.at(d_i), d_i);
       min_max_ls.at(d_i) = std::vector< std::pair<int, int> >(n_pts);
       for (const auto& kv : ls_pos){
         Rprintf("Default range (i=%d, d=%d): [%d, %d]\n", kv.first, d_i, kv.second, kv.second);
         min_max_ls.at(d_i).at(kv.first-1).first = kv.second;
         min_max_ls.at(d_i).at(kv.first-1).second = kv.second;
       } 
-      // std::transform(ls_pos.begin(), ls_pos.end(), min_max_ls.begin(), [&](std::pair<int, int>& kv){
-      //   // std::pair<int, int> ls_range = std::make_pair(kv.second, kv.second);
-      // 
-      // });
-      // // pt_ls_pos.at(d_i) = std::vector<int>(n_pts);
-      // for (auto& pt_to_ls: ls_pos){
-      //   // pt_ls_pos.at(d_i).at(pt_to_ls.first-1) = pt_to_ls.second;
-      //   
-      // }
     }
     
     // Compute the min/max LS indexes in the current range for each point
-    // std::vector< std::vector< std::pair<int, int> > > min_max_ls(d);
-    // Rcout << "Computing the ls indices..." << std::endl;  
     for (int& d_i : dim_idx){
-      
-      // Vector mapping a point id to its min/max ls index within the current range
-      // std::pair<int, int> default_range = std::make_pair<int, int>(std::numeric_limits<int>::max(), std::numeric_limits<int>::min()); 
-      // min_max_ls.at(d_i) = std::vector< std::pair<int, int> >(n_pts, default_range));
       
       // Loop through the current filtration range, updating the min/max ls bounds for each point.
       for (int i = start_idx.at(d_i)+1; i <= target_idx.at(d_i); ++i){
@@ -903,21 +861,19 @@ struct MultiScale {
     //   });
     //   res(i, _) = clone(tmp);
     // }
-    
-    // Rcout << "Collecting the expansions..." << std::endl;  
-    // return(res);
+  
+  
     std::set<std::size_t> lsfi_to_recompute = std::set<std::size_t>();
     std::set<std::size_t> ls_pair_idx = std::set<std::size_t>();
     std::vector< std::vector<uint_fast8_t> > expansions = std::vector< std::vector<uint_fast8_t> >(d);
     std::vector<uint_fast8_t> expanded = std::vector<uint_fast8_t>();
     for (int i = 0; i < n_pts; ++i){
+      
+      // Expand the index inclusion range
       expanded.clear();
       std::for_each(dim_idx.begin(), dim_idx.end(), [&](const int d_i){
         std::pair<int, int>& c_range = min_max_ls.at(d_i).at(i);
-        // tmp.at(d_i*2) = c_range.first;
-        // tmp.at(d_i*2 + 1) = c_range.second;
-        // Expand the index inclusion range
-        expanded.resize((c_range.second - c_range.first) + 1);
+        expanded.resize((c_range.second - c_range.first) + 1); 
         std::iota(expanded.begin(), expanded.end(), c_range.first);
         expansions.at(d_i) = expanded;
       });
@@ -1128,25 +1084,28 @@ struct MultiScale {
     // Rcout << "here2" << std::endl; 
     std::pair< index_set, index_set > to_update = get_ls_that_change(current_index_copy, target_index);
     
-    Rcout << "Vertices to update: " << std::endl; 
+    Rcout << "LS to update: " << std::endl; 
     std::for_each(to_update.first.begin(), to_update.first.end(), [](const std::size_t v){
       Rcout << static_cast<int>(v) << ", ";
     });
     Rcout << std::endl; 
     
-    std::vector< std::vector<std::size_t> > lsfi_pairs = unexpand_lsfi_pairs(to_update.second);
-    return(wrap(lsfi_pairs));
-    // Rcout << "Level set pairs to update: " << std::endl; 
+    // Rcout << "Level set pairs to update: " << std::endl;
     // std::for_each(lsfi_pairs.begin(), lsfi_pairs.end(), [](const std::vector<std::size_t> pair){
     //   Rcout << static_cast<int>(pair.at(0)) << ", " << static_cast<int>(pair.at(1));
     // });
-    // Rcout << std::endl; 
+    // Rcout << std::endl;
     
     
+    std::vector< std::vector<std::size_t> > lsfi_pairs = unexpand_lsfi_pairs(to_update.second);
+
+
     
+
     // Apply the clustering function to update the 0-skeleton 
     Rcout << "here3" << std::endl; 
     std::vector<index_t> c_ls_config = get_current_ls_idx();
+    return(wrap(lsfi_pairs));
     std::vector<IntegerVector> updated_vertices = run_clustering(to_update.first, c_ls_config);
     
     // Retrieve the level set pairs to update
@@ -1621,6 +1580,19 @@ struct MultiScale {
     //test.at(0);
     return(res);
   }
+  
+  void set_from_ls(IntegerVector from_ls, const int d_i){
+    
+  }
+  
+  
+  // Given a set of points and a range [from, to), finds the level set each point in 'pts' 
+  // *last* intersected, where the notion of *last* is determined by the iterator range. 
+  // If 'expanding' is TRUE, then 
+  // template <typename Iter> 
+  // void previous_level_set(IntegerVector pts, Iter from, Iter to, const int d_i, bool expanding){
+  //   
+  // }
   
 };
 

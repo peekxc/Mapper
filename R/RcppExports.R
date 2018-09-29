@@ -65,12 +65,8 @@ dist_from_to <- function(X_query, X_ref) {
     .Call('_Mapper_dist_from_to', PACKAGE = 'Mapper', X_query, X_ref)
 }
 
-timesTwo <- function(x) {
-    .Call('_Mapper_timesTwo', PACKAGE = 'Mapper', x)
-}
-
-index_test <- function(lsmi) {
-    .Call('_Mapper_index_test', PACKAGE = 'Mapper', lsmi)
+index_test <- function(sizes) {
+    .Call('_Mapper_index_test', PACKAGE = 'Mapper', sizes)
 }
 
 createUpdateBlocks <- function(G, overlap_blocks, n_lvl_sets, n_blocks, n) {

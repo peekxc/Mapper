@@ -1,0 +1,48 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{Rcpp}
+#include <Rcpp.h>
+using namespace Rcpp;
+// [[Rcpp::plugins(cpp11)]]
+
+template<typename ForwardIterator>
+inline std::map<int, int> get_unique_indices(ForwardIterator first, ForwardIterator last, bool reverse = false){
+  std::map<int, int> pt_to_unique_idx;
+  std::size_t rng = std::distance(first, last);
+  for(std::size_t i = 0; first != last; ++i, ++first){
+    auto it = pt_to_unique_idx.find(*first);
+    if (it == pt_to_unique_idx.end()) { // value doesn't exist
+      pt_to_unique_idx.emplace(*first, i);
+    }
+  }
+  return pt_to_unique_idx;
+}
+
+
+// [[Rcpp::export]]
+List get_unique_idx(IntegerVector x) {
+  std::map<int, int> res1 = get_unique_indices(x.begin(), x.end());
+  // List res2 = List();
+  IntegerVector pt_ids, pt_idx; 
+  for (auto& kv: res1){
+    pt_ids.push_back(kv.first);
+    pt_idx.push_back(kv.second);
+  }
+  
+  return List::create(_["ids"] = pt_ids, _["idx"] = pt_idx);
+}
+
+```
+
+```{r}
+x <- sample(1L:10L, size = 30, replace = TRUE)
+get_unique_idx(x)
+```
+

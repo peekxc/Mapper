@@ -450,7 +450,6 @@ MapperRef$set("public", "plot_interactive", function(...){
   # return(result)
 # })
 
-## Load the exported SegmentTree class into the package namespace
+## Load the exported Simplex Tree class into the package namespace
 Rcpp::loadModule("simplex_tree_module", TRUE)
-Rcpp::loadModule("id_tracker_module", TRUE)
 
