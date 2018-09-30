@@ -31,6 +31,23 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// build_0_skeleton
+List build_0_skeleton(const IntegerVector which_levels, const NumericMatrix& X, Function f, const List& level_sets, List& vertices, List& ls_vertex_map, SEXP stree);
+RcppExport SEXP _Mapper_build_0_skeleton(SEXP which_levelsSEXP, SEXP XSEXP, SEXP fSEXP, SEXP level_setsSEXP, SEXP verticesSEXP, SEXP ls_vertex_mapSEXP, SEXP streeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const IntegerVector >::type which_levels(which_levelsSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< Function >::type f(fSEXP);
+    Rcpp::traits::input_parameter< const List& >::type level_sets(level_setsSEXP);
+    Rcpp::traits::input_parameter< List& >::type vertices(verticesSEXP);
+    Rcpp::traits::input_parameter< List& >::type ls_vertex_map(ls_vertex_mapSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type stree(streeSEXP);
+    rcpp_result_gen = Rcpp::wrap(build_0_skeleton(which_levels, X, f, level_sets, vertices, ls_vertex_map, stree));
+    return rcpp_result_gen;
+END_RCPP
+}
 // build_1_skeleton
 void build_1_skeleton(const IntegerMatrix& ls_pairs, const List& vertices, const List& ls_vertex_map, SEXP stree);
 RcppExport SEXP _Mapper_build_1_skeleton(SEXP ls_pairsSEXP, SEXP verticesSEXP, SEXP ls_vertex_mapSEXP, SEXP streeSEXP) {
@@ -314,6 +331,7 @@ RcppExport SEXP _rcpp_module_boot_simplex_tree_module();
 static const R_CallMethodDef CallEntries[] = {
     {"_Mapper_edgeList_int", (DL_FUNC) &_Mapper_edgeList_int, 3},
     {"_Mapper_adjacencyCpp", (DL_FUNC) &_Mapper_adjacencyCpp, 3},
+    {"_Mapper_build_0_skeleton", (DL_FUNC) &_Mapper_build_0_skeleton, 7},
     {"_Mapper_build_1_skeleton", (DL_FUNC) &_Mapper_build_1_skeleton, 4},
     {"_Mapper_intersectNodes", (DL_FUNC) &_Mapper_intersectNodes, 4},
     {"_Mapper_valid_pairs", (DL_FUNC) &_Mapper_valid_pairs, 1},

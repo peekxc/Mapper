@@ -13,7 +13,6 @@ inline std::size_t index_lower_triangular(std::size_t from, std::size_t to, cons
   #define INDEX_FROM(k, n, i) k + i + 1 - n*(n-1)/2 + (n-i)*((n-i)-1)/2 // expects 0-based, returns 0-based
 #endif
 
-
 template<typename ForwardIterator>
 inline std::map<int, int> get_unique_indices(ForwardIterator first, ForwardIterator last){
   std::map<int, int> pt_to_unique_idx;

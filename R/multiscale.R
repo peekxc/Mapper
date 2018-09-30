@@ -19,14 +19,14 @@ MapperRef$set("public", "multiscale",
     # X <- cbind(rnorm(1000), rnorm(1000), rnorm(1000))
     left_pt <- X[which.min(X[, 1]),]
     f_x <- apply(X, 1, function(pt) (pt - left_pt)[1])
-    filter_values <- matrix(f_x)
-    # filter_values <- cbind(f_x, (max(f_x) - f_x^2) + rnorm(length(f_x), sd = 2))
+    # filter_values <- matrix(f_x)
+    filter_values <- cbind(f_x, (max(f_x) - f_x^2) + rnorm(length(f_x), sd = 2))
     
     # m <- MapperRef$new(noisy_circle)
     # m$set_cover(filter_values = fv, type = "fixed rectangular", number_intervals = 5L, percent_overlap = 0.35)
     # 
-    filter_dim <- 1L
-    number_intervals <- c(7L) #, 4L)#, 4L)# rep(7L, filter_dim)
+    filter_dim <- 2L
+    number_intervals <- c(7L, 7L) #, 4L)#, 4L)# rep(7L, filter_dim)
     
     ## Extract the cartesian product of the level sets (index set)
     indices <- lapply(number_intervals, seq) ## per-dimension possible indexes
@@ -135,8 +135,12 @@ MapperRef$set("public", "multiscale",
       ms_mapper2$create_ls_paths(uniq_ls_paths[[d_i]]-1L, d_i-1)
     }
     ms_mapper2$insert_pts(A, do.call(cbind, ls_paths))
-
+    
+    plot_2d(idx = c(4L, 4L), pt_ids = TRUE)
+    
+    plot_configuration(d_i = 1L, idx = 6L)
     ms_mapper2$update_segments2(5L)
+    Mapper:::index_test(c(7L, 7L))
     
     ms_mapper2$update_segments2(c(5,5))
     plot_configuration(idx = 1, d_i = 1)

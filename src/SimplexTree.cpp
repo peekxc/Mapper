@@ -47,12 +47,12 @@ void SimplexTree::record_new_simplexes(const uint k, const uint n){
   n_simplexes.at(k) += n;
 }
   
-// TODO: come back to this to incoporate id_tracker
+// Returns a 1-based integer vector of the first ids available to allocate new vertices
 IntegerVector SimplexTree::vertex_available(uint n_vertices){
   std::map< uint, node_ptr > top_vertices = root->children;
   uint max = top_vertices.size() + n_vertices;
   IntegerVector new_idx = IntegerVector();
-  for (uint cc = 1; cc <= max; ++cc){
+  for (uint cc = 0; cc < max; ++cc){
     if (top_vertices.find(cc) == top_vertices.end()){
       new_idx.push_back(cc);
     }

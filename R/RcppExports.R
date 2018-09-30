@@ -9,6 +9,10 @@ adjacencyCpp <- function(ls_pairs, nodes, ls_node_map) {
     .Call('_Mapper_adjacencyCpp', PACKAGE = 'Mapper', ls_pairs, nodes, ls_node_map)
 }
 
+build_0_skeleton <- function(which_levels, X, f, level_sets, vertices, ls_vertex_map, stree) {
+    .Call('_Mapper_build_0_skeleton', PACKAGE = 'Mapper', which_levels, X, f, level_sets, vertices, ls_vertex_map, stree)
+}
+
 build_1_skeleton <- function(ls_pairs, vertices, ls_vertex_map, stree) {
     invisible(.Call('_Mapper_build_1_skeleton', PACKAGE = 'Mapper', ls_pairs, vertices, ls_vertex_map, stree))
 }

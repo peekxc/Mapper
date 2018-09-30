@@ -205,84 +205,28 @@ MapperRef$set("public", "compute_vertices", function(which_levels=NULL, ...){
     }
   } else { which_levels <- self$cover$index_set }
   
-  ## Create a default mapping from the covers index set to the vertex ids
+  ## If not populated yet, create a default mapping from the covers index set to the vertex ids
   if (length(private$.cl_map) == 0){
     private$.cl_map <- lapply(self$cover$index_set, function(x) integer(0L))
     names(private$.cl_map) <- self$cover$index_set
   }
   
-  ## TODO: Optimize this via Rcpp + parallel execution of the clustering function
-  ## Perform the clustering for the chosen level sets
-  for (index in which_levels){
-    ls <- as.integer(self$cover$level_sets[[index]])
-    if (length(ls) == 0){ 
-      ## Erase all data related to the vertices in the current index 
-      self$get_new_vertex_ids(0L, remove = private$.cl_map[[index]]) 
-      private$.simplicial_complex$remove_vertices(private$.cl_map[[index]])
-      private$.vertices[as.character(private$.cl_map[[index]])] <- NULL
-      private$.cl_map[[index]] <- integer(0)
-      next;
-    }
-    cl_res <- self$clustering_algorithm(X = private$.X, idx = ls, ...)
-    cids <- unique(cl_res) ## cluster ids 
-    vertices <- lapply(cids, function(cid){ ls[which(cl_res == cid)] }) # point indices 
-    n_vertices <- length(cids)
-    
-    v_ids <- self$get_new_vertex_ids(n_vertices, remove = private$.cl_map[[index]]) 
-    v_to_remove <- unique(c(private$.cl_map[[index]], v_ids))
-    private$.simplicial_complex$remove_vertices(v_to_remove)
-    private$.vertices[as.character(v_to_remove)] <- NULL
-    private$.cl_map[[index]] <- integer(0)
-    
-    ## Add the new vertices
-    for (i in 1L:n_vertices){
-      v <- structure(as.vector(vertices[[i]]), level_set = index)
-      private$.vertices[[as.character(v_ids[[i]])]] <- v ## Store the vertex
-      private$.simplicial_complex$insert_simplex(v_ids[[i]]) ## Insert 0-simplex into simplicial complex
-    }
-    private$.cl_map[[index]] <- v_ids
-  }
-  
-  ## Ensure the ordering is sequential by name and index
-  v_idx <- as.integer(names(private$.vertices))
-  if (is.unsorted(v_idx)){
-    private$.vertices <- private$.vertices[order(v_idx)]
-  }
+  ## Update the vertices for the given level sets. This requires updating both the simplex tree's 
+  ## internal representation as well as the outward-facing vertex list.
+  which_level_idx <- match(which_levels, self$cover$index_set)-1L # 0-based
+  stree_ptr <- private$.simplicial_complex$as_XPtr()
+  private$.vertices <- Mapper:::build_0_skeleton(
+    which_levels = which_level_idx, 
+    X = private$.X, 
+    f = self$clustering_algorithm, 
+    level_sets = self$cover$level_sets, 
+    vertices = private$.vertices, 
+    ls_vertex_map = private$.cl_map, 
+    stree = stree_ptr
+  )
   
   ## Return self
   invisible(self)
-  # cl_res <- lapply(self$cover$level_sets[which_levels], function(ls) {
-  #   self$clustering_algorithm(X = private$.X, idx = as.integer(ls), ...)
-  # })
-  # 
-  # ## Precompute useful variables to know
-  # n_vertices <- sum(sapply(cl_res, function(cl) length(unique(cl))))
-  # vertice_idx <- unlist(mapply(function(cl, ls_i) if (length(cl) > 0) paste0(ls_i, ".", unique(cl)), cl_res, 1:length(cl_res)))
-  # n_lvlsets <- length(self$cover$level_sets)
-  # 
-  # ## Add the 0-simplexes to the simplex tree
-  # private$.simplicial_complex$add_vertices(n_vertices)
-  # 
-  # ## Agglomerate the nodes into a list. This matches up the original indexes of the filter values with the
-  # ## the clustering results, such that each node stores the original filter index values as well as the
-  # ## creating a correspondence between the node and it's corresponding level set flat index (lsfi)
-  # ## TODO: Cleanup and either vectorize or send down to C++
-  # private$.vertices <- vector(mode = "list", length = n_vertices)
-  # v_i <- 1L
-  # for (lsfi in 1:n_lvlsets){
-  #   cl_i <- cl_res[[lsfi]]
-  #   if (!is.null(cl_i)){
-  #     ## Extract the vertex point indices for each cluster
-  #     vertex_pt_idx <- lapply(unique(cl_i), function(cl_idx) self$cover$level_sets[[lsfi]][which(cl_i == cl_idx)])
-  #     for (vertex in vertex_pt_idx){
-  #       attr(vertex, "level_set") <- lsfi
-  #       if (any(is.na(vertex))){ browser() }
-  #       private$.vertices[[v_i]] <- vertex
-  #       v_i <- v_i + 1L
-  #     }
-  #   }
-  # }
-  # invisible(self)
 })
 
 ## Computes the edges composing the topological graph (1-skeleton). 
@@ -297,9 +241,8 @@ MapperRef$set("public", "compute_edges", function(which_level_pairs = NULL){
     }
   } else { which_level_pairs <- self$cover$level_sets_to_compare() }
   
-  ## Retrieve the valid level set index pairs to compare. In the worst case, with no cover-specific optimization
-  ## or 1-skeleton assumption, this may just be all pairwise combinations of LSFI's for the full simplicial complex.
-  ## If the specific set of LSFI's were given
+  ## Retrieve the valid level set index pairs to compare. In the worst case, with no cover-specific optimization, 
+  ## this may just be all pairwise combinations of LSFI's for the full simplicial complex.
   stree_ptr <- private$.simplicial_complex$as_XPtr()
   build_1_skeleton(ls_pairs = which_level_pairs, vertices = private$.vertices, ls_vertex_map = private$.cl_map, stree = stree_ptr)
 

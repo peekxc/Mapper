@@ -117,6 +117,8 @@ struct MultiScale2{
     filtration_idx = l_index_t(d, -1);
       
     for (auto d_i: d_range){ update_ls_segment_idx(0, d_i); }
+    
+    
     // Any point not in the map is in its default position
     // std::for_each(pt_ids.begin(), pt_ids.end(), [&](const int pt){
     //   std::map<int, int>::iterator it = pt_to_res.find(pt);
@@ -131,6 +133,20 @@ struct MultiScale2{
     // create_ls_paths()
     // insert_pts(A, pt_ls_path); // Create the points and their associated paths
     
+  }
+  
+  List get_segment_map(){
+    List res = List();
+    for (auto& key_pair: segment_map){
+      // std::string key = index_to_str(key_pair.first); 
+      std::string key = std::string();
+      std::for_each(std::begin(key_pair.first), std::end(key_pair.first), [&key](const u8 i){
+        int ii = static_cast< int >(i);
+        key.append(std::to_string(ii));
+      });
+      res[key] = wrap(key_pair.second);
+    }
+    return(res);
   }
   
   // Expects 1-based RLE built from the point swap indices. Lengths should be cumulative.
@@ -178,8 +194,8 @@ struct MultiScale2{
       }
       
       // Add point to the segment map 
-      index_t pt_segment = extract_segment(i);
-      segment_map[pt_segment].push_back(i);
+      index_t c_segment = extract_segment(i);
+      segment_map[c_segment].push_back(i);
     }
   }
   
@@ -221,6 +237,7 @@ struct MultiScale2{
     std::size_t sz = std::abs(j - i)+1;
     std::vector<T> rng = std::vector<T>(sz);
     std::iota(rng.begin(), rng.end(), i);
+    return(rng);
   }
 
   index_t compute_ls_segment_idx(std::size_t i, std::size_t d_i){
@@ -309,12 +326,10 @@ struct MultiScale2{
           // Update the path information 
           // Rprintf("Updating path index (pt id %d):  %d --> %d\n", pt_idx+1, c_path.c_idx, c_path.c_idx+1);
           c_path.c_idx++;
-          // c_path.c_segment = target_segment;
             
           // Debug
-          int source_segment = -1;
           Rprintf("pt id %d is going from ls %d to ls %d (going right? %d via segments f=%d, t=%d)\n", 
-                  int(pt_idx)+1, int(source_ls), int(target_ls), int(intersecting_right), int(source_segment), int(target_segment));
+                  int(pt_idx)+1, int(source_ls), int(target_ls), int(intersecting_right), int(c_path.c_segment), int(target_segment));
         
           // If point exists in the update map, update the min/max source/target ls bounds
           // otherwise create a new pt_update and set its current target segment
@@ -365,12 +380,10 @@ struct MultiScale2{
           // Update the path information 
           //Rprintf("Updating path index (pt id %d):  %d --> %d\n", pt_idx+1, c_path.c_idx, c_path.c_idx-1);
           c_path.c_idx--;
-          // c_path.c_segment = target_segment;
           
           // Debug
-          int source_segment = -1;
           Rprintf("pt id %d is going from ls %d to ls %d (going right? %d via segments f=%d, t=%d)\n", 
-                  int(pt_idx)+1, int(source_ls), int(target_ls), int(intersecting_right), int(source_segment), int(target_segment));
+                  int(pt_idx)+1, int(source_ls), int(target_ls), int(intersecting_right), int(c_path.c_segment), int(target_segment));
           
           std::map< pdiff, pt_update >::iterator pt_it = pts_to_update.lower_bound(pt_idx);
           if (pt_it != pts_to_update.end() && pt_it->first == pt_idx){
@@ -391,6 +404,7 @@ struct MultiScale2{
     } // (auto d_i: d_range)
     
 
+    std::unordered_set< std::size_t > ls_to_update;
     std::unordered_set< std::size_t > ls_pairs_to_update;
     
     // For all the points that need updating, ensure their default min/max ranges are set, 
@@ -402,8 +416,9 @@ struct MultiScale2{
       // By default, initialize the min/max ls bounds to the points current LS indices
       for (auto& d_i: d_range){
         path_info& c_path = pt_info.at(d_i).at(pt_idx);
-        u8 base_ls = ls_paths.at(d_i).at(c_path.k_idx).at(c_path.p_idx); // TODO: update p_idx
+        u8 base_ls = ls_paths.at(d_i).at(c_path.k_idx).at(c_path.p_idx);
         c_update.update_min_max(base_ls, base_ls, d_i);
+        c_path.p_idx = c_path.c_idx; // update the previous idx
       }
       
       // Debugging 
@@ -422,36 +437,64 @@ struct MultiScale2{
       l_index_t& from_pts = segment_map.at(pt_source_segment);
       l_index_t::iterator from_end = std::remove_if(from_pts.begin(), from_pts.end(), [pt_idx](const int x_i){ return(x_i == pt_idx); });
       from_pts.resize(std::distance(from_pts.begin(), from_end));
-      segment_map.at(pt_target_segment).push_back(pt_idx);
       
-     
+      // Add the to the vector at the target segment
+      segment_map[pt_target_segment].push_back(pt_idx);
+      
+      // Update the current segment in the pt info mapping
+      for (auto& d_i: d_range){
+        path_info& c_path = pt_info.at(d_i).at(pt_idx);
+        c_path.c_segment = pt_target_segment.at(d_i);
+      }
+      
       // Step 1. Expand the level set indices in each direction
-      // std::vector< index_t > ls_expansions(d);
-      // for (auto& d_i: d_range){
-      //   index_t ls_expansion = seq_ij< u8 >(c_update.min_ls.at(d_i), c_update.max_ls.at(d_i));
-      //   ls_expansions.at(d_i) = ls_expansion;
-      // }
+      std::vector< index_t > ls_expansions(d);
+      std::size_t cc = 0;
+      for (auto& d_i: d_range){
+        Rprintf("(d_i=%d) = min ls: %d, max ls: %d\n", d_i, c_update.min_ls.at(d_i), c_update.max_ls.at(d_i));
+        index_t ls_expansion = seq_ij< u8 >(c_update.min_ls.at(d_i), c_update.max_ls.at(d_i));
+        ls_expansions.at(d_i) = ls_expansion;
+        cc += ls_expansion.size();
+      }
       
-      // Step 2. The cartesian product of the expanded indices comprise the level sets that need to be updated. 
-      // Save their corresponding flat indices. 
-      // std::vector< std::size_t > flat_ls = std::vector< std::size_t >();
-      // CartesianProduct(ls_expansions, [&](const index_t lsmi){
-      //   std::size_t lsfi = ls_grid.flat_from_multi(lsmi);
-      //   flat_ls.push_back(lsfi);
-      // });
+      // Only add the updated level sets if the point moved level sets
+      if (cc > d){ 
+        
+        // Step 2. The cartesian product of the expanded indices comprise the level sets that need to be updated. 
+        // Save their corresponding flat indices. 
+        std::vector< std::size_t > flat_ls = std::vector< std::size_t >();
+        CartesianProduct(ls_expansions, [&](const index_t lsmi){
+          std::size_t lsfi = ls_grid.flat_from_multi(lsmi);
+          flat_ls.push_back(lsfi);
+          ls_to_update.insert(lsfi);
+        });
+        
+        // Step 3. The pairwise combinations of the new level sets comprise the LS pairs that need to be recomputed. 
+        // Save their corresponding (lower-triangular) flat indices. 
+        const std::size_t n_ls_pairs = ls_grid.n_multi_indices;
+        combine_pairwise(flat_ls.begin(), flat_ls.end(), [&n_ls_pairs, &ls_pairs_to_update](const std::size_t ls_i, const std::size_t ls_j){
+          std::size_t ij_flat = index_lower_triangular(ls_i, ls_j, n_ls_pairs);
+          ls_pairs_to_update.insert(ij_flat);
+        });
       
-      // Step 3. The pairwise combinations of the new level sets comprise the LS pairs that need to be recomputed. 
-      // Save their corresponding (lower-triangular) flat indices. 
-      // const std::size_t n_ls_pairs = ls_grid.n_multi_indices;
-      // combine_pairwise(flat_ls.begin(), flat_ls.end(), [&n_ls_pairs, &ls_pairs_to_update](const std::size_t ls_i, const std::size_t ls_j){
-      //   std::size_t ij_flat = index_lower_triangular(ls_i, ls_j, n_ls_pairs);
-      //   ls_pairs_to_update.insert(ij_flat);
-      // });
-      
+      }
     }
+
+    // Convert the LS to update to an integer vector 
+    IntegerVector ls_res = IntegerVector(ls_to_update.begin(), ls_to_update.end());
     
+    // Unexpand the the LS pairs to update to an integer matrix 
+    IntegerMatrix ls_pairs = no_init_matrix(ls_pairs_to_update.size(), 2);
+    const std::size_t n_level_sets = ls_grid.n_multi_indices; 
+    std::size_t i = 0; 
+    std::for_each(ls_pairs_to_update.begin(), ls_pairs_to_update.end(), [&i, &ls_pairs, &n_level_sets](const std::size_t idx){
+      std::size_t to = INDEX_TO(idx, n_level_sets);
+      std::size_t from = INDEX_FROM(idx, n_level_sets, to);
+      ls_pairs(i++, _) = IntegerVector::create(to, from);
+    });
     
-    return(List::create()); 
+    // Return the results 
+    return(List::create(_["ls_to_update"] = ls_res, _["ls_pairs_to_update"] = ls_pairs)); 
   } // update_segments2 
   
   // List update_segments(const IntegerVector target_idx){
@@ -522,6 +565,7 @@ RCPP_MODULE(multiscale2_module) {
   .method( "set_filtration_rle", &MultiScale2::set_filtration_rle )
   .method( "compute_ls_segment_idx", &MultiScale2::compute_ls_segment_idx )
   .method( "update_segments2", &MultiScale2::update_segments2 )
+  .method( "get_segment_map", &MultiScale2::get_segment_map )
   ;
 }
 

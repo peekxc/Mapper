@@ -134,6 +134,8 @@ m <- MapperRef$new(noisy_circle)$
   use_distance_measure(measure = "euclidean")$
   compute_vertices()$
   compute_edges()
+
+m$compute_vertices(which_levels = m$cover$index_set[3:4])
 ```
 
 The `grapher` packages provides a [force-directed](https://github.com/d3/d3-force) [htmlwidget](https://www.htmlwidgets.org/) implementation of Ayasdi's open source [grapher](https://github.com/ayasdi/grapher) library, which can be used to visualize the Mapper network.  
