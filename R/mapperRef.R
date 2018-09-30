@@ -5,7 +5,9 @@
 #' @import methods
 #' @export MapperRef
 MapperRef <- R6Class("MapperRef", 
-  private = list(.X=NA, .cover=NA, .clustering_algorithm=NA, .measure=NA, .simplicial_complex = NA, .vertices=list(), .cl_map=list(), .config=NA)
+  private = list(.X=NA, .cover=NA, .clustering_algorithm=NA, .measure=NA, .simplicial_complex = NA, .vertices=list(), .cl_map=list(), .config=NA),
+  lock_class = FALSE,  ## Feel free to add your own members
+  lock_objects = FALSE ## Or change existing ones 
 )
 
 MapperRef$set("public", "initialize", function(X){
@@ -13,33 +15,6 @@ MapperRef$set("public", "initialize", function(X){
   if (is.null(dim(X)) && !is(X, "dist")){ X <- as.matrix(X) }
   private$.X <- X
   private$.simplicial_complex <- simplex_tree()
-})
-
-## Internal method which returns the next 'n_vertices' available vertex indices (1-based). '.config' stores a logical vector 
-## which grow with the number of vertices added to the mapper. The boolean at each index represents whether 
-## that vertex id is available. This method is necessary to dynamically grow/shrink the Mapper. Any indices included in 'remove' 
-## are first set to TRUE in .config.
-MapperRef$set("public", "get_new_vertex_ids", function(n_vertices, remove=NULL){
-  # browser()
-  if (!is(private$.config, "Rcpp_ID_Generator")){ 
-    private$.config <- Mapper:::ID_Generator$new() 
-    return(private$.config$get_new_ids(n_vertices))
-  }
-  if (!missing(remove) && !is.null(remove) && is.integer(remove)){ private$.config$remove_ids(remove) } 
-  return(private$.config$get_new_ids(n_vertices));
-  # if (any(is.na(private$.config))){
-  #   private$.config <- rep(FALSE, n_vertices)
-  #   return(seq(n_vertices))
-  # } else if (n_vertices > 0) {
-  #   idx_available <- which(private$.config)
-  #   n_available <- length(idx_available)
-  #   if (n_available < n_vertices){
-  #     private$.config <- c(private$.config, rep(TRUE, n_vertices - n_available))
-  #   }
-  #   allocated_vertices <- head(which(private$.config), n_vertices)
-  #   private$.config[allocated_vertices] <- FALSE
-  #   return(allocated_vertices)
-  # }
 })
 
 ## The cover stores the filter values
@@ -98,30 +73,23 @@ MapperRef$set("active", "clustering_algorithm",
 ## Changes the clustering algorithm used by mapper.
 ## Must accept a 'dist' object and return a static or 'flat' clustering result
 MapperRef$set("public", "use_clustering_algorithm", 
-  function(cl = c("single", "ward.D", "ward.D2", "complete", "average", "mcquitty", "median", "centroid"), num_bins = 10L, ...){
+  function(cl = c("single", "ward.D", "ward.D2", "complete", "average", "mcquitty", "median", "centroid"), num_bins = 10L){
     ## Use a linkage criterion + cutting rule
     if (missing(cl)) { cl <- "single" }
     if (class(cl) == "character"){
       hclust_opts <- c("single", "ward.D", "ward.D2", "complete", "average", "mcquitty", "median", "centroid")
       if (!cl %in% hclust_opts){ stop(sprint("Unknown linkage method passed. Please use one of (%s). See ?hclust for details.", paste0(hclust_opts, collapse = ", "))) }
       
-      ## Closured representation bypasses reevaluation of the recursive default argument by creating a new frame. 
-      ## This allows the arguments to have the same name the clustering function as above. 
-      create_cl <- function(cl, num_bins.default, ...){
-        function(X, idx, num_bins = num_bins.default, ...){
+      ## Closured representation to substitute default parameters. 
+      create_cl <- function(cl, num_bins.default){
+        function(X, idx, num_bins = num_bins.default){
           if (length(idx) <= 1){ return(1L); }
           dist_x <- parallelDist::parallelDist(X[idx,], method = "euclidean")
           hcl <- fastcluster::hclust(dist_x, method = cl)
           cutoff_first_bin(hcl, num_bins)
         }
       }
-      # self$clustering_algorithm <- function(X, idx, num_bins = default_num_bins, ...){
-      #   if (length(idx) <= 1){ return(1L); }
-      #   dist_x <- parallelDist::parallelDist(X[idx,], method = "euclidean")
-      #   hcl <- fastcluster::hclust(dist_x, method = cl)
-      #   cutoff_first_bin(hcl, num_bins)
-      # }
-      self$clustering_algorithm <- create_cl(cl = cl, num_bins.default = force(num_bins), ...)
+      self$clustering_algorithm <- create_cl(cl = cl, num_bins.default = force(num_bins))
     }
     invisible(self)
   }
@@ -212,7 +180,8 @@ MapperRef$set("public", "compute_vertices", function(which_levels=NULL, ...){
   }
   
   ## Update the vertices for the given level sets. This requires updating both the simplex tree's 
-  ## internal representation as well as the outward-facing vertex list.
+  ## internal representation as well as the outward-facing vertex list. The new vertices are returned 
+  ## to replace the current list. 
   which_level_idx <- match(which_levels, self$cover$index_set)-1L # 0-based
   stree_ptr <- private$.simplicial_complex$as_XPtr()
   private$.vertices <- Mapper:::build_0_skeleton(

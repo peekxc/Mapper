@@ -82,10 +82,6 @@ List dist_to_boxes(const IntegerVector& positions, const double interval_length,
   // Sequence from 1 - < number of intervals >  
   std::vector<int> all_positions = std::vector<int>(num_intervals);
   std::iota(std::begin(all_positions), std::end(all_positions), 1);
-  for (int j = 0; j < all_positions.size(); ++j){
-    Rcout << all_positions.at(j) << ", ";
-  }
-  Rcout << std::endl; 
   
   // Iterators 
   IntegerVector::const_iterator pos_it = positions.begin();
@@ -94,12 +90,10 @@ List dist_to_boxes(const IntegerVector& positions, const double interval_length,
 
   // Variables needed 
   const int n = positions.size();
-  // int current_position[] = { 0 };
   std::array<int, 1> current_position = { {0} };
   
   // To fill each iteration
   IntegerVector target_positions = no_init(num_intervals - 1);
-  //std::vector<int> target_positions = std::vector<int>(num_intervals - 1);
   NumericVector target_distances = no_init(num_intervals - 1);
   
   // Outputs 
@@ -110,28 +104,22 @@ List dist_to_boxes(const IntegerVector& positions, const double interval_length,
   for (int i = 0, pos = 0; i < n; ++i, ++pos_it, ++dtl_it, ++dtu_it){
     pos = *pos_it, dtl = *dtl_it, dtu = *dtu_it;
     current_position[0] = pos;
-    Rcout << current_position[0] << std::endl; 
+    
+    // Only compute distances to level sets not intersecting the current point
     std::set_difference(all_positions.begin(), all_positions.end(), current_position.begin(), current_position.end(), target_positions.begin());
     
-    for (int j = 0; j < target_positions.size(); ++j){
-      Rcout << target_positions.at(j) << ", ";
-    }
-    Rcout << std::endl;
-    Rcout << pos << ", " << dtl << ", " << dtu << std::endl; 
-    // if (target_positions.size() != (num_intervals - 1)){ 
-    //   stop("Something went wrong. ");
-    // }
-    // auto dist_to_box_f = [pos, dtl, dtu]  () {};
+    // Distance calculation
     std::transform(target_positions.begin(), target_positions.end(), target_distances.begin(), 
      [interval_length, num_intervals, pos, dtl, dtu](int target_position){
       if (target_position < pos){ return(dtl + (pos - target_position - 1) * interval_length); }
       else { return(dtu + (target_position - pos - 1) * interval_length); }
      });
+    
+    // Store results
     res_dist.row(i) = clone(target_distances);
     res_pos.row(i) = clone(target_positions);
   }
   return(List::create(_["target_pos"] = res_pos, _["target_dist"] = res_dist));
-  // return(List::create());
 }
 
 struct MultiScale {

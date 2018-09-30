@@ -1,73 +1,58 @@
 #' @title Multiscale Mapper
-#' @description Computes all unique Mapper constructions. Only supports rectangular-like covers.
+#' @description Preprocesses an indexing structure capable of computing successive Mappers efficiently. 
+#' The result is a function which takes as input a set of integers < i > each of which expresses the 
+#' state of the filtration of simplicial complexes to update the Mapper object too. 
+#' 
+#' As a result, the compute_k_skeleton function is replaced.
+#' 
+#' Only supports rectangular-like covers.
 #' @examples 
 #'   data("noisy_circle")
 #'   ll <- noisy_circle[which.min(apply(noisy_circle, 1, sum)),]
 #'   f_x <- t(apply(noisy_circle, 1, function(x) abs(x - ll)))
 #'   m_ref <- Mapper::mapper(noisy_circle, filter_values = f_x)
 #' @export
-MapperRef$set("public", "multiscale", 
-  function(mapper_obj, type = c("restrained rectangular"), ...){
+MapperRef$set("public", "enable_multiscale", 
+  function(mapper_obj, ...){
     if (class(mapper_obj) != "MapperRef"){ stop("'multiscale' expects a Mapper reference object.") }
-    if (mapper_obj$cover$type != "rectangular"){ stop("'multiscale' is only compatible with rectangular covers.") }
+    # if (mapper_obj$cover$type != "rectangular"){ stop("'multiscale' is only compatible with rectangular covers.") }
     n <- ifelse("dist" %in% class(X), attr(X, "Size"), nrow(X))
-    d <- ncol(mapper_obj$cover$filter_values)
+    d <- ncol(m$cover$filter_values)
     
-    library("Mapper")
-    data("noisy_circle")
-    X <- noisy_circle[1:10,]
-    # X <- cbind(rnorm(1000), rnorm(1000), rnorm(1000))
-    left_pt <- X[which.min(X[, 1]),]
-    f_x <- apply(X, 1, function(pt) (pt - left_pt)[1])
-    # filter_values <- matrix(f_x)
-    filter_values <- cbind(f_x, (max(f_x) - f_x^2) + rnorm(length(f_x), sd = 2))
+    ## Construct base cover
+    m$cover$percent_overlap <- 0.0
+    m$cover$construct_cover()
     
-    # m <- MapperRef$new(noisy_circle)
-    # m$set_cover(filter_values = fv, type = "fixed rectangular", number_intervals = 5L, percent_overlap = 0.35)
-    # 
-    filter_dim <- 2L
-    number_intervals <- c(7L, 7L) #, 4L)#, 4L)# rep(7L, filter_dim)
-    
-    ## Extract the cartesian product of the level sets (index set)
-    indices <- lapply(number_intervals, seq) ## per-dimension possible indexes
-    cart_prod <- structure(matrix(as.integer(unlist(do.call(expand.grid, indices))), ncol = filter_dim), 
-                           dimnames = list(NULL, paste0("d", 1:filter_dim)))
-    
+    ## LS Multi-indices == Cartesian product of the intervals
+    cart_prod <- arrayInd(seq(prod(m$cover$number_intervals)), .dim = m$cover$number_intervals)
+
     ## Get filter min and max ranges
-    filter_rng <- apply(filter_values, 2, range)
+    filter_rng <- apply(m$cover$filter_values, 2, range)
     { filter_min <- filter_rng[1,]; filter_max <- filter_rng[2,] }
     filter_len <- diff(filter_rng)
     
-    percent_overlap <- rep(0.0, filter_dim)
-    
-    ## Construct the level sets
-    base_interval_length <- filter_len/number_intervals
-    eps <- base_interval_length/2.0
+    ## Get the bounds associated with the level sets 
+    base_interval_length <- filter_len/m$cover$number_intervals
+    interval_length <- base_interval_length + (base_interval_length * m$cover$percent_overlap)/(1.0 - m$cover$percent_overlap)
+    eps <- interval_length/2.0
     ls_bnds <- t(apply(cart_prod, 1, function(idx){
       centroid <- filter_min + ((as.integer(idx)-1L)*base_interval_length) + base_interval_length/2.0
-      c(centroid - eps - sqrt(.Machine$double.eps), centroid + eps + sqrt(.Machine$double.eps))
+      c(centroid - eps, centroid + eps)
     }))
-    endpts <- lapply(1L:filter_dim, function(d_i){
-      sort(as.vector(sapply(0L:(number_intervals[d_i] - 1L), function(idx){
-        centroid <- filter_min[d_i] + (as.integer(idx)*base_interval_length[d_i]) + base_interval_length[d_i]/2.0
-        c(centroid - eps[d_i], centroid + eps[d_i])
-      })))
-    })
     
-    
-
-    lsfi <- Mapper:::constructLevelSetIndex(filter_values, ls_bnds) ## returns 1-based
-    A <- matrix(cart_prod[lsfi,], ncol = filter_dim)
+    ## get the level set flat indices associated with each point
+    lsfi <- Mapper:::constructLevelSetIndex(m$cover$filter_values, ls_bnds) ## returns 1-based
+    A <- matrix(cart_prod[lsfi,], ncol = d)
     A_tmp <- apply(A, 1, function(a) (as.integer(a) - 1L) * base_interval_length)
     Z_tmp <- apply(filter_values, 1, function(z_i) as.numeric(z_i) - filter_min)
-    Z_tilde <- matrix(Z_tmp - A_tmp, nrow = filter_dim)
+    Z_tilde <- matrix(Z_tmp - A_tmp, nrow = d)
     
     ## Distance to upper and lower level sets (halfspace distances)
-    dist_to_upper_ls <- matrix(apply(Z_tilde, 2, function(z_i) abs(as.vector(z_i) - as.vector(base_interval_length))), nrow = filter_dim)
+    dist_to_upper_ls <- matrix(apply(Z_tilde, 2, function(z_i) abs(as.vector(z_i) - as.vector(base_interval_length))), nrow = d)
     dist_to_lower_ls <- Z_tilde
     
     ## Applied to all level sets, per dimension 
-    dist_to_ls <- lapply(1:filter_dim, function(d_i){
+    dist_to_ls <- lapply(1:d, function(d_i){
       Mapper:::dist_to_boxes(
         positions = as.integer(A[, d_i]), ## column indexed
         interval_length = as.numeric(base_interval_length[d_i]), 
@@ -76,48 +61,23 @@ MapperRef$set("public", "multiscale",
         dist_to_upper = as.numeric(dist_to_upper_ls[d_i,]) ## row indexed
       )
     })
-  
+    
     ## Order the distances to the target level sets
-    dist_order <- lapply(1:filter_dim, function(d_i) order(dist_to_ls[[d_i]]$target_dist))
-
-    ## ---------------------------------------
-    ## Below this point, all non-point *indexes* should be 0-based
-    ## ---------------------------------------
+    dist_order <- lapply(1:d, function(d_i) order(dist_to_ls[[d_i]]$target_dist))
     
-    ## TODO: Can the memory requirements with this be improved?
-    ## Use the ordering to extract the point indices, the level set indices the points are in, the level set indices the 
-    ## points will be intersecting, and the distance they'll be starting the intersection
+    ## What interval sizes do the level sets intersect higher order level sets?
+    intersection_cuts <- lapply(1:d, function(d_i) {
+      interval_sizes <- dist_to_ls[[d_i]]$target_dist[dist_order[[d_i]]]*2 + base_interval_length[d_i] 
+      swap_dist <- ((base_interval_length[d_i]/2) * seq(2, number_intervals[d_i] - 1L))*2
+      swap_idx <- findInterval(interval_sizes, vec = swap_dist)
+      tmp <- rle(swap_idx)[["lengths"]]
+      head(c(0L, cumsum(tmp)), length(tmp))
+    })
     
-    pt_idx <- lapply(1:filter_dim, function(d_i) row(dist_to_ls[[d_i]]$target_pos)[dist_order[[d_i]]]) ## pts are still 1-based
-    from_ls <- lapply(1:filter_dim, function(d_i) matrix(rep(A[, d_i], each = number_intervals[d_i]-1), ncol = number_intervals[d_i] - 1, byrow = TRUE)[dist_order[[d_i]]] - 1L)
-    to_ls <- lapply(1:filter_dim, function(d_i) dist_to_ls[[d_i]]$target_pos[dist_order[[d_i]]] - 1L)
-    
-    #unique(do.call(rbind, lapply(1:nrow(dist_to_ls[[d_i]]$target_pos), function(i) dist_to_ls[[d_i]]$target_pos[i,order(dist_to_ls[[d_i]]$target_dist[i,])])))
-    
-    ## == The following equations require knowledge of how the cover boxes are constructed ==
-    ## What interval size does each parameterization represent?
-    interval_size <- lapply(1:filter_dim, function(d_i) dist_to_ls[[d_i]]$target_dist[dist_order[[d_i]]]*2 + base_interval_length[d_i]) ## boxes intersect 
-
-    ## What interval sizes do the level sets change in their relative segment order?
-    swap_dist <- lapply(1:filter_dim, function(d_i) ((base_interval_length[d_i]/2) * seq(2, number_intervals[d_i] - 1L))*2)
-    swap_idx <- lapply(1:filter_dim, function(d_i) findInterval(interval_size[[d_i]], vec = swap_dist[[d_i]]) + 1L)
-    
-    ## More preprocessing...
-    rowmatch <- function(A,B) { 
-      # Rows in A that match the rows in B
-      f <- function(...) paste(..., sep=":")
-      if(!is.matrix(B)) B <- matrix(B, 1, length(B))
-      a <- do.call("f", as.data.frame(A))
-      b <- do.call("f", as.data.frame(B))
-      match(a, b)
-    }
-    
-    n <- nrow(A)
-    ls_paths <- vector(mode = "list", length = filter_dim)
-    uniq_ls_paths <- vector(mode = "list", length = filter_dim)
-    for (d_i in 1L:filter_dim){
-    
-      ## Extract all the unique level set paths for dimension d_i
+    ## Extract all the unique level set paths for each point
+    ls_paths <- vector(mode = "list", length = d)
+    uniq_ls_paths <- vector(mode = "list", length = d)
+    for (d_i in 1L:d){
       pt_ls_paths <- do.call(rbind, lapply(1:n, function(i) {
         c(A[i, d_i], with(dist_to_ls[[d_i]], { target_pos[i, order(target_dist[i,])] }))
       }))
@@ -125,296 +85,453 @@ MapperRef$set("public", "multiscale",
       ls_paths[[d_i]] <- rowmatch(pt_ls_paths, uniq_ls_paths[[d_i]])
     }
     
-    ## Testing second slimmed down version 
-    ms_mapper2 <- Mapper:::MultiScale2$new(n, as.vector(number_intervals))
-    for (d_i in 1L:filter_dim){
+    ## Create the indexing structure
+    ms_mapper2 <- Mapper:::MultiScale2$new(n, as.vector(m$cover$number_intervals))
+    ms_mapper2$insert_pts(A, do.call(cbind, ls_paths))
+    for (d_i in 1L:d){
       ms_mapper2$create_filtration(dist_order[[d_i]]-1L, d_i-1)
-      ls_idx_swaps <- rle(swap_idx[[d_i]]-1L)[["lengths"]]
-      ls_idx_swaps <- head(c(0L, cumsum(ls_idx_swaps)), length(ls_idx_swaps))
-      ms_mapper2$set_filtration_rle(ls_idx_swaps, d_i-1)
+      ms_mapper2$set_filtration_rle(intersection_cuts[[d_i]], d_i-1)
       ms_mapper2$create_ls_paths(uniq_ls_paths[[d_i]]-1L, d_i-1)
     }
-    ms_mapper2$insert_pts(A, do.call(cbind, ls_paths))
+    private$.multiscale <- ms_mapper2
     
-    plot_2d(idx = c(4L, 4L), pt_ids = TRUE)
-    
-    plot_configuration(d_i = 1L, idx = 6L)
-    ms_mapper2$update_segments2(5L)
-    Mapper:::index_test(c(7L, 7L))
-    
-    ms_mapper2$update_segments2(c(5,5))
-    plot_configuration(idx = 1, d_i = 1)
-    
-    
-    ## Given a parameterization, determine the index of the filtration, then pass that index down to the multiscale structure. 
-    ## The structure should then use its structure to compute which of the level sets are changing. 
-    f <- function(X, idx){ return(rep(1L, length(idx))) }
-    ms_mapper <- Mapper:::MultiScale$new(X = X, f = identity, k = number_intervals)
-    for (d_i in 1L:filter_dim){
-      ms_mapper$set_everything(pt_idx[[d_i]], from_ls[[d_i]], to_ls[[d_i]], swap_idx[[d_i]], interval_size[[d_i]], swap_dist[[d_i]], d_i-1L)
-    }
-    ms_mapper$build_segment_trees(endpts = endpts, filter_pts = filter_values)
-    ms_mapper$build_multiscale_configuration((A-1L)*2, filter_values);
-    # ms_mapper$get_segment_map()
-    # ms_mapper$update_multi_cover(c(0L, 0L))
-    ms_mapper$compute_mapper(c(0, -1))
-    ms_mapper$compute_mapper(c(0, 0))
-    ms_mapper$compute_mapper(c(1, 0))
-    ms_mapper$compute_mapper(c(1, 1))
-    
-    
-
-    
-    
-    
-    
-    plot_2d(idx = c(1, 0), pt_ids = TRUE)
-    
-    ms_mapper$get_ls_that_change(c(0, 0), c(1, 0))
-    
-    wut <- t(outer(4:0, 3:0, Vectorize(function(x, y){ ms_mapper$query_ls_map(c(x, y)) })))
-    t(apply(wut, 1, rev))
-    
-    # mapply(function(d_i, k_i) swap_idx[[d_i]][k_i], 1:filter_dim, c(1, 1))
-    # plot_2d(c(1L, 1L))
-    # data.frame(A, sep="", ms_mapper$get_ls_that_change(c(0, 0), A))
-    
-    ## Build a example multiscale filtration of mappers 
-    g <- seq(0+0.005, 1-0.005, by = 0.005) ## overlap parameters 
-    target_idx <- sapply(1:filter_dim, function(d_i){
-      R_hat <- base_interval_length[[d_i]] + (base_interval_length[[d_i]]*g)/(1 - g)
-      tmp <- sapply(R_hat, function(r_hat) {
-        idx_lt_thresh <- interval_size[[d_i]] <= r_hat
-        if (all(idx_lt_thresh == FALSE)){ 0L }
-        else { max(which(idx_lt_thresh))}
-      })
-      tmp
-    })
-    # Iso::biviso(sapply(1:filter_dim, function(d_i){
-    #   base_interval_length[[d_i]] + (base_interval_length[[d_i]]*g)/(1 - g)
-    # }))
-
-
-    ## Start with a simple Mapper reference object with a constructed, disjoint cover and trivial clustering function
-    m <- MapperRef$new(X)$
-      use_cover(filter_values = filter_values, type = "fixed rectangular", number_intervals = number_intervals, percent_overlap = 0)$
-      use_distance_measure("euclidean")
-    m$clustering_algorithm <- function(X, idx, ...){ rep(1L, length(idx)) }
-    
-    microbenchmark::microbenchmark({ invisible(ms_mapper$get_ls_that_change(target_idx[1,], target_idx[2,])) }, times = 15L)
-    microbenchmark::microbenchmark({
-      Gs <- vector(mode = "list", length = nrow(target_idx))
-      for (i in 1:nrow(target_idx)){
-        t_idx <- target_idx[i,] - 1L
-        # // ms_mapper$get_ls_that_change(c(1, 0))
-        ms_mapper$update_multi_cover(t_idx)
-        ls_tmp <- ms_mapper$get_level_sets()
-        m$cover$level_sets <- ls_tmp[match(m$cover$index_set, names(ls_tmp))]
-        ls_config <- sapply(1:filter_dim, function(d_i) ifelse(t_idx[[d_i]] == -1L, 0, swap_idx[[d_i]][t_idx[[d_i]]+1L]))
-        
-        ## TODO: either control fro shrinking doing new ls updates, or fix the damn LS updater!
-        ls_pairs <- ms_mapper$ls_to_change(ls_config)+1L
-        ls_to_update <- unique(as.vector(ls_pairs))
-        if (length(ls_to_update) == 0){
-          m$compute_vertices()
-        } else {
-          m$compute_vertices(which_levels = m$cover$index_set[ls_to_update])
-          m$compute_edges(which_level_pairs = ls_pairs)
-        }      
-        Gs[[i]] <- m$simplicial_complex$as_adjacency_matrix()
-      }
-    }, times = 15L)
-    
-    ## -- vs. --
-    microbenchmark::microbenchmark({
-      m2 <- MapperRef$new(X)$
-        use_cover(filter_values = filter_values, type = "fixed rectangular", number_intervals = number_intervals, percent_overlap = 0)$
-        use_distance_measure("euclidean")
-      m2$clustering_algorithm <- function(X, idx, ...){ rep(1L, length(idx)) }
-      Gs2 <- vector(mode = "list", length = length(g))
-      for (i in 1:length(g)){
-        m2$cover$percent_overlap <- g[i]
-        m2$cover$construct_cover()
-        m2$compute_k_skeleton(k = 1L)
-        Gs2[[i]] <- m2$simplicial_complex$as_adjacency_matrix()
-      }
-    }, times = 15L)
-    
-    # all.equal(Gs, Gs2)
-    sapply(1:length(g), function(i){
-      g1 <- igraph::graph_from_adjacency_matrix(Gs[[i]])
-      g2 <- igraph::graph_from_adjacency_matrix(Gs2[[i]])
-      all(c(
-        igraph::vcount(g1) == igraph::vcount(g2), 
-        igraph::ecount(g1) == igraph::ecount(g2),
-        sort(igraph::local_scan(g1, k = 1)) == sort(igraph::local_scan(g2, k = 1)), 
-        sort(igraph::local_scan(g1, k = 2)) == sort(igraph::local_scan(g2, k = 2)), 
-        sort(igraph::local_scan(g1, k = 3)) == sort(igraph::local_scan(g2, k = 3))
-      ))
-    })
-
-
-
-    m <- MapperRef$new(noisy_circle)$
-      use_cover(filter_values = f_x, type = "fixed rectangular", number_intervals = 5L, percent_overlap = 0.35)$
-      use_clustering_algorithm(cl = "single", num_bins = 10)$
-      use_distance_measure(measure = "euclidean")$
-      compute_vertices()$
-      compute_edges()
-    
-    m$cover$index_set
-    
-    ## 1D case
-    ms_mapper$update_multi_cover(c(1L))
-    ms_mapper$update_multi_cover(c(0L))
-    
-
-    plot_2d(c(1, 1))
-    ms_mapper$update_multi_cover(c(0L, -1L))
-    ms_mapper$update_multi_cover(c(1L, -1L))
-    
-    ms_mapper$update_cover(0L, 0L)
-    ms_mapper$update_cover(1L, 0L)
-    ms_mapper$update_cover(2L, 0L)
-    ms_mapper$update_cover(3L, 0L)
-
-    ms_mapper$update_cover(0L, 0L)
-    
-    
-    
-    
-    mtree <- Mapper:::MultiSegmentTree$new(endpts = endpts)
-    mtree$insert_pts(filter_values)
-    mtree$query_dimension(0, 5, 0)
-    
-    ms_mapper$compute_ls_idx(i = 1, d_i = 0)
-    
-    for (i in (length(pt_idx[[1]]) - 1):0){
-      plot_configuration(1L, i+1)
-      ms_mapper$update_cover(i, 0L)
-      print(format(ms_mapper$get_level_sets()))
-      invisible(readline(prompt="Press [enter] to continue"))
-    }
-
-    lsfi_to_lsmi <- vector(mode = "list", length = 5*4)
-    for (x in 4:0){
-      for (y in 3:0){
-        lsfi_to_lsmi[[ms_mapper$query_ls_map(c(x, y))+1]] <- c(x, y) # paste0("(", x, " ", y, ")")
-      }
-    }
-    
-    worst_case <- rep(choose(prod(number_intervals), 2), nrow(target_idx)-1)
-    rec_based <- sapply(2:nrow(target_idx), function(i){
-      c_swap <- sapply(1:filter_dim, function(d_i) swap_idx[[d_i]][i])
-      nrow(ms_mapper$ls_to_change(c_swap))
-    })
-    optimal <- sapply(2:nrow(target_idx), function(i){
-      nrow(ms_mapper$get_ls_that_change(target_idx[i-1,], target_idx[i,]))
-    })
-    suitable_g <- g[1:(length(g)-1)]
-    plot(x = suitable_g, y = log(cumsum(worst_case)), type = "l", ylim = c(0, max(log(cumsum(worst_case)))), 
-         xlab = "Overlap percentage", ylab = "Cumulative # of LS intersections (log scale)", 
-         main = "Complexity of building the 1-skeleton", 
-         col = "red", lwd = 2)
-    mtext("As a function of g")
-    lines(x = suitable_g, y = log(cumsum(rec_based)), lwd = 2, col = "blue")
-    lines(x = suitable_g, y = log(cumsum(optimal)), lwd = 2, col = "green")
-    
-    
-    sapply()
-    ms_mapper$ls_to_change(c(1, 1))
-    
-    animation::saveGIF({
-      for (i in 2:200){
-        plot_2d(idx = c(i, i), prev = c(i-1, i-1))
-      }
-    }, "boxes_changing_2d.gif", interval = 0.2)
-    
-    
-    
-    make_square <- function(x, y, ...){
-      lines(x = c(x[1], x[2]), y = c(y[1], y[1]), ...)
-      lines(x = c(x[2], x[2]), y = c(y[1], y[2]), ...)
-      lines(x = c(x[2], x[1]), y = c(y[2], y[2]), ...)
-      lines(x = c(x[1], x[1]), y = c(y[2], y[1]), ...)
-    }
-    get_range <- function(x){ range(x)+c(-1, 1)*diff(range(x))*0.10 }
-    
-    lsmi <- as.matrix(do.call(expand.grid, lapply(number_intervals, seq)))-1L
-    
-    plot_2d <- function(idx=NULL, g=NULL, prev=NULL, pt_ids = FALSE){
-      if (missing(idx) && !missing(g)){
-        ## Construct the level sets
-        ls_endpts <- lapply(1L:filter_dim, function(d_i){
-          ## Choose the interval (half) width to plot 
-          if (g[d_i] == 0){
-            eps <- (base_interval_length[[d_i]]/2)
-          } else {
-            eps <- (base_interval_length[[d_i]] + ((base_interval_length[[d_i]]*g[d_i])/(1 - g[d_i])))/2 # parameterized overlap
-          }
-          tmp <- as.vector(sapply(0L:(number_intervals[d_i] - 1L), function(idx){
-            centroid <- filter_min[d_i] + (as.integer(idx)*base_interval_length[d_i]) + base_interval_length[d_i]/2.0
-            c(centroid - eps, centroid + eps)
-          }))
-          matrix(tmp, ncol = 2, byrow = TRUE)
-        })
-      } else {
-        if (length(idx) != length(dist_to_ls)){stop("nope")}
-        ls_endpts <- lapply(1L:filter_dim, function(d_i){        ## Construct the level sets
-          ## Choose the interval (half) width to plot 
-          if (idx[d_i] == 0){
-            eps <- (base_interval_length/2)
-          } else {
-            eps <- (base_interval_length/2) + dist_to_ls[[d_i]]$target_dist[dist_order[[d_i]]][idx[d_i]] ## parameterized overlap
-          }
-          tmp <- as.vector(sapply(0L:(number_intervals[d_i] - 1L), function(idx){
-            centroid <- filter_min[d_i] + (as.integer(idx)*base_interval_length[d_i]) + base_interval_length[d_i]/2.0
-            c(centroid - eps[d_i], centroid + eps[d_i])
-          }))
-          matrix(tmp, ncol = 2, byrow = TRUE)
-        })
-      }
+    ## Add the ability to 'update' the Mapper by changing its overlap.
+    self$update_mapper <- function(percent_overlap){
+      ## get nearest idx
+      idx <- c(0, 0)# ...
+      res <- private$.multiscale$update_segments2(idx)
       
-      plot(filter_values, pch = 20, 
-           xlim = get_range(filter_values[, 1L]), ylim = get_range(filter_values[, 2L]),
-           xlab = "", ylab = "") # xaxt = "n", yaxt = "n"
-      if (pt_ids){ text(filter_values, labels = 1:nrow(filter_values), pos = 3) }
-      # 
-      # abline(h = 0, col = "gray", lty = 3, lwd = 1.5)
-      binned_color <- rev(rainbow(nrow(cart_prod), start = 0, end = 4/6))
-      cc <- 0L
-      for (i in 1:nrow(cart_prod)){
-        { ii <- cart_prod[i,1]; jj <- cart_prod[i,2] }
-        { cls1 <- ls_endpts[[1]]; cls2 <- ls_endpts[[2]] }
-        col <- binned_color[ii*jj]
-        make_square(cls1[ii,], cls2[jj,], col = col)
-        points(x = mean(cls1[ii,]), y = mean(cls2[jj,]), col = col, pch = 3)
-        text(x = mean(cls1[ii,]), y = mean(cls2[jj,]), labels = trimws(paste0(c(ii, jj) - 1L, collapse = ",")), cex = 0.50, pos = 3)
-      }
-      for (d_i in 1:filter_dim){
-        # browser()
-        if (idx[[d_i]] > 0){
-          pt <- pt_idx[[d_i]][[idx[[d_i]]]]
-          points(x = filter_values[pt,1], y = filter_values[pt,2], col = "purple")
-        }
-      }
-      if (!missing(prev)){
-        # browser()
-        ls_changed <- ms_mapper$get_ls_that_change(prev, idx)+1
-        if (nrow(ls_changed) > 0){
-          apply(ls_changed, 1, function(x) {
-            ls1 <- lsmi[x[1], ]
-            ls2 <- lsmi[x[2], ]
-            rect(xleft = ls_endpts[[1]][ls1[1],1], xright = ls_endpts[[1]][ls1[1],2], 
-                 ybottom = ls_endpts[[2]][ls1[2],1], ytop = ls_endpts[[2]][ls1[2],2], 
-                 col = rgb(0.8, 0, 0.8, alpha = 0.3))
-            rect(xleft = ls_endpts[[1]][ls2[1],1], xright = ls_endpts[[1]][ls2[1],2], 
-                 ybottom = ls_endpts[[2]][ls2[2],1], ytop = ls_endpts[[2]][ls2[2],2], 
-                 col = rgb(0.8, 0, 0.8, alpha = 0.3))
-          })
-        }
-      }
-    } ## plot_2d
+      ## Update the 0-simplexes and 1-simplexes  
+      m$compute_vertices(m$cover$index_set[res$ls_to_update])
+      m$compute_edges(res$ls_pairs_to_update)
+      
+      ## Always return self 
+      return(self)
+    }
+    
+    return(self)
+  }
+) # multiscale 
+    
+    ## ---------------------------------------
+    ## Below this point, all non-point *indexes* should be 0-based
+    ## ---------------------------------------
+    
+    ## TODO: Can the memory requirements with this be improved?
+    ## Use the ordering to extract the point indices, the level set indices the points are in, the level set indices the 
+    ## points will be intersecting, and the distance they'll be starting the intersection
+    # 
+    # pt_idx <- lapply(1:filter_dim, function(d_i) row(dist_to_ls[[d_i]]$target_pos)[dist_order[[d_i]]]) ## pts are still 1-based
+    # from_ls <- lapply(1:filter_dim, function(d_i) matrix(rep(A[, d_i], each = number_intervals[d_i]-1), ncol = number_intervals[d_i] - 1, byrow = TRUE)[dist_order[[d_i]]] - 1L)
+    # to_ls <- lapply(1:filter_dim, function(d_i) dist_to_ls[[d_i]]$target_pos[dist_order[[d_i]]] - 1L)
+    # 
+    # #unique(do.call(rbind, lapply(1:nrow(dist_to_ls[[d_i]]$target_pos), function(i) dist_to_ls[[d_i]]$target_pos[i,order(dist_to_ls[[d_i]]$target_dist[i,])])))
+    # 
+    # ## == The following equations require knowledge of how the cover boxes are constructed ==
+    # 
+    # 
+    # 
+    # 
+    # ## Stop here 
+    # 
+    # 
+    # 
+    # library("Mapper")
+    # data("noisy_circle")
+    # X <- noisy_circle[1:10,]
+    # # X <- cbind(rnorm(1000), rnorm(1000), rnorm(1000))
+    # left_pt <- X[which.min(X[, 1]),]
+    # f_x <- apply(X, 1, function(pt) (pt - left_pt)[1])
+    # # filter_values <- matrix(f_x)
+    # filter_values <- cbind(f_x, (max(f_x) - f_x^2) + rnorm(length(f_x), sd = 2))
+    # 
+    # ## Extract the cartesian product of the level sets (index set)
+    # indices <- lapply(number_intervals, seq) ## per-dimension possible indexes
+    # cart_prod <- structure(matrix(as.integer(unlist(do.call(expand.grid, indices))), ncol = filter_dim), 
+    #                        dimnames = list(NULL, paste0("d", 1:filter_dim)))
+    # 
+    # ## Get filter min and max ranges
+    # filter_rng <- apply(filter_values, 2, range)
+    # { filter_min <- filter_rng[1,]; filter_max <- filter_rng[2,] }
+    # filter_len <- diff(filter_rng)
+    # 
+    # percent_overlap <- rep(0.0, filter_dim)
+    # 
+    # ## Construct the level sets
+    # base_interval_length <- filter_len/number_intervals
+    # eps <- base_interval_length/2.0
+    # ls_bnds <- t(apply(cart_prod, 1, function(idx){
+    #   centroid <- filter_min + ((as.integer(idx)-1L)*base_interval_length) + base_interval_length/2.0
+    #   c(centroid - eps - sqrt(.Machine$double.eps), centroid + eps + sqrt(.Machine$double.eps))
+    # }))
+    # endpts <- lapply(1L:filter_dim, function(d_i){
+    #   sort(as.vector(sapply(0L:(number_intervals[d_i] - 1L), function(idx){
+    #     centroid <- filter_min[d_i] + (as.integer(idx)*base_interval_length[d_i]) + base_interval_length[d_i]/2.0
+    #     c(centroid - eps[d_i], centroid + eps[d_i])
+    #   })))
+    # })
+    # 
+    # 
+    # 
+    # lsfi <- Mapper:::constructLevelSetIndex(filter_values, ls_bnds) ## returns 1-based
+    # A <- matrix(cart_prod[lsfi,], ncol = filter_dim)
+    # A_tmp <- apply(A, 1, function(a) (as.integer(a) - 1L) * base_interval_length)
+    # Z_tmp <- apply(filter_values, 1, function(z_i) as.numeric(z_i) - filter_min)
+    # Z_tilde <- matrix(Z_tmp - A_tmp, nrow = filter_dim)
+    # 
+    # ## Distance to upper and lower level sets (halfspace distances)
+    # dist_to_upper_ls <- matrix(apply(Z_tilde, 2, function(z_i) abs(as.vector(z_i) - as.vector(base_interval_length))), nrow = filter_dim)
+    # dist_to_lower_ls <- Z_tilde
+    # 
+    # ## Applied to all level sets, per dimension 
+    # dist_to_ls <- lapply(1:filter_dim, function(d_i){
+    #   Mapper:::dist_to_boxes(
+    #     positions = as.integer(A[, d_i]), ## column indexed
+    #     interval_length = as.numeric(base_interval_length[d_i]), 
+    #     num_intervals = as.integer(number_intervals[d_i]), 
+    #     dist_to_lower = as.numeric(dist_to_lower_ls[d_i,]),  ## row indexed
+    #     dist_to_upper = as.numeric(dist_to_upper_ls[d_i,]) ## row indexed
+    #   )
+    # })
+    # 
+    # ## Order the distances to the target level sets
+    # dist_order <- lapply(1:filter_dim, function(d_i) order(dist_to_ls[[d_i]]$target_dist))
+    # 
+    # ## ---------------------------------------
+    # ## Below this point, all non-point *indexes* should be 0-based
+    # ## ---------------------------------------
+    # 
+    # ## TODO: Can the memory requirements with this be improved?
+    # ## Use the ordering to extract the point indices, the level set indices the points are in, the level set indices the 
+    # ## points will be intersecting, and the distance they'll be starting the intersection
+    # 
+    # pt_idx <- lapply(1:filter_dim, function(d_i) row(dist_to_ls[[d_i]]$target_pos)[dist_order[[d_i]]]) ## pts are still 1-based
+    # from_ls <- lapply(1:filter_dim, function(d_i) matrix(rep(A[, d_i], each = number_intervals[d_i]-1), ncol = number_intervals[d_i] - 1, byrow = TRUE)[dist_order[[d_i]]] - 1L)
+    # to_ls <- lapply(1:filter_dim, function(d_i) dist_to_ls[[d_i]]$target_pos[dist_order[[d_i]]] - 1L)
+    # 
+    # #unique(do.call(rbind, lapply(1:nrow(dist_to_ls[[d_i]]$target_pos), function(i) dist_to_ls[[d_i]]$target_pos[i,order(dist_to_ls[[d_i]]$target_dist[i,])])))
+    # 
+    # ## == The following equations require knowledge of how the cover boxes are constructed ==
+    # ## What interval size does each parameterization represent?
+    # interval_size <- lapply(1:filter_dim, function(d_i) dist_to_ls[[d_i]]$target_dist[dist_order[[d_i]]]*2 + base_interval_length[d_i]) ## boxes intersect 
+    # 
+    # ## What interval sizes do the level sets change in their relative segment order?
+    # swap_dist <- lapply(1:filter_dim, function(d_i) ((base_interval_length[d_i]/2) * seq(2, number_intervals[d_i] - 1L))*2)
+    # swap_idx <- lapply(1:filter_dim, function(d_i) findInterval(interval_size[[d_i]], vec = swap_dist[[d_i]]) + 1L)
+    # 
+    # ## More preprocessing...
+    # rowmatch <- function(A,B) { 
+    #   # Rows in A that match the rows in B
+    #   f <- function(...) paste(..., sep=":")
+    #   if(!is.matrix(B)) B <- matrix(B, 1, length(B))
+    #   a <- do.call("f", as.data.frame(A))
+    #   b <- do.call("f", as.data.frame(B))
+    #   match(a, b)
+    # }
+    # 
+    # n <- nrow(A)
+    # ls_paths <- vector(mode = "list", length = filter_dim)
+    # uniq_ls_paths <- vector(mode = "list", length = filter_dim)
+    # for (d_i in 1L:filter_dim){
+    # 
+    #   ## Extract all the unique level set paths for dimension d_i
+    #   pt_ls_paths <- do.call(rbind, lapply(1:n, function(i) {
+    #     c(A[i, d_i], with(dist_to_ls[[d_i]], { target_pos[i, order(target_dist[i,])] }))
+    #   }))
+    #   uniq_ls_paths[[d_i]] <- unique(pt_ls_paths)
+    #   ls_paths[[d_i]] <- rowmatch(pt_ls_paths, uniq_ls_paths[[d_i]])
+    # }
+    # 
+    # ## Testing second slimmed down version 
+    # ms_mapper2 <- Mapper:::MultiScale2$new(n, as.vector(number_intervals))
+    # for (d_i in 1L:filter_dim){
+    #   ms_mapper2$create_filtration(dist_order[[d_i]]-1L, d_i-1)
+    #   ls_idx_swaps <- rle(swap_idx[[d_i]]-1L)[["lengths"]]
+    #   ls_idx_swaps <- head(c(0L, cumsum(ls_idx_swaps)), length(ls_idx_swaps))
+    #   ms_mapper2$set_filtration_rle(ls_idx_swaps, d_i-1)
+    #   ms_mapper2$create_ls_paths(uniq_ls_paths[[d_i]]-1L, d_i-1)
+    # }
+    # ms_mapper2$insert_pts(A, do.call(cbind, ls_paths))
+    # 
+    # plot_2d(idx = c(4L, 4L), pt_ids = TRUE)
+    # 
+    # plot_configuration(d_i = 1L, idx = 6L)
+    # ms_mapper2$update_segments2(5L)
+    # Mapper:::index_test(c(7L, 7L))
+    # 
+    # ms_mapper2$update_segments2(c(5,5))
+    # plot_configuration(idx = 1, d_i = 1)
+    # 
+    # 
+    # ## Given a parameterization, determine the index of the filtration, then pass that index down to the multiscale structure. 
+    # ## The structure should then use its structure to compute which of the level sets are changing. 
+    # f <- function(X, idx){ return(rep(1L, length(idx))) }
+    # ms_mapper <- Mapper:::MultiScale$new(X = X, f = identity, k = number_intervals)
+    # for (d_i in 1L:filter_dim){
+    #   ms_mapper$set_everything(pt_idx[[d_i]], from_ls[[d_i]], to_ls[[d_i]], swap_idx[[d_i]], interval_size[[d_i]], swap_dist[[d_i]], d_i-1L)
+    # }
+    # ms_mapper$build_segment_trees(endpts = endpts, filter_pts = filter_values)
+    # ms_mapper$build_multiscale_configuration((A-1L)*2, filter_values);
+    # # ms_mapper$get_segment_map()
+    # # ms_mapper$update_multi_cover(c(0L, 0L))
+    # ms_mapper$compute_mapper(c(0, -1))
+    # ms_mapper$compute_mapper(c(0, 0))
+    # ms_mapper$compute_mapper(c(1, 0))
+    # ms_mapper$compute_mapper(c(1, 1))
+    # 
+    # 
+    # 
+    # 
+    # 
+    # 
+    # 
+    # plot_2d(idx = c(1, 0), pt_ids = TRUE)
+    # 
+    # ms_mapper$get_ls_that_change(c(0, 0), c(1, 0))
+    # 
+    # wut <- t(outer(4:0, 3:0, Vectorize(function(x, y){ ms_mapper$query_ls_map(c(x, y)) })))
+    # t(apply(wut, 1, rev))
+    # 
+    # # mapply(function(d_i, k_i) swap_idx[[d_i]][k_i], 1:filter_dim, c(1, 1))
+    # # plot_2d(c(1L, 1L))
+    # # data.frame(A, sep="", ms_mapper$get_ls_that_change(c(0, 0), A))
+    # 
+    # ## Build a example multiscale filtration of mappers 
+    # g <- seq(0+0.005, 1-0.005, by = 0.005) ## overlap parameters 
+    # target_idx <- sapply(1:filter_dim, function(d_i){
+    #   R_hat <- base_interval_length[[d_i]] + (base_interval_length[[d_i]]*g)/(1 - g)
+    #   tmp <- sapply(R_hat, function(r_hat) {
+    #     idx_lt_thresh <- interval_size[[d_i]] <= r_hat
+    #     if (all(idx_lt_thresh == FALSE)){ 0L }
+    #     else { max(which(idx_lt_thresh))}
+    #   })
+    #   tmp
+    # })
+    # # Iso::biviso(sapply(1:filter_dim, function(d_i){
+    # #   base_interval_length[[d_i]] + (base_interval_length[[d_i]]*g)/(1 - g)
+    # # }))
+    # 
+    # 
+    # ## Start with a simple Mapper reference object with a constructed, disjoint cover and trivial clustering function
+    # m <- MapperRef$new(X)$
+    #   use_cover(filter_values = filter_values, type = "fixed rectangular", number_intervals = number_intervals, percent_overlap = 0)$
+    #   use_distance_measure("euclidean")
+    # m$clustering_algorithm <- function(X, idx, ...){ rep(1L, length(idx)) }
+    # 
+    # microbenchmark::microbenchmark({ invisible(ms_mapper$get_ls_that_change(target_idx[1,], target_idx[2,])) }, times = 15L)
+    # microbenchmark::microbenchmark({
+    #   Gs <- vector(mode = "list", length = nrow(target_idx))
+    #   for (i in 1:nrow(target_idx)){
+    #     t_idx <- target_idx[i,] - 1L
+    #     # // ms_mapper$get_ls_that_change(c(1, 0))
+    #     ms_mapper$update_multi_cover(t_idx)
+    #     ls_tmp <- ms_mapper$get_level_sets()
+    #     m$cover$level_sets <- ls_tmp[match(m$cover$index_set, names(ls_tmp))]
+    #     ls_config <- sapply(1:filter_dim, function(d_i) ifelse(t_idx[[d_i]] == -1L, 0, swap_idx[[d_i]][t_idx[[d_i]]+1L]))
+    #     
+    #     ## TODO: either control fro shrinking doing new ls updates, or fix the damn LS updater!
+    #     ls_pairs <- ms_mapper$ls_to_change(ls_config)+1L
+    #     ls_to_update <- unique(as.vector(ls_pairs))
+    #     if (length(ls_to_update) == 0){
+    #       m$compute_vertices()
+    #     } else {
+    #       m$compute_vertices(which_levels = m$cover$index_set[ls_to_update])
+    #       m$compute_edges(which_level_pairs = ls_pairs)
+    #     }      
+    #     Gs[[i]] <- m$simplicial_complex$as_adjacency_matrix()
+    #   }
+    # }, times = 15L)
+    # 
+    # ## -- vs. --
+    # microbenchmark::microbenchmark({
+    #   m2 <- MapperRef$new(X)$
+    #     use_cover(filter_values = filter_values, type = "fixed rectangular", number_intervals = number_intervals, percent_overlap = 0)$
+    #     use_distance_measure("euclidean")
+    #   m2$clustering_algorithm <- function(X, idx, ...){ rep(1L, length(idx)) }
+    #   Gs2 <- vector(mode = "list", length = length(g))
+    #   for (i in 1:length(g)){
+    #     m2$cover$percent_overlap <- g[i]
+    #     m2$cover$construct_cover()
+    #     m2$compute_k_skeleton(k = 1L)
+    #     Gs2[[i]] <- m2$simplicial_complex$as_adjacency_matrix()
+    #   }
+    # }, times = 15L)
+    # 
+    # # all.equal(Gs, Gs2)
+    # sapply(1:length(g), function(i){
+    #   g1 <- igraph::graph_from_adjacency_matrix(Gs[[i]])
+    #   g2 <- igraph::graph_from_adjacency_matrix(Gs2[[i]])
+    #   all(c(
+    #     igraph::vcount(g1) == igraph::vcount(g2), 
+    #     igraph::ecount(g1) == igraph::ecount(g2),
+    #     sort(igraph::local_scan(g1, k = 1)) == sort(igraph::local_scan(g2, k = 1)), 
+    #     sort(igraph::local_scan(g1, k = 2)) == sort(igraph::local_scan(g2, k = 2)), 
+    #     sort(igraph::local_scan(g1, k = 3)) == sort(igraph::local_scan(g2, k = 3))
+    #   ))
+    # })
+    # 
+    # 
+    # 
+    # m <- MapperRef$new(noisy_circle)$
+    #   use_cover(filter_values = f_x, type = "fixed rectangular", number_intervals = 5L, percent_overlap = 0.35)$
+    #   use_clustering_algorithm(cl = "single", num_bins = 10)$
+    #   use_distance_measure(measure = "euclidean")$
+    #   compute_vertices()$
+    #   compute_edges()
+    # 
+    # m$cover$index_set
+    # 
+    # ## 1D case
+    # ms_mapper$update_multi_cover(c(1L))
+    # ms_mapper$update_multi_cover(c(0L))
+    # 
+    # 
+    # plot_2d(c(1, 1))
+    # ms_mapper$update_multi_cover(c(0L, -1L))
+    # ms_mapper$update_multi_cover(c(1L, -1L))
+    # 
+    # ms_mapper$update_cover(0L, 0L)
+    # ms_mapper$update_cover(1L, 0L)
+    # ms_mapper$update_cover(2L, 0L)
+    # ms_mapper$update_cover(3L, 0L)
+    # 
+    # ms_mapper$update_cover(0L, 0L)
+    # 
+    # 
+    # 
+    # 
+    # mtree <- Mapper:::MultiSegmentTree$new(endpts = endpts)
+    # mtree$insert_pts(filter_values)
+    # mtree$query_dimension(0, 5, 0)
+    # 
+    # ms_mapper$compute_ls_idx(i = 1, d_i = 0)
+    # 
+    # for (i in (length(pt_idx[[1]]) - 1):0){
+    #   plot_configuration(1L, i+1)
+    #   ms_mapper$update_cover(i, 0L)
+    #   print(format(ms_mapper$get_level_sets()))
+    #   invisible(readline(prompt="Press [enter] to continue"))
+    # }
+    # 
+    # lsfi_to_lsmi <- vector(mode = "list", length = 5*4)
+    # for (x in 4:0){
+    #   for (y in 3:0){
+    #     lsfi_to_lsmi[[ms_mapper$query_ls_map(c(x, y))+1]] <- c(x, y) # paste0("(", x, " ", y, ")")
+    #   }
+    # }
+    # 
+    # worst_case <- rep(choose(prod(number_intervals), 2), nrow(target_idx)-1)
+    # rec_based <- sapply(2:nrow(target_idx), function(i){
+    #   c_swap <- sapply(1:filter_dim, function(d_i) swap_idx[[d_i]][i])
+    #   nrow(ms_mapper$ls_to_change(c_swap))
+    # })
+    # optimal <- sapply(2:nrow(target_idx), function(i){
+    #   nrow(ms_mapper$get_ls_that_change(target_idx[i-1,], target_idx[i,]))
+    # })
+    # suitable_g <- g[1:(length(g)-1)]
+    # plot(x = suitable_g, y = log(cumsum(worst_case)), type = "l", ylim = c(0, max(log(cumsum(worst_case)))), 
+    #      xlab = "Overlap percentage", ylab = "Cumulative # of LS intersections (log scale)", 
+    #      main = "Complexity of building the 1-skeleton", 
+    #      col = "red", lwd = 2)
+    # mtext("As a function of g")
+    # lines(x = suitable_g, y = log(cumsum(rec_based)), lwd = 2, col = "blue")
+    # lines(x = suitable_g, y = log(cumsum(optimal)), lwd = 2, col = "green")
+    # 
+    # 
+    # sapply()
+    # ms_mapper$ls_to_change(c(1, 1))
+    # 
+    # animation::saveGIF({
+    #   for (i in 2:200){
+    #     plot_2d(idx = c(i, i), prev = c(i-1, i-1))
+    #   }
+    # }, "boxes_changing_2d.gif", interval = 0.2)
+    # 
+    # 
+    # 
+    # make_square <- function(x, y, ...){
+    #   lines(x = c(x[1], x[2]), y = c(y[1], y[1]), ...)
+    #   lines(x = c(x[2], x[2]), y = c(y[1], y[2]), ...)
+    #   lines(x = c(x[2], x[1]), y = c(y[2], y[2]), ...)
+    #   lines(x = c(x[1], x[1]), y = c(y[2], y[1]), ...)
+    # }
+    # get_range <- function(x){ range(x)+c(-1, 1)*diff(range(x))*0.10 }
+    # 
+    # lsmi <- as.matrix(do.call(expand.grid, lapply(number_intervals, seq)))-1L
+    # 
+    # plot_2d <- function(idx=NULL, g=NULL, prev=NULL, pt_ids = FALSE){
+    #   if (missing(idx) && !missing(g)){
+    #     ## Construct the level sets
+    #     ls_endpts <- lapply(1L:filter_dim, function(d_i){
+    #       ## Choose the interval (half) width to plot 
+    #       if (g[d_i] == 0){
+    #         eps <- (base_interval_length[[d_i]]/2)
+    #       } else {
+    #         eps <- (base_interval_length[[d_i]] + ((base_interval_length[[d_i]]*g[d_i])/(1 - g[d_i])))/2 # parameterized overlap
+    #       }
+    #       tmp <- as.vector(sapply(0L:(number_intervals[d_i] - 1L), function(idx){
+    #         centroid <- filter_min[d_i] + (as.integer(idx)*base_interval_length[d_i]) + base_interval_length[d_i]/2.0
+    #         c(centroid - eps, centroid + eps)
+    #       }))
+    #       matrix(tmp, ncol = 2, byrow = TRUE)
+    #     })
+    #   } else {
+    #     if (length(idx) != length(dist_to_ls)){stop("nope")}
+    #     ls_endpts <- lapply(1L:filter_dim, function(d_i){        ## Construct the level sets
+    #       ## Choose the interval (half) width to plot 
+    #       if (idx[d_i] == 0){
+    #         eps <- (base_interval_length/2)
+    #       } else {
+    #         eps <- (base_interval_length/2) + dist_to_ls[[d_i]]$target_dist[dist_order[[d_i]]][idx[d_i]] ## parameterized overlap
+    #       }
+    #       tmp <- as.vector(sapply(0L:(number_intervals[d_i] - 1L), function(idx){
+    #         centroid <- filter_min[d_i] + (as.integer(idx)*base_interval_length[d_i]) + base_interval_length[d_i]/2.0
+    #         c(centroid - eps[d_i], centroid + eps[d_i])
+    #       }))
+    #       matrix(tmp, ncol = 2, byrow = TRUE)
+    #     })
+    #   }
+    #   
+    #   plot(filter_values, pch = 20, 
+    #        xlim = get_range(filter_values[, 1L]), ylim = get_range(filter_values[, 2L]),
+    #        xlab = "", ylab = "") # xaxt = "n", yaxt = "n"
+    #   if (pt_ids){ text(filter_values, labels = 1:nrow(filter_values), pos = 3) }
+    #   # 
+    #   # abline(h = 0, col = "gray", lty = 3, lwd = 1.5)
+    #   binned_color <- rev(rainbow(nrow(cart_prod), start = 0, end = 4/6))
+    #   cc <- 0L
+    #   for (i in 1:nrow(cart_prod)){
+    #     { ii <- cart_prod[i,1]; jj <- cart_prod[i,2] }
+    #     { cls1 <- ls_endpts[[1]]; cls2 <- ls_endpts[[2]] }
+    #     col <- binned_color[ii*jj]
+    #     make_square(cls1[ii,], cls2[jj,], col = col)
+    #     points(x = mean(cls1[ii,]), y = mean(cls2[jj,]), col = col, pch = 3)
+    #     text(x = mean(cls1[ii,]), y = mean(cls2[jj,]), labels = trimws(paste0(c(ii, jj) - 1L, collapse = ",")), cex = 0.50, pos = 3)
+    #   }
+    #   for (d_i in 1:filter_dim){
+    #     # browser()
+    #     if (idx[[d_i]] > 0){
+    #       pt <- pt_idx[[d_i]][[idx[[d_i]]]]
+    #       points(x = filter_values[pt,1], y = filter_values[pt,2], col = "purple")
+    #     }
+    #   }
+    #   if (!missing(prev)){
+    #     # browser()
+    #     ls_changed <- ms_mapper$get_ls_that_change(prev, idx)+1
+    #     if (nrow(ls_changed) > 0){
+    #       apply(ls_changed, 1, function(x) {
+    #         ls1 <- lsmi[x[1], ]
+    #         ls2 <- lsmi[x[2], ]
+    #         rect(xleft = ls_endpts[[1]][ls1[1],1], xright = ls_endpts[[1]][ls1[1],2], 
+    #              ybottom = ls_endpts[[2]][ls1[2],1], ytop = ls_endpts[[2]][ls1[2],2], 
+    #              col = rgb(0.8, 0, 0.8, alpha = 0.3))
+    #         rect(xleft = ls_endpts[[1]][ls2[1],1], xright = ls_endpts[[1]][ls2[1],2], 
+    #              ybottom = ls_endpts[[2]][ls2[2],1], ytop = ls_endpts[[2]][ls2[2],2], 
+    #              col = rgb(0.8, 0, 0.8, alpha = 0.3))
+    #       })
+    #     }
+    #   }
+    # } ## plot_2d
     
     # plot_segments <- function(d_i, fix_y = TRUE, fixed = max(filter_values[, d_i])){
     #   cls <- ls_endpts[[d_i]]
@@ -446,191 +563,191 @@ MapperRef$set("public", "multiscale",
     #   }
     # }
  
-      lines(x = c(ls[1], ls[2]), y = c(-0.5, -0.5), col = binned_color[i])
-      lines(x = c(ls[2], ls[2]), y = c(-0.5, 0.5), col = binned_color[i])
-      lines(x = c(ls[2], ls[1]), y = c(0.5, 0.5), col = binned_color[i])
-      lines(x = c(ls[1], ls[1]), y = c(0.5, -0.5), col = binned_color[i])
-      text(labels = as.character(i - 1L), x = mean(c(ls[1], ls[2])), y = -0.5, col = binned_color[i], pos = 1)
-      points(x = mean(c(ls[1], ls[2])), y = 0, pch = 3, col = binned_color[i])
-      i <- i + 1
-
-    points(filter_values[, d_i], rep(0, 10), pch = 20)
-    points(filter_values[pt_idx[[d_i]][idx], d_i], 0, pch = 21, cex = 1.5, col = "purple")
-    text(filter_values[, d_i], 0, labels = 1:10, pos = 3)
-    
-    animation::saveGIF({
-      for (i in 1:length(pt_idx[[1]])){ plot_configuration(1L, i) }
-    }, movie.name = "expanding_boxes.gif", interval = 0.2)
-    
-    plot_configuration(1L, 0)
-    plot_configuration <- function(d_i, idx){
-      if (idx == 0){
-        eps <- (base_interval_length/2)
-      } else {
-        ## Choose the interval (half) width to plot 
-        eps <- (base_interval_length/2) + dist_to_ls[[d_i]]$target_dist[dist_order[[d_i]]][idx] ## parameterized overlap
-      }
-    
-      ## Construct the level sets
-      ls_endpts <- lapply(1L:filter_dim, function(d_i){
-        tmp <- as.vector(sapply(0L:(number_intervals[d_i] - 1L), function(idx){
-          centroid <- filter_min[d_i] + (as.integer(idx)*base_interval_length[d_i]) + base_interval_length[d_i]/2.0
-          c(centroid - eps[d_i], centroid + eps[d_i])
-        }))
-        matrix(tmp, ncol = 2, byrow = TRUE)
-      })
-      
-      plot(filter_values[, d_i], rep(0, 10), pch = 20, ylim = c(-0.75, 0.75), xlab = "", ylab = "", yaxt = "n")
-      text(filter_values[, d_i], 0, labels = 1:10, pos = 3)
-      abline(h = 0, col = "gray", lty = 3, lwd = 1.5)
-      binned_color <- rev(rainbow(nrow(ls_endpts[[d_i]]), start = 0, end = 4/6))
-      cc <- 0L
-      cls <- ls_endpts[[d_i]]
-      for (i in 1:nrow(cls)){
-        ls <- cls[i, ]
-        if (i %in% c(1, nrow(cls))){
-          if (i == 1){
-            lines(x = c(ls[1], cls[i+1L, 1L]), y = rep(0.51, 2))
-            text(x = mean(c(ls[1], cls[i+1L, 1L])), y = 0.5, pos = 3, labels = as.character(cc))
-            cc <- cc + 1
-            lines(x = c(cls[i+1L, 1L], ls[2]), y = rep(0.51, 2))
-            text(x = mean(c(cls[i+1L, 1L], ls[2])), y = 0.5, pos = 3, labels = as.character(cc))
-            cc <- cc + 1
-          }
-          else if (i == nrow(cls)){
-            lines(x = c(cls[i-1L, 2L], ls[2]), y = rep(0.51, 2))
-            text(x = mean(c(cls[i-1L, 2L], ls[2])), y = 0.5, pos = 3, labels = as.character(cc))
-            cc <- cc + 1
-          }
-        } else {
-          lines(x = c(cls[i-1L, 2L], cls[i+1L, 1L]), y = rep(0.51, 2))
-          text(x = mean(c(cls[i-1L, 2L], cls[i+1L, 1L])), y = 0.5, pos = 3, labels = as.character(cc))
-          cc <- cc + 1
-          lines(x = c(cls[i+1L, 1L], ls[2]), y = rep(0.51, 2))
-          text(x = mean(c(cls[i+1L, 1L], ls[2])), y = 0.5, pos = 3, labels = as.character(cc))
-          cc <- cc + 1
-        }
-        
-        lines(x = c(ls[1], ls[2]), y = c(-0.5, -0.5), col = binned_color[i])
-        lines(x = c(ls[2], ls[2]), y = c(-0.5, 0.5), col = binned_color[i])
-        lines(x = c(ls[2], ls[1]), y = c(0.5, 0.5), col = binned_color[i])
-        lines(x = c(ls[1], ls[1]), y = c(0.5, -0.5), col = binned_color[i])
-        text(labels = as.character(i - 1L), x = mean(c(ls[1], ls[2])), y = -0.5, col = binned_color[i], pos = 1)
-        points(x = mean(c(ls[1], ls[2])), y = 0, pch = 3, col = binned_color[i])
-        i <- i + 1
-      }
-      text(x = cls[nrow(cls), 2L], y = 0.5, pos = 3, labels = as.character(cc))
-      points(filter_values[, d_i], rep(0, nrow(filter_values)), pch = 20)
-      if (idx > 0){
-        points(filter_values[pt_idx[[d_i]][idx], d_i], 0, pch = 21, cex = 1.5, col = "purple")
-      }
-      text(filter_values[, d_i], 0, labels = 1:nrow(filter_values), pos = 3)
-    }
-   
-    # abline(v = (base_interval_length[1]*0:number_intervals[1]) + filter_min[1], col = "red")
-    
-    # x_minmax <- c(unique(ls_bnds[, 1]) - .Machine$double.eps, unique(ls_bnds[, 3]) + .Machine$double.eps)
-    # 
-    # level_set_query_indices <-  tapply(0:((number_intervals[1]*2L) - 1L), rep(1:number_intervals[1], each = 2), identity, simplify = FALSE)
-    # 
-    #     ## Swaps the upper integer at index i with the lower integer at index j
-    #     swap_ul <- function(i, j){
-    #       upper <- level_set_query_indices[[i]][2]
-    #       lower <- level_set_query_indices[[j]][1]
-    #       level_set_query_indices[[i]][2] <- lower
-    #       level_set_query_indices[[j]][1] <- upper
-    #       return(level_set_query_indices)
-    #     }
-    #     
-    #     number_intervals[1]
-    #     
-    
-    stree <- Mapper::segment_tree(sort(as.vector(ls_bnds)))
-    pts <- as.vector(filter_values)
-    stree$insert_points(pts)
-    # stree_ptr <- stree$as_XPtr()
-    
-    ms_mapper$query(c(0L), c(1L))
-    
-    test_cover_compute <- sapply(0:6, function(i){
-      ms_mapper$compute_ls_idx(i)
-    })
-    
-    
-    # ms_mapper$build_segment_trees()
-    #ms_mapper$set_ls_idx(as.vector(unlist(level_set_query_indices)))
-    #ms_mapper$build_segment_trees()
-    #ms_mapper$get_parameterization(30L)
-    ms_mapper$get_ls_idx()
-    ms_mapper$swap_ls(1)
-    ms_mapper$get_ls_idx()
-    ms_mapper$swap_ls(2)
-    ms_mapper$get_ls_idx()
-    ms_mapper$swap_ls(3)
-    ms_mapper$get_ls_idx()
-    ms_mapper$swap_ls(4)
-    ms_mapper$get_ls_idx()
-    
-    stree$n
-    
-    ms_mapper$get_parameterization(9L)
-    
-    make_ls_idx <- function(i, n){
-      #  res <- vector(mode = "integer", length = n)
-      res <- matrix(0, nrow = n/2L, ncol = n)
-      max_c <- (n - 2L)/2L
-      hc <- (n - 2L)/2L 
-      lc <- 0L
-      for (j in 0:max_c){
-        if (j %% 2 == 0){
-          if (lc == 0L){ res[, j] <- rep(j, n/2L) }
-          else {
-            res[, j+1] <- c(seq(j, j-lc, length.out=lc), rep(j, (n/2L) - lc))
-          }
-          lc <- lc + 1L
-        }
-
-        hc <- hc - 1L
-      }
-      return(res)   
-    }
-    
-    x_minmax <- c(unique(ls_bnds[, 1]), unique(ls_bnds[, 3]))
-    stree <- Mapper::segment_tree(intervals = x_minmax)
-    stree$insert_points(filter_values[, 1])
-    
-    
-    res_idx <- lapply(level_set_query_indices, function(ls_idx){
-      stree$queryInterval(ls_idx[1], ls_idx[2]+1L)
-    })
-    idx <- vector(mode = "integer", length = 10)
-    
-    m <- MapperRef$new(noisy_circle)$
-      set_cover(filter_values = f_x, type = "fixed rectangular", number_intervals = 5L, percent_overlap = 0)
-    
-    
-      compute_vertices(num_bins = 10)$
-      compute_edges()
-    
-    1L:number_intervals[1]
-    dist_to_lower_ls[1,]
-    as.integer(A[1,]) - 1L
-    
-    ## Testing out swapping 
-    X <- c(x_1=0.2, x_2=4/3, x_3=1.6)
-    endpts <- c(0, 1, 1, 2)
-    stree <- Mapper::segment_tree(endpts)
-    stree$insert_points(X)
-    stree$queryInterval(4-4, 6-4)
-    stree$queryInterval(4-4, 7-4) 
-    
-    m$cover$number_intervals
-    set_clustering_algorithm(cl = "single")$
-    set_distance_measure(measure = "euclidean")$
-    compute_vertices(num_bins = 10)$
-    compute_edges()
-  }
-)
+#       lines(x = c(ls[1], ls[2]), y = c(-0.5, -0.5), col = binned_color[i])
+#       lines(x = c(ls[2], ls[2]), y = c(-0.5, 0.5), col = binned_color[i])
+#       lines(x = c(ls[2], ls[1]), y = c(0.5, 0.5), col = binned_color[i])
+#       lines(x = c(ls[1], ls[1]), y = c(0.5, -0.5), col = binned_color[i])
+#       text(labels = as.character(i - 1L), x = mean(c(ls[1], ls[2])), y = -0.5, col = binned_color[i], pos = 1)
+#       points(x = mean(c(ls[1], ls[2])), y = 0, pch = 3, col = binned_color[i])
+#       i <- i + 1
+# 
+#     points(filter_values[, d_i], rep(0, 10), pch = 20)
+#     points(filter_values[pt_idx[[d_i]][idx], d_i], 0, pch = 21, cex = 1.5, col = "purple")
+#     text(filter_values[, d_i], 0, labels = 1:10, pos = 3)
+#     
+#     animation::saveGIF({
+#       for (i in 1:length(pt_idx[[1]])){ plot_configuration(1L, i) }
+#     }, movie.name = "expanding_boxes.gif", interval = 0.2)
+#     
+#     plot_configuration(1L, 0)
+#     plot_configuration <- function(d_i, idx){
+#       if (idx == 0){
+#         eps <- (base_interval_length/2)
+#       } else {
+#         ## Choose the interval (half) width to plot 
+#         eps <- (base_interval_length/2) + dist_to_ls[[d_i]]$target_dist[dist_order[[d_i]]][idx] ## parameterized overlap
+#       }
+#     
+#       ## Construct the level sets
+#       ls_endpts <- lapply(1L:filter_dim, function(d_i){
+#         tmp <- as.vector(sapply(0L:(number_intervals[d_i] - 1L), function(idx){
+#           centroid <- filter_min[d_i] + (as.integer(idx)*base_interval_length[d_i]) + base_interval_length[d_i]/2.0
+#           c(centroid - eps[d_i], centroid + eps[d_i])
+#         }))
+#         matrix(tmp, ncol = 2, byrow = TRUE)
+#       })
+#       
+#       plot(filter_values[, d_i], rep(0, 10), pch = 20, ylim = c(-0.75, 0.75), xlab = "", ylab = "", yaxt = "n")
+#       text(filter_values[, d_i], 0, labels = 1:10, pos = 3)
+#       abline(h = 0, col = "gray", lty = 3, lwd = 1.5)
+#       binned_color <- rev(rainbow(nrow(ls_endpts[[d_i]]), start = 0, end = 4/6))
+#       cc <- 0L
+#       cls <- ls_endpts[[d_i]]
+#       for (i in 1:nrow(cls)){
+#         ls <- cls[i, ]
+#         if (i %in% c(1, nrow(cls))){
+#           if (i == 1){
+#             lines(x = c(ls[1], cls[i+1L, 1L]), y = rep(0.51, 2))
+#             text(x = mean(c(ls[1], cls[i+1L, 1L])), y = 0.5, pos = 3, labels = as.character(cc))
+#             cc <- cc + 1
+#             lines(x = c(cls[i+1L, 1L], ls[2]), y = rep(0.51, 2))
+#             text(x = mean(c(cls[i+1L, 1L], ls[2])), y = 0.5, pos = 3, labels = as.character(cc))
+#             cc <- cc + 1
+#           }
+#           else if (i == nrow(cls)){
+#             lines(x = c(cls[i-1L, 2L], ls[2]), y = rep(0.51, 2))
+#             text(x = mean(c(cls[i-1L, 2L], ls[2])), y = 0.5, pos = 3, labels = as.character(cc))
+#             cc <- cc + 1
+#           }
+#         } else {
+#           lines(x = c(cls[i-1L, 2L], cls[i+1L, 1L]), y = rep(0.51, 2))
+#           text(x = mean(c(cls[i-1L, 2L], cls[i+1L, 1L])), y = 0.5, pos = 3, labels = as.character(cc))
+#           cc <- cc + 1
+#           lines(x = c(cls[i+1L, 1L], ls[2]), y = rep(0.51, 2))
+#           text(x = mean(c(cls[i+1L, 1L], ls[2])), y = 0.5, pos = 3, labels = as.character(cc))
+#           cc <- cc + 1
+#         }
+#         
+#         lines(x = c(ls[1], ls[2]), y = c(-0.5, -0.5), col = binned_color[i])
+#         lines(x = c(ls[2], ls[2]), y = c(-0.5, 0.5), col = binned_color[i])
+#         lines(x = c(ls[2], ls[1]), y = c(0.5, 0.5), col = binned_color[i])
+#         lines(x = c(ls[1], ls[1]), y = c(0.5, -0.5), col = binned_color[i])
+#         text(labels = as.character(i - 1L), x = mean(c(ls[1], ls[2])), y = -0.5, col = binned_color[i], pos = 1)
+#         points(x = mean(c(ls[1], ls[2])), y = 0, pch = 3, col = binned_color[i])
+#         i <- i + 1
+#       }
+#       text(x = cls[nrow(cls), 2L], y = 0.5, pos = 3, labels = as.character(cc))
+#       points(filter_values[, d_i], rep(0, nrow(filter_values)), pch = 20)
+#       if (idx > 0){
+#         points(filter_values[pt_idx[[d_i]][idx], d_i], 0, pch = 21, cex = 1.5, col = "purple")
+#       }
+#       text(filter_values[, d_i], 0, labels = 1:nrow(filter_values), pos = 3)
+#     }
+#    
+#     # abline(v = (base_interval_length[1]*0:number_intervals[1]) + filter_min[1], col = "red")
+#     
+#     # x_minmax <- c(unique(ls_bnds[, 1]) - .Machine$double.eps, unique(ls_bnds[, 3]) + .Machine$double.eps)
+#     # 
+#     # level_set_query_indices <-  tapply(0:((number_intervals[1]*2L) - 1L), rep(1:number_intervals[1], each = 2), identity, simplify = FALSE)
+#     # 
+#     #     ## Swaps the upper integer at index i with the lower integer at index j
+#     #     swap_ul <- function(i, j){
+#     #       upper <- level_set_query_indices[[i]][2]
+#     #       lower <- level_set_query_indices[[j]][1]
+#     #       level_set_query_indices[[i]][2] <- lower
+#     #       level_set_query_indices[[j]][1] <- upper
+#     #       return(level_set_query_indices)
+#     #     }
+#     #     
+#     #     number_intervals[1]
+#     #     
+#     
+#     stree <- Mapper::segment_tree(sort(as.vector(ls_bnds)))
+#     pts <- as.vector(filter_values)
+#     stree$insert_points(pts)
+#     # stree_ptr <- stree$as_XPtr()
+#     
+#     ms_mapper$query(c(0L), c(1L))
+#     
+#     test_cover_compute <- sapply(0:6, function(i){
+#       ms_mapper$compute_ls_idx(i)
+#     })
+#     
+#     
+#     # ms_mapper$build_segment_trees()
+#     #ms_mapper$set_ls_idx(as.vector(unlist(level_set_query_indices)))
+#     #ms_mapper$build_segment_trees()
+#     #ms_mapper$get_parameterization(30L)
+#     ms_mapper$get_ls_idx()
+#     ms_mapper$swap_ls(1)
+#     ms_mapper$get_ls_idx()
+#     ms_mapper$swap_ls(2)
+#     ms_mapper$get_ls_idx()
+#     ms_mapper$swap_ls(3)
+#     ms_mapper$get_ls_idx()
+#     ms_mapper$swap_ls(4)
+#     ms_mapper$get_ls_idx()
+#     
+#     stree$n
+#     
+#     ms_mapper$get_parameterization(9L)
+#     
+#     make_ls_idx <- function(i, n){
+#       #  res <- vector(mode = "integer", length = n)
+#       res <- matrix(0, nrow = n/2L, ncol = n)
+#       max_c <- (n - 2L)/2L
+#       hc <- (n - 2L)/2L 
+#       lc <- 0L
+#       for (j in 0:max_c){
+#         if (j %% 2 == 0){
+#           if (lc == 0L){ res[, j] <- rep(j, n/2L) }
+#           else {
+#             res[, j+1] <- c(seq(j, j-lc, length.out=lc), rep(j, (n/2L) - lc))
+#           }
+#           lc <- lc + 1L
+#         }
+# 
+#         hc <- hc - 1L
+#       }
+#       return(res)   
+#     }
+#     
+#     x_minmax <- c(unique(ls_bnds[, 1]), unique(ls_bnds[, 3]))
+#     stree <- Mapper::segment_tree(intervals = x_minmax)
+#     stree$insert_points(filter_values[, 1])
+#     
+#     
+#     res_idx <- lapply(level_set_query_indices, function(ls_idx){
+#       stree$queryInterval(ls_idx[1], ls_idx[2]+1L)
+#     })
+#     idx <- vector(mode = "integer", length = 10)
+#     
+#     m <- MapperRef$new(noisy_circle)$
+#       set_cover(filter_values = f_x, type = "fixed rectangular", number_intervals = 5L, percent_overlap = 0)
+#     
+#     
+#       compute_vertices(num_bins = 10)$
+#       compute_edges()
+#     
+#     1L:number_intervals[1]
+#     dist_to_lower_ls[1,]
+#     as.integer(A[1,]) - 1L
+#     
+#     ## Testing out swapping 
+#     X <- c(x_1=0.2, x_2=4/3, x_3=1.6)
+#     endpts <- c(0, 1, 1, 2)
+#     stree <- Mapper::segment_tree(endpts)
+#     stree$insert_points(X)
+#     stree$queryInterval(4-4, 6-4)
+#     stree$queryInterval(4-4, 7-4) 
+#     
+#     m$cover$number_intervals
+#     set_clustering_algorithm(cl = "single")$
+#     set_distance_measure(measure = "euclidean")$
+#     compute_vertices(num_bins = 10)$
+#     compute_edges()
+#   }
+# )
 #   ## Start with the base cover
 #   mapper_obj$cover$setOverlap(0.0)
 #   mapper_obj$cover$constructCover()
@@ -998,6 +1115,16 @@ MapperRef$set("public", "multiscale",
 #   c(lower_R, upper_R)
 # }
 # 
+
+## More preprocessing...
+rowmatch <- function(A,B) { 
+  # Rows in A that match the rows in B
+  f <- function(...) paste(..., sep=":")
+  if(!is.matrix(B)) B <- matrix(B, 1, length(B))
+  a <- do.call("f", as.data.frame(A))
+  b <- do.call("f", as.data.frame(B))
+  match(a, b)
+}
 
 ## Load the exported id generator 
 Rcpp::loadModule("multiscale_module", TRUE)

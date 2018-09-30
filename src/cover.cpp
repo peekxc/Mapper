@@ -75,10 +75,8 @@ IntegerVector constructLevelSetIndex(const NumericMatrix& x, const NumericMatrix
     NumericMatrix::ConstRow ls_bnds = bnds.row(i); // Update level set bounds
     std::fill(level_set_test.begin(), level_set_test.end(), true);// Reset to all true prior to doing logical range checks
     for (int d_i = 0; d_i < d; ++d_i){
-      Rcout << "testing level set: min = " << ls_bnds[d_i] <<  ", max = " << ls_bnds[d + d_i] << std::endl;
       level_set_test = level_set_test & ((x.column(d_i) >= (ls_bnds[d_i] - eps)) & (x.column(d_i) <= (ls_bnds[d + d_i] + eps)));
     }
-    Rcout << level_set_test << std::endl; 
     res[level_set_test] = i+1; // Record which level set each point lies in
   }
   return(res);
