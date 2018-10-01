@@ -106,6 +106,7 @@ MapperRef$set("public", "use_distance_measure", function(measure){
 })
 
 MapperRef$set("public", "use_cover", function(filter_values, type=c("fixed rectangular", "restrained rectangular"), ...){
+  stopifnot(is.matrix(filter_values))
   stopifnot(nrow(filter_values) == nrow(private$.X))
   if (missing(type)){ type <- "fixed rectangular"}
   self$cover <- switch(type, 
@@ -213,7 +214,7 @@ MapperRef$set("public", "compute_edges", function(which_level_pairs = NULL){
   ## Retrieve the valid level set index pairs to compare. In the worst case, with no cover-specific optimization, 
   ## this may just be all pairwise combinations of LSFI's for the full simplicial complex.
   stree_ptr <- private$.simplicial_complex$as_XPtr()
-  build_1_skeleton(ls_pairs = which_level_pairs, vertices = private$.vertices, ls_vertex_map = private$.cl_map, stree = stree_ptr)
+  build_1_skeleton(ls_pairs = which_level_pairs-1L, vertices = private$.vertices, ls_vertex_map = private$.cl_map, stree = stree_ptr)
 
   ## Return self
   invisible(self)

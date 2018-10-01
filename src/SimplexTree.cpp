@@ -55,6 +55,7 @@ IntegerVector SimplexTree::vertex_available(uint n_vertices){
   for (uint cc = 0; cc < max; ++cc){
     if (top_vertices.find(cc) == top_vertices.end()){
       new_idx.push_back(cc);
+      if (new_idx.size() == n_vertices){ break; }
     }
   }
   return(new_idx);

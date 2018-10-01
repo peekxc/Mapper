@@ -128,13 +128,7 @@ List build_0_skeleton(const IntegerVector which_levels, const NumericMatrix& X, 
   // Loop through the levels to update 
   for (const int index: which_levels){
     
-    // Get the point indices we're working with
-    const IntegerVector ls_pt_idx = level_sets.at(index);
-    
-    // Apply the clustering
-    const IntegerVector cl_results = f(_["X"] = X, _["idx"] = ls_pt_idx);
-    const IntegerVector cl_idx = self_match(cl_results) - 1;
-    const IntegerVector ids = unique(cl_idx);
+    Rcout << "index: " << index << std::endl; 
     
     // Get which vertices need to be updated 
     IntegerVector c_vertices = as<IntegerVector>(ls_vertex_map.at(index));
@@ -147,31 +141,53 @@ List build_0_skeleton(const IntegerVector which_levels, const NumericMatrix& X, 
       res.at(v_idx) = NULL;
     });
     
-    // Update the map with new vertex map with the new indices
-    IntegerVector new_0_simplexes = stree_ptr->vertex_available(ids.size());
-    ls_vertex_map.at(index) = new_0_simplexes;
+    // Get the point indices we're working with
+    const IntegerVector ls_pt_idx = level_sets.at(index);
+    Rcout << "point indices to cluster: " <<  ls_pt_idx << std::endl; 
     
-    // Update the simplex tree by inserting the 0-simplices
-    std::for_each(new_0_simplexes.begin(), new_0_simplexes.end(), [&stree_ptr](const int v_i){
-      std::vector<unsigned int> v = { static_cast<unsigned int>(v_i) };
-      stree_ptr->insert_simplex(v);
-    });
-    // Rcout << "New vertex ids: " << as<IntegerVector>(ls_vertex_map.at(index)) << std::endl; 
-    
-    // Create the new vertices
-    std::vector< IntegerVector > new_vertices(ids.size()); 
-    IntegerVector::const_iterator c_i = cl_idx.begin();
-    for (int i = 0; c_i != cl_idx.end(); ++c_i, ++i){
-      new_vertices.at(*c_i).push_back(ls_pt_idx.at(i));
+    if (ls_pt_idx.size() > 0){
+      
+      // Apply the clustering
+      const IntegerVector cl_results = f(_["X"] = X, _["idx"] = ls_pt_idx);
+      const IntegerVector cl_idx = self_match(cl_results) - 1;
+      const IntegerVector ids = unique(cl_idx);
+      
+      Rcout << "Clustering results: " << cl_results << std::endl; 
+      Rcout << "Cluster ids: " << ids << std::endl; 
+      Rcout << "id size: " << ids.size() << std::endl; 
+      
+      // Update the map with new vertex map with the new indices
+      IntegerVector new_0_simplexes = stree_ptr->vertex_available(ids.size());
+      Rcout << "Adding new simplexes: " << new_0_simplexes << " to map at " << index << std::endl; 
+      Rcout << new_0_simplexes.size() << std::endl;  
+      ls_vertex_map.at(index) = new_0_simplexes;
+      
+      // Update the simplex tree by inserting the 0-simplices
+      std::for_each(new_0_simplexes.begin(), new_0_simplexes.end(), [&stree_ptr](const int v_i){
+        std::vector<unsigned int> v = { static_cast<unsigned int>(v_i) };
+        stree_ptr->insert_simplex(v);
+      });
+      // Rcout << "New vertex ids: " << as<IntegerVector>(ls_vertex_map.at(index)) << std::endl; 
+      
+      // Create the new vertices
+      Rprintf("creating %d new vertices\n", ids.size()); 
+      std::vector< IntegerVector > new_vertices(ids.size()); 
+      IntegerVector::const_iterator c_i = cl_idx.begin();
+      for (int i = 0; c_i != cl_idx.end(); ++c_i, ++i){
+        Rprintf("c_i = %d, i = %d\n", *c_i, i);
+        Rcout << ls_pt_idx << std::endl; 
+        new_vertices.at(*c_i).push_back(ls_pt_idx.at(i));
+      }
+      
+      // Replace the old vertices with the new ones
+      std::size_t i = 0; 
+      Rcout << "Replacing old vertices" << std::endl; 
+      std::for_each(new_0_simplexes.begin(), new_0_simplexes.end(), [&i, &index, &res, &new_vertices](const int v_i){
+        if (res.size() < v_i+1){ res.resize(v_i+1); } 
+        new_vertices.at(i).attr("level_set") = index+1; // 1-based
+        res.at(v_i) = new_vertices.at(i++);
+      }); 
     }
-    
-    // Replace the old vertices with the new ones
-    std::size_t i = 0; 
-    std::for_each(new_0_simplexes.begin(), new_0_simplexes.end(), [&i, &index, &res, &new_vertices](const int v_i){
-      if (res.size() < v_i+1){ res.resize(v_i+1); } 
-      new_vertices.at(i).attr("level_set") = index+1; // 1-based
-      res.at(v_i) = new_vertices.at(i++);
-    });
   }
   
   return(wrap(res));
@@ -191,18 +207,18 @@ void build_1_skeleton(const IntegerMatrix& ls_pairs, const List& vertices, const
     
     // Get the current pair of level sets to compare; skip if either are empty
     const int ls_1 = ls_pairs(i, 0), ls_2 = ls_pairs(i, 1);
-    if ( Rf_isNull(ls_vertex_map.at(ls_1 - 1)) || Rf_isNull(ls_vertex_map.at(ls_2 - 1))){
+    if ( Rf_isNull(ls_vertex_map.at(ls_1)) || Rf_isNull(ls_vertex_map.at(ls_2))){
       continue;
     }
-    const IntegerVector& nodes1 = ls_vertex_map.at(ls_1 - 1);
-    const IntegerVector& nodes2 = ls_vertex_map.at(ls_2 - 1);
+    const IntegerVector& nodes1 = ls_vertex_map.at(ls_1);
+    const IntegerVector& nodes2 = ls_vertex_map.at(ls_2);
     
     // Compare the nodes within each level set
     for (IntegerVector::const_iterator n1 = nodes1.begin(); n1 != nodes1.end(); ++n1){
       for (IntegerVector::const_iterator n2 = nodes2.begin(); n2 != nodes2.end(); ++n2){
         // Retrieve point indices within each node
-        const IntegerVector& n1_idx = vertices[*n1 - 1];
-        const IntegerVector& n2_idx = vertices[*n2 - 1];
+        const IntegerVector& n1_idx = vertices.at(*n1);
+        const IntegerVector& n2_idx = vertices.at(*n2);
         
         // Add edge between the two if they share a data point. This also retrieves the size of the intersection.
         // int intersect_size = std::count_if(n1_idx.begin(), n1_idx.end(), [&](int k) { 

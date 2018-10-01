@@ -18,7 +18,7 @@ noisy_circle <- cbind(r*cos(t), r*sin(t))
 
 ## Define filter values equal to the distance from each point to the left-most point in the circle 
 left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
-f_x <- apply(noisy_circle, 1, function(pt) (pt - left_pt)[1])
+f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
 
 ## Bin the data onto a sufficiently high-resolution rainbow gradient from blue (low) to red (high), 
 ## and plot the original circle  with these values
@@ -43,16 +43,16 @@ This is, in the simplest case, all of the central information one needs prior to
 
 For most use-cases, the static method above is sufficient for getting a compact Mapper construction back. However, building the 'right' Mapper may be an interactive process, requiring parameter tuning, exploring alternative filter functions, tweaking clustering algorithms, etc. For large data sets, this iterative fitting process can be prohibitively expensive. 
 
-Internally, Mapper uses `R6` classes to efficiently compute the simplicial complex. One of the nice benefits of R6 is that it allows method chaining. 
-To demonstrate this, consider the usual Mapper pipeline: 
-  1. Specify a filter function for the data 
+Internally, Mapper uses `R6` classes to efficiently compute the simplicial complex. One of the nice benefits of R6 is that it allows [method chaining](https://adv-r.hadley.nz/R6.html#method-chaining). 
+To demonstrate this, consider a very simplified interpretation of the Mapper pipeline: 
+  1. "Filter" the data via a reference map
   2. Equip the filter space with a cover
   3. Construct the _k_-skeleton
 <!-- If more information is required beyond the static construction, the `return_reference` parameter may be set to `TRUE` to access the underlying `MapperRef` object. This is useful in situations where each step of the mapper framework needs fine-tuned, e.g. where the construction is requested under multiple parameter settings.   -->
 
 These steps are demonstrated below using the `noisy_circle` data set above with the `Mapper` package.
 
-The first step is to create a _filter_ of the data. Naturally, this step 
+The first step is to create a _filter_ of the data. 
 
 ```{r}
 ## 1. Specify a filter function for the data 
@@ -90,7 +90,7 @@ m$cover <- rec_cover
 
 The final step to create a Mapper is to construct the _k_-skeleton. This step requires a different set of procedures, based on _k_. 
 
-Since the definition of a _k_-skeleton is inductive, the first step is to construct the $0$-skeleton. This amounts to applying a partial clustering over [subsets of] the data within a give metric space, indexed by the level sets given by cover. The choice of clustering algorithm, metric, hyper-parameters, etc. is completely up to the user--the only requirement is that the function take as input at least the data `X` and a vector of indices `idx`$\subset \{1, 2, \dots, n\}$ and return an integer vector giving a partitioning on the subset `idx` of the data `X`. An example of supplying a custom clustering function using the `parallelDist` and `fastcluster` packages is given below: 
+Since the definition of a _k_-skeleton is inductive, the first step is to construct the $0$-skeleton. This amounts to applying a partial clustering over [subsets of] the data within a give metric space, indexed by the level sets given by cover. The choice of clustering algorithm, metric, hyper-parameters, etc. is completely up to the user--the only requirement is that the function take as input at least the data `X` and a vector of indices `idx`$\subset \{1, 2, \dots, n\}$ and return an integer vector giving a partitioning on the subset `idx` of the data `X`. An example of using a custom clustering function using the `parallelDist` and `fastcluster` packages is given below, wherein the [single linkage criterion] is used to build a cluster hierarchy, and then a histogram-based heuristic is used to set the [cut value](?stats::cutree). The heuristic is similar to the idea discussed in Section 3.1 of the original Mapper paper. 
 
 ```{r}
 { require("parallelDist"); require("fastcluster") }
@@ -102,7 +102,7 @@ custom_clustering_f <- function(X, idx, num_bins){
 m$clustering_algorithm <- custom_clustering_f
 ```
 
-To simplify these choices, the user may alternatively simply choose from the list of widely-supported hierarchical clustering algorithms (i.e. linkage criteria) and distance measures with the `set_clustering_algorithm` and `set_distance_measure` functions, respectively. 
+The user may alternatively choose from the list of widely-supported linkage criteria and distance measures used in hierarchical clustering with the `set_clustering_algorithm` and `set_distance_measure` functions, respectively. 
 ```{r}
 m$use_clustering_algorithm(cl = "single")
 m$use_distance_measure(measure = "euclidean")
@@ -128,17 +128,34 @@ m$compute_k_skeleton(k = 1L)
 
 All the methods can chained. 
 ```{r}
-m <- MapperRef$new(noisy_circle)$
-  use_cover(filter_values = f_x, type = "fixed rectangular", number_intervals = 5L, percent_overlap = 0.35)$
+m <- MapperRef$new(noisy_circle[1:10,])$
+  use_cover(filter_values = matrix(f_x[1:10,]), type = "fixed rectangular", number_intervals = 5L, percent_overlap = 0.35)$
   use_clustering_algorithm(cl = "single", num_bins = 10)$
   use_distance_measure(measure = "euclidean")$
   compute_vertices()$
   compute_edges()
 
+
+v1 <- lapply(seq(0.05, 0.50, by = 0.05), function(g){
+  m$cover$percent_overlap <- g
+  m$cover$construct_cover()
+  m$compute_k_skeleton(k = 1L)
+  m$simplicial_complex$as_edge_list()
+})
+
+m$enable_multiscale()
+m$update_mapper(c(0.25))
+
+v2 <- lapply(seq(0.05, 0.50, by = 0.05), function(g){
+  m$update_mapper(g)
+  m$simplicial_complex$as_edge_list()
+})
+
+
 m$compute_vertices(which_levels = m$cover$index_set[3:4])
 ```
 
-The `grapher` packages provides a [force-directed](https://github.com/d3/d3-force) [htmlwidget](https://www.htmlwidgets.org/) implementation of Ayasdi's open source [grapher](https://github.com/ayasdi/grapher) library, which can be used to visualize the Mapper network.  
+The `grapher` packages provides a [force-directed](https://github.com/d3/d3-force) [htmlwidget](https://www.htmlwidgets.org/) implementation of Ayasdi's Apache-licensed [grapher](https://github.com/ayasdi/grapher) library, which can be used to visualize the Mapper network.  
 ```{r}
 library("grapher")
 g <- grapher(m$simplicial_complex$as_adjacency_matrix())
@@ -157,7 +174,7 @@ library(printr)
 help(package = "grapher")
 ```
 
-The grapher instance is fully shiny-compatible. For larger datasets An interactive dashbaord is included to help analyze the Mapper. 
+The grapher instance is fully shiny-compatible. For larger datasets, an interactive dashbaord is included to help analyze the Mapper. 
 ```{r, eval = FALSE}
 # ## Load FICO heloc data set
 # fico <- data.table::data.table(readr::read_csv("~/WaCS/TDA/heloc_dataset_v1.csv"))

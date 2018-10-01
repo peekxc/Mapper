@@ -13,27 +13,26 @@
 #'   m_ref <- Mapper::mapper(noisy_circle, filter_values = f_x)
 #' @export
 MapperRef$set("public", "enable_multiscale", 
-  function(mapper_obj, ...){
-    if (class(mapper_obj) != "MapperRef"){ stop("'multiscale' expects a Mapper reference object.") }
-    # if (mapper_obj$cover$type != "rectangular"){ stop("'multiscale' is only compatible with rectangular covers.") }
-    n <- ifelse("dist" %in% class(X), attr(X, "Size"), nrow(X))
-    d <- ncol(m$cover$filter_values)
+  function(){
+    # if (self$cover$type != "rectangular"){ stop("'multiscale' is only compatible with rectangular covers.") }
+    n <- ifelse("dist" %in% class(private$.X), attr(private$.X, "Size"), nrow(private$.X))
+    d <- ncol(self$cover$filter_values)
     
     ## Construct base cover
-    m$cover$percent_overlap <- 0.0
-    m$cover$construct_cover()
+    self$cover$percent_overlap <- 0.0
+    self$cover$construct_cover()
     
     ## LS Multi-indices == Cartesian product of the intervals
-    cart_prod <- arrayInd(seq(prod(m$cover$number_intervals)), .dim = m$cover$number_intervals)
+    cart_prod <- arrayInd(seq(prod(self$cover$number_intervals)), .dim = self$cover$number_intervals)
 
     ## Get filter min and max ranges
-    filter_rng <- apply(m$cover$filter_values, 2, range)
+    filter_rng <- apply(self$cover$filter_values, 2, range)
     { filter_min <- filter_rng[1,]; filter_max <- filter_rng[2,] }
     filter_len <- diff(filter_rng)
     
     ## Get the bounds associated with the level sets 
-    base_interval_length <- filter_len/m$cover$number_intervals
-    interval_length <- base_interval_length + (base_interval_length * m$cover$percent_overlap)/(1.0 - m$cover$percent_overlap)
+    base_interval_length <- filter_len/self$cover$number_intervals
+    interval_length <- base_interval_length + (base_interval_length * self$cover$percent_overlap)/(1.0 - self$cover$percent_overlap)
     eps <- interval_length/2.0
     ls_bnds <- t(apply(cart_prod, 1, function(idx){
       centroid <- filter_min + ((as.integer(idx)-1L)*base_interval_length) + base_interval_length/2.0
@@ -41,7 +40,7 @@ MapperRef$set("public", "enable_multiscale",
     }))
     
     ## get the level set flat indices associated with each point
-    lsfi <- Mapper:::constructLevelSetIndex(m$cover$filter_values, ls_bnds) ## returns 1-based
+    lsfi <- Mapper:::constructLevelSetIndex(self$cover$filter_values, ls_bnds) ## returns 1-based
     A <- matrix(cart_prod[lsfi,], ncol = d)
     A_tmp <- apply(A, 1, function(a) (as.integer(a) - 1L) * base_interval_length)
     Z_tmp <- apply(filter_values, 1, function(z_i) as.numeric(z_i) - filter_min)
@@ -64,12 +63,12 @@ MapperRef$set("public", "enable_multiscale",
     
     ## Order the distances to the target level sets
     dist_order <- lapply(1:d, function(d_i) order(dist_to_ls[[d_i]]$target_dist))
+    interval_sizes <- lapply(1:d, function(d_i) dist_to_ls[[d_i]]$target_dist[dist_order[[d_i]]]*2 + base_interval_length[d_i])
     
     ## What interval sizes do the level sets intersect higher order level sets?
     intersection_cuts <- lapply(1:d, function(d_i) {
-      interval_sizes <- dist_to_ls[[d_i]]$target_dist[dist_order[[d_i]]]*2 + base_interval_length[d_i] 
       swap_dist <- ((base_interval_length[d_i]/2) * seq(2, number_intervals[d_i] - 1L))*2
-      swap_idx <- findInterval(interval_sizes, vec = swap_dist)
+      swap_idx <- findInterval(interval_sizes[[d_i]], vec = swap_dist)
       tmp <- rle(swap_idx)[["lengths"]]
       head(c(0L, cumsum(tmp)), length(tmp))
     })
@@ -86,24 +85,32 @@ MapperRef$set("public", "enable_multiscale",
     }
     
     ## Create the indexing structure
-    ms_mapper2 <- Mapper:::MultiScale2$new(n, as.vector(m$cover$number_intervals))
-    ms_mapper2$insert_pts(A, do.call(cbind, ls_paths))
+    ms_mapper <- Mapper:::MultiScale2$new(n, as.vector(self$cover$number_intervals))
+    ms_mapper$insert_pts(A, do.call(cbind, ls_paths))
     for (d_i in 1L:d){
-      ms_mapper2$create_filtration(dist_order[[d_i]]-1L, d_i-1)
-      ms_mapper2$set_filtration_rle(intersection_cuts[[d_i]], d_i-1)
-      ms_mapper2$create_ls_paths(uniq_ls_paths[[d_i]]-1L, d_i-1)
+      ms_mapper$create_filtration(dist_order[[d_i]]-1L, interval_sizes[[d_i]], d_i-1)
+      ms_mapper$set_filtration_rle(intersection_cuts[[d_i]], d_i-1)
+      ms_mapper$create_ls_paths(uniq_ls_paths[[d_i]]-1L, d_i-1)
     }
-    private$.multiscale <- ms_mapper2
+    private$.multiscale <- ms_mapper
     
     ## Add the ability to 'update' the Mapper by changing its overlap.
     self$update_mapper <- function(percent_overlap){
-      ## get nearest idx
-      idx <- c(0, 0)# ...
+      stopifnot(all(percent_overlap >= 0 && percent_overlap < 1))
+      stopifnot(length(percent_overlap) == ncol(self$cover$filter_values))
+      
+      browser()
+      R <- base_interval_length + (base_interval_length*percent_overlap)/(1.0 - percent_overlap)
+      idx <- private$.multiscale$get_nearest_filtration_index(R)
       res <- private$.multiscale$update_segments2(idx)
       
       ## Update the 0-simplexes and 1-simplexes  
-      m$compute_vertices(m$cover$index_set[res$ls_to_update])
-      m$compute_edges(res$ls_pairs_to_update)
+      if (length(res$ls_to_update) > 0){
+        self$compute_vertices(self$cover$index_set[res$ls_to_update+1L])
+      }
+      if (nrow(res$ls_pairs_to_update) > 0){
+        self$compute_edges(res$ls_pairs_to_update+1L)
+      }
       
       ## Always return self 
       return(self)

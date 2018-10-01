@@ -102,6 +102,9 @@ struct MultiScale2{
   std::map< index_t, l_index_t > segment_map;     // mapping from segment index --> pt ids [ O(k^d + n) ]
   index_t d_range; 
   
+  // For reference 
+  std::vector< NumericVector > interval_sizes;
+  
   MultiScale2(const int n_pts, IntegerVector resolution) 
     : n(n_pts), d(resolution.size()), num_intervals(resolution.begin(), resolution.end()), ls_grid(GridIndex< u8 >(resolution)) {
     d_range = index_t(d);
@@ -113,7 +116,7 @@ struct MultiScale2{
     ls_change_idx = std::vector< l_index_t >(d);
     ls_segment_idx = std::vector< index_t >(d);
     c_ls_segment_idx = index_t(d);
-    
+    interval_sizes = std::vector< NumericVector >(d);
     filtration_idx = l_index_t(d, -1);
       
     for (auto d_i: d_range){ update_ls_segment_idx(0, d_i); }
@@ -156,8 +159,19 @@ struct MultiScale2{
   
   // Expects a 0-based vector of integers representing the total order that point indices 
   // along dimension 'd_i' change level sets.
-  void create_filtration(const IntegerVector& f_idx, const int d_i){
+  void create_filtration(const IntegerVector& f_idx, const NumericVector& intervals, const int d_i){
     filtration.at(d_i) = l_index_t(f_idx.begin(), f_idx.end());
+    interval_sizes.at(d_i) = intervals;
+  }
+  
+  IntegerVector get_nearest_filtration_index(NumericVector intervals){
+    IntegerVector res(d);
+    for (auto& d_i: d_range){
+      const NumericVector& R = interval_sizes.at(d_i);
+      auto it = std::upper_bound(R.begin(), R.end(), intervals.at(d_i));
+      res.at(d_i) = std::distance(R.begin(), it)-1; // res allowed to be -1
+    }
+    return(res);
   }
   
   index_t extract_segment(const std::size_t i){
@@ -566,6 +580,7 @@ RCPP_MODULE(multiscale2_module) {
   .method( "compute_ls_segment_idx", &MultiScale2::compute_ls_segment_idx )
   .method( "update_segments2", &MultiScale2::update_segments2 )
   .method( "get_segment_map", &MultiScale2::get_segment_map )
+  .method( "get_nearest_filtration_index", &MultiScale2::get_nearest_filtration_index )
   ;
 }
 
