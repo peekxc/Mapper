@@ -17,6 +17,17 @@ MapperRef$set("public", "initialize", function(X){
   private$.simplicial_complex <- simplex_tree()
 })
 
+## The level_set -> vertex mapping is available to view, but read-only
+MapperRef$set("active", "ls_vertex_map", 
+  function(value){ 
+    if (missing(value)){
+      private$.cl_map
+    } else {
+      stop("'ls_vertex_map' is read-only.")
+    }
+  }
+)
+
 ## The cover stores the filter values
 MapperRef$set("active", "cover", 
   function(value){ #function(fv, type = c("restrained rectangular"), ...)

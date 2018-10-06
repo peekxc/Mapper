@@ -40,6 +40,25 @@
 //   }
 // }
 
+// [[Rcpp::export]]
+IntegerMatrix make_cartesian_product(const List& vecs){
+  std::vector< std::vector<int> > vv(vecs.size());
+  std::size_t n_rows = 1;
+  for (int i = 0; i < vecs.size(); ++i){
+    IntegerVector v = vecs.at(i);
+    vv.at(i) = as< std::vector<int> >(v);
+    n_rows = n_rows * v.size();
+  }
+
+  // Copy to result
+  int i = 0;
+  IntegerMatrix res = IntegerMatrix(n_rows, vecs.size());
+  CartesianProduct(vv, [&i, &res](std::vector<int> idx){
+    res(i++, _) = as<IntegerVector>(wrap(idx));
+  });
+  return(res);
+}
+
 // void test_cart_product(const List& test) {
 //   const int d = test.size();
 //   std::vector< std::vector<int> > elements(d);

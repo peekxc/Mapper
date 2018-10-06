@@ -1,4 +1,4 @@
-// Limited implementation of the Simplex tree data structure using Rcpp + STL
+// Simple but limited implementation of the Simplex tree data structure using Rcpp + STL
 // Original Reference: Boissonnat, Jean-Daniel, and Clement Maria. "The simplex tree: 
 // An efficient data structure for general simplicial complexes." Algorithmica 70.3 (2014): 406-427.
 
@@ -14,9 +14,7 @@ typedef unsigned int uint;
 #include <queue>
 #include <vector>
 
-
-
-// Node structure. Contains the following fields:
+// Node structure stored by the simplex tree. Contains the following fields:
 //  label := unsigned integer representing the id of simplex it represents
 //  parent := node pointer to its parent in the trie
 //  children := connected simplexes whose labels > the current simplex's label
@@ -34,7 +32,7 @@ typedef std::shared_ptr<node> node_ptr;
 // Simplex tree data structure. 
 struct SimplexTree {
   node_ptr root; // empty face; initialized to id = 0, parent = nullptr
-  // std::unordered_map< std::string, std::vector<node_ptr> > level_map; // maps strings of the form "<id>-<depth>" to a vector of node pointers
+  std::unordered_map< std::string, std::vector<node_ptr> > level_map; // maps strings of the form "<id>-<depth>" to a vector of node pointers
   std::vector<uint> n_simplexes;
     
   // Constructor + Destructor 
@@ -46,7 +44,9 @@ struct SimplexTree {
   void record_new_simplexes(const uint k, const uint n);// record keeping
   
   // User-facing API 
+  int find_vertex(const int v_id);
   IntegerVector vertex_available(uint n_vertices);
+  IntegerVector adjacent_vertices(const int v);
   void add_vertices(const uint v_i);
   void remove_vertices(IntegerVector vertex_ids);
   void remove_edge(IntegerVector labels);
@@ -57,8 +57,8 @@ struct SimplexTree {
   
   // Export utilities
   IntegerMatrix as_adjacency_matrix(); // Exports the 1-skeleton as an adjacency matrix 
-  List as_adjacency_list(); // Exports the 1-skeleton as an adjacency matrix 
-  IntegerMatrix as_edge_list(); // Exports the 1-skeleton as an edgelist 
+  List as_adjacency_list(bool one_based = false); // Exports the 1-skeleton as an adjacency matrix 
+  IntegerMatrix as_edge_list(bool one_based = false); // Exports the 1-skeleton as an edgelist 
   
   // Recursive helper functions
   void add_child(node_ptr c_parent, uint child_label, uint depth);

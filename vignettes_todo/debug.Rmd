@@ -9,18 +9,87 @@ library("Mapper")
 left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
 f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
 
-m <- MapperRef$new(noisy_circle[1:10,])$
-  use_cover(filter_values = matrix(f_x[1:10,]), type = "fixed rectangular", number_intervals = 5L, percent_overlap = 0.35)$
-  use_clustering_algorithm(cl = "single", num_bins = 10)$
-  use_distance_measure(measure = "euclidean")$
-  compute_vertices()$
-  compute_edges()
-
+debug_mapper <- function(){
+  m <- MapperRef$new(noisy_circle[1:20,])$
+    use_cover(filter_values = matrix(f_x[1:20]), type = "fixed rectangular", number_intervals = 5L, percent_overlap = 0)
+  m$use_clustering_algorithm(cl = "single", num_bins = 10)
+  # m$clustering_algorithm <- function(X, idx){ rep(1L, length(idx)) }
+  m$use_distance_measure(measure = "euclidean")$
+    compute_vertices()$
+    compute_edges()
+}
 ```
+
 ```{r}
-m$enable_multiscale()
-m$update_mapper(percent_overlap = 0)
-m$update_mapper(percent_overlap = 0.90)
+check_graphs <- function(g1_am, g2_am){
+  g1 <- igraph::graph_from_adjacency_matrix(g1_am)
+  g2 <- igraph::graph_from_adjacency_matrix(g2_am)
+  all(c(
+    igraph::vcount(g1) == igraph::vcount(g2),
+    igraph::ecount(g1) == igraph::ecount(g2),
+    sort(igraph::local_scan(g1, k = 1)) == sort(igraph::local_scan(g2, k = 1)),
+    sort(igraph::local_scan(g1, k = 2)) == sort(igraph::local_scan(g2, k = 2)),
+    sort(igraph::local_scan(g1, k = 3)) == sort(igraph::local_scan(g2, k = 3))
+  ))
+}
+am <- function(m){ m$simplicial_complex$as_adjacency_matrix() }
+
+## Start with two separate mappers
+m1 <- debug_mapper()
+m2 <- debug_mapper()
+
+## Base case 
+check_graphs(am(m1), am(m2))
+
+## Progressively check the multiscale version matches the regular 
+compare_mappers <- function(g){
+  m1$update_mapper(percent_overlap = g)
+
+  m2$cover$percent_overlap <- g
+  m2$cover$construct_cover()
+  m2$compute_k_skeleton(k = 1L)
+  check_graphs(am(m1), am(m2))
+}
+
+
+  m2$cover$percent_overlap <- 0.80
+  m2$cover$construct_cover()
+  m2$compute_k_skeleton(k = 1L)
+  
+table(unlist(m1$vertices))
+table(unlist(m2$vertices))
+
+m1$enable_multiscale()
+compare_mappers(0.20)
+compare_mappers(0.30)
+compare_mappers(0.40)
+compare_mappers(0.50)
+compare_mappers(0.80)
+
+plot_1D(1, percent_overlap = 0.20, m = m1)
+plot_1D(1, percent_overlap = 0.30, m = m1)
+plot_1D(1, percent_overlap = 0.40, m = m1)
+plot_1D(1, percent_overlap = 0.80, m = m1)
+
+stree_ptr <- m2$simplicial_complex$as_XPtr()
+Mapper:::check_connected(ls_to_check = 1, 
+                         ls_vertex_map = m2$.__enclos_env__[["private"]][[".cl_map"]], 
+                         vertices = m2$vertices, stree = stree_ptr)
+
+multiscale <- m1$.__enclos_env__[["private"]][[".multiscale"]]
+
+## M1s
+invisible(mapply(function(v, id) { 
+  v_ls <- attr(v, "level_set")
+  cat(sprintf("%d (ls=%d): %s\n", id, v_ls, paste0(v, collapse = ",")))
+}, m1$vertices, 1:length(m1$vertices)))
+
+## M2
+invisible(mapply(function(v, id) { 
+  v_ls <- attr(v, "level_set")
+  cat(sprintf("%d (ls=%d): %s\n", id, v_ls, paste0(v, collapse = ",")))
+}, m2$vertices, 1:length(m2$vertices)))
+
 ```
 
 ```{r}
@@ -48,55 +117,118 @@ ls_bnds <- t(apply(cart_prod, 1, function(idx){
 
 ```{r}
 filter_values <- matrix(f_x[1:10,])
-multiscale <- m$.__enclos_env__[["private"]][[".multiscale"]]
-multiscale$
 
-multiscale$get_nearest_filtration_index(c(0.50))
-plot_configuration <- function(d_i, idx){
-  if (idx == 0){
-    eps <- (base_interval_length/2)
-  } else {
-    ## Choose the interval (half) width to plot
-    eps <- (base_interval_length/2) + dist_to_ls[[d_i]]$target_dist[dist_order[[d_i]]][idx] ## parameterized overlap
+m$enable_multiscale()
+
+plot_1D(d_i = 1, percent_overlap = 0, m = m)
+multiscale$extract_level_set(0)
+
+make_square <- function(x, y, ...){
+  rect(xleft = x[1], xright = x[2], ybottom = y[1], ytop = y[2], ...)
+}
+
+animation::saveGIF({
+  for (g_i in seq(0, 0.995, by = 0.005)){
+    plot_1D(d_i = 1, percent_overlap = g_i, m = m, discrete = FALSE)
   }
+}, movie.name = "continuous_expansion.gif", interval = 0.2, ani.width = 480*2, ani.height = 480)
 
-  ## Construct the level sets
-  ls_endpts <- lapply(1L:filter_dim, function(d_i){
-    tmp <- as.vector(sapply(0L:(number_intervals[d_i] - 1L), function(idx){
-      centroid <- filter_min[d_i] + (as.integer(idx)*base_interval_length[d_i]) + base_interval_length[d_i]/2.0
-      c(centroid - eps[d_i], centroid + eps[d_i])
+animation::saveGIF({
+  for (g_i in seq(0, 0.995, by = 0.005)){
+    plot_1D(d_i = 1, percent_overlap = g_i, m = m, discrete = TRUE)
+  }
+}, movie.name = "discrete_expansion.gif", interval = 0.2, ani.width = 480*2, ani.height = 480)
+
+## Function to plot the filter space
+plot_1D <- function(d_i, percent_overlap, m, discrete = TRUE){
+  multiscale <- m$.__enclos_env__[["private"]][[".multiscale"]]
+  filter_values <- m$cover$filter_values
+  filter_rng <- apply(filter_values, 2, range)
+  { filter_min <- filter_rng[1,]; filter_max <- filter_rng[2,] }
+  filter_len <- diff(filter_rng)
+  base_interval_length <- filter_len/m$cover$number_intervals
+  
+  ## Retrieve the nearest filtration index
+  r <- base_interval_length + (base_interval_length*percent_overlap)/(1-percent_overlap)
+  if (discrete){
+    idx <- multiscale$get_nearest_filtration_index(c(r))
+    interval_length <- ifelse(idx == -1, base_interval_length, multiscale$filt_dist[[d_i]][idx+1L])
+    eps <- interval_length/2
+  } else {
+    interval_length <- r
+    eps <- interval_length/2
+  }
+  
+
+  ## Construct the level set endpoints 
+  d <- ncol(m$cover$filter_values)
+  ni <- m$cover$number_intervals
+  ls_endpts <- lapply(1L:d, function(d_i){
+    tmp <- as.vector(sapply(0L:(ni[d_i] - 1L), function(ls_i){
+      centroid <- filter_min[d_i] + (as.integer(ls_i)*base_interval_length[d_i]) + base_interval_length[d_i]/2.0
+      c(centroid - eps, centroid + eps)
     }))
     matrix(tmp, ncol = 2, byrow = TRUE)
   })
 
-  plot(filter_values[, d_i], rep(0, 10), pch = 20, ylim = c(-0.75, 0.75), xlab = "", ylab = "", yaxt = "n")
-  text(filter_values[, d_i], 0, labels = 1:10, pos = 3)
+  plot(filter_values[, d_i], rep(0, nrow(filter_values)), pch = 20, ylim = c(-0.75, 0.75), xlab = "", ylab = "", yaxt = "n")
+  text(filter_values[, d_i], 0, labels = 1:nrow(filter_values), pos = 3)
   abline(h = 0, col = "gray", lty = 3, lwd = 1.5)
   binned_color <- rev(rainbow(nrow(ls_endpts[[d_i]]), start = 0, end = 4/6))
+  segment_color <- rev(rainbow(nrow(ls_endpts[[d_i]])*2, start = 0, end = 4/6))
   cc <- 0L
   cls <- ls_endpts[[d_i]]
+  c_alpha <- 0.90
   for (i in 1:nrow(cls)){
     ls <- cls[i, ]
     if (i %in% c(1, nrow(cls))){
       if (i == 1){
-        lines(x = c(ls[1], cls[i+1L, 1L]), y = rep(0.51, 2))
-        text(x = mean(c(ls[1], cls[i+1L, 1L])), y = 0.5, pos = 3, labels = as.character(cc))
+        {
+          line_density <- ifelse(cc %% 2 == 0, 0, 10)
+          xx <- c(ls[1], cls[i+1L, 1L])
+          lines(x = xx, y = rep(0.51, 2))
+          text(x = mean(xx), y = 0.5, pos = 3, labels = as.character(cc), col = segment_color[cc+1])
+          make_square(x = xx, y = c(-0.5, 0.5), col = adjustcolor(segment_color[cc+1], alpha.f = c_alpha), 
+                      density = line_density)
+        }
         cc <- cc + 1
-        lines(x = c(cls[i+1L, 1L], ls[2]), y = rep(0.51, 2))
-        text(x = mean(c(cls[i+1L, 1L], ls[2])), y = 0.5, pos = 3, labels = as.character(cc))
+        { 
+          line_density <- ifelse(cc %% 2 == 0, 0, 10)
+          xx <- c(cls[i+1L, 1L], ls[2])
+          lines(x = xx, y = rep(0.51, 2))
+          text(x = mean(xx), y = 0.5, pos = 3, labels = as.character(cc), col = segment_color[cc+1])
+          make_square(x = xx, y = c(-0.5, 0.5), col = adjustcolor(segment_color[cc+1], alpha.f = c_alpha), 
+                      density = line_density)
+        }
         cc <- cc + 1
       }
       else if (i == nrow(cls)){
-        lines(x = c(cls[i-1L, 2L], ls[2]), y = rep(0.51, 2))
-        text(x = mean(c(cls[i-1L, 2L], ls[2])), y = 0.5, pos = 3, labels = as.character(cc))
+        line_density <- ifelse(cc %% 2 == 0, 0, 10)
+        xx <- c(cls[i-1L, 2L], ls[2])
+        lines(x = xx, y = rep(0.51, 2))
+        text(x = mean(xx), y = 0.5, pos = 3, labels = as.character(cc), col = segment_color[cc+1])
+        make_square(x = xx, y = c(-0.5, 0.5), col = adjustcolor(segment_color[cc+1], alpha.f = c_alpha), 
+                    density = line_density)
         cc <- cc + 1
       }
     } else {
-      lines(x = c(cls[i-1L, 2L], cls[i+1L, 1L]), y = rep(0.51, 2))
-      text(x = mean(c(cls[i-1L, 2L], cls[i+1L, 1L])), y = 0.5, pos = 3, labels = as.character(cc))
+      {
+        line_density <- ifelse(cc %% 2 == 0, 0, 10)
+        xx <- c(cls[i-1L, 2L], cls[i+1L, 1L])
+        lines(x = xx, y = rep(0.51, 2))
+        text(x = mean(xx), y = 0.5, pos = 3, labels = as.character(cc), col = segment_color[cc+1])
+        make_square(x = xx, y = c(-0.5, 0.5), col = adjustcolor(segment_color[cc+1], alpha.f = c_alpha), 
+                    density = line_density)
+      }
       cc <- cc + 1
-      lines(x = c(cls[i+1L, 1L], ls[2]), y = rep(0.51, 2))
-      text(x = mean(c(cls[i+1L, 1L], ls[2])), y = 0.5, pos = 3, labels = as.character(cc))
+      {
+        line_density <- ifelse(cc %% 2 == 0, 0, 10)
+        xx <- c(cls[i+1L, 1L], ls[2])
+        lines(x = c(cls[i+1L, 1L], ls[2]), y = rep(0.51, 2))
+        text(x = mean(c(cls[i+1L, 1L], ls[2])), y = 0.5, pos = 3, labels = as.character(cc), col = segment_color[cc+1])
+        make_square(x = xx, y = c(-0.5, 0.5), col = adjustcolor(segment_color[cc+1], alpha.f = c_alpha), 
+                    density = line_density)
+      }
       cc <- cc + 1
     }
 
@@ -110,11 +242,33 @@ plot_configuration <- function(d_i, idx){
   }
   text(x = cls[nrow(cls), 2L], y = 0.5, pos = 3, labels = as.character(cc))
   points(filter_values[, d_i], rep(0, nrow(filter_values)), pch = 20)
-  if (idx > 0){
-    points(filter_values[pt_idx[[d_i]][idx], d_i], 0, pch = 21, cex = 1.5, col = "purple")
-  }
+  # if (idx > 0){
+  #   points(filter_values[pt_idx[[d_i]][idx], d_i], 0, pch = 21, cex = 1.5, col = "purple")
+  # }
   text(filter_values[, d_i], 0, labels = 1:nrow(filter_values), pos = 3)
 }
+```
+
+```{r}
+
+
+v1 <- lapply(seq(0.05, 0.50, by = 0.05), function(g){
+  m$cover$percent_overlap <- g
+  m$cover$construct_cover()
+  m$compute_k_skeleton(k = 1L)
+  m$simplicial_complex$as_edge_list()
+})
+
+m$enable_multiscale()
+m$update_mapper(c(0.25))
+
+v2 <- lapply(seq(0.05, 0.50, by = 0.05), function(g){
+  m$update_mapper(g)
+  m$simplicial_complex$as_edge_list()
+})
+
+
+m$compute_vertices(which_levels = m$cover$index_set[3:4])
 ```
 
 

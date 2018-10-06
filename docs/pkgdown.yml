@@ -1,6 +1,8 @@
-pandoc: 1.19.2.1
+pandoc: 2.2.1
 pkgdown: 1.1.0
 pkgdown_sha: ~
 articles:
   UsingMapper: UsingMapper.html
+  test_map: test_map.html
+  test_reverse: test_reverse.html
 

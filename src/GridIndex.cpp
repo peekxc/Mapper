@@ -48,6 +48,7 @@ int GridIndex<T>::flat_from_multi_rcpp(IntegerVector index){
 
 template <typename T>
 std::vector<T> GridIndex<T>::multi_from_flat(std::size_t index){
+  if (index < 0 || index >= n_multi_indices) { stop("Flat index out of range."); }
   std::vector<T> res(d);
   std::size_t offset = (index*d);
   std::copy(index_AoS.begin() + offset, index_AoS.begin() + offset + d, res.begin());

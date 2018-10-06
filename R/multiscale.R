@@ -43,7 +43,7 @@ MapperRef$set("public", "enable_multiscale",
     lsfi <- Mapper:::constructLevelSetIndex(self$cover$filter_values, ls_bnds) ## returns 1-based
     A <- matrix(cart_prod[lsfi,], ncol = d)
     A_tmp <- apply(A, 1, function(a) (as.integer(a) - 1L) * base_interval_length)
-    Z_tmp <- apply(filter_values, 1, function(z_i) as.numeric(z_i) - filter_min)
+    Z_tmp <- apply(self$cover$filter_values, 1, function(z_i) as.numeric(z_i) - filter_min)
     Z_tilde <- matrix(Z_tmp - A_tmp, nrow = d)
     
     ## Distance to upper and lower level sets (halfspace distances)
@@ -55,7 +55,7 @@ MapperRef$set("public", "enable_multiscale",
       Mapper:::dist_to_boxes(
         positions = as.integer(A[, d_i]), ## column indexed
         interval_length = as.numeric(base_interval_length[d_i]), 
-        num_intervals = as.integer(number_intervals[d_i]), 
+        num_intervals = as.integer(self$cover$number_intervals[d_i]), 
         dist_to_lower = as.numeric(dist_to_lower_ls[d_i,]),  ## row indexed
         dist_to_upper = as.numeric(dist_to_upper_ls[d_i,]) ## row indexed
       )
@@ -63,11 +63,14 @@ MapperRef$set("public", "enable_multiscale",
     
     ## Order the distances to the target level sets
     dist_order <- lapply(1:d, function(d_i) order(dist_to_ls[[d_i]]$target_dist))
+    
+    ## Get the corresponding interval sizes 
+    ## TODO: generalize this to other rectangular covers
     interval_sizes <- lapply(1:d, function(d_i) dist_to_ls[[d_i]]$target_dist[dist_order[[d_i]]]*2 + base_interval_length[d_i])
     
     ## What interval sizes do the level sets intersect higher order level sets?
     intersection_cuts <- lapply(1:d, function(d_i) {
-      swap_dist <- ((base_interval_length[d_i]/2) * seq(2, number_intervals[d_i] - 1L))*2
+      swap_dist <- ((base_interval_length[d_i]/2) * seq(2, self$cover$number_intervals[d_i] - 1L))*2
       swap_idx <- findInterval(interval_sizes[[d_i]], vec = swap_dist)
       tmp <- rle(swap_idx)[["lengths"]]
       head(c(0L, cumsum(tmp)), length(tmp))
@@ -85,31 +88,60 @@ MapperRef$set("public", "enable_multiscale",
     }
     
     ## Create the indexing structure
-    ms_mapper <- Mapper:::MultiScale2$new(n, as.vector(self$cover$number_intervals))
-    ms_mapper$insert_pts(A, do.call(cbind, ls_paths))
+    private$.multiscale <- Mapper:::MultiScale$new(n, as.vector(self$cover$number_intervals))
+    private$.multiscale$insert_pts(A, do.call(cbind, ls_paths))
     for (d_i in 1L:d){
-      ms_mapper$create_filtration(dist_order[[d_i]]-1L, interval_sizes[[d_i]], d_i-1)
-      ms_mapper$set_filtration_rle(intersection_cuts[[d_i]], d_i-1)
-      ms_mapper$create_ls_paths(uniq_ls_paths[[d_i]]-1L, d_i-1)
+      private$.multiscale$create_filtration(dist_order[[d_i]]-1L, interval_sizes[[d_i]], d_i-1)
+      private$.multiscale$set_filtration_rle(intersection_cuts[[d_i]], d_i-1)
+      private$.multiscale$create_ls_paths(uniq_ls_paths[[d_i]]-1L, d_i-1)
     }
-    private$.multiscale <- ms_mapper
     
     ## Add the ability to 'update' the Mapper by changing its overlap.
     self$update_mapper <- function(percent_overlap){
       stopifnot(all(percent_overlap >= 0 && percent_overlap < 1))
       stopifnot(length(percent_overlap) == ncol(self$cover$filter_values))
       
-      browser()
+      ## If not populated yet, create a default mapping from the covers index set to the vertex ids
+      if (length(private$.cl_map) == 0){
+        private$.cl_map <- lapply(self$cover$index_set, function(x) integer(0L))
+        names(private$.cl_map) <- self$cover$index_set
+      }
+      
+      # browser()
+      ## TODO generalize this
       R <- base_interval_length + (base_interval_length*percent_overlap)/(1.0 - percent_overlap)
       idx <- private$.multiscale$get_nearest_filtration_index(R)
-      res <- private$.multiscale$update_segments2(idx)
       
-      ## Update the 0-simplexes and 1-simplexes  
+      ## Update the segments 
+      res <- private$.multiscale$update_segments(idx)
+      
+      ## Detect the edges between level sets affected by the change
+      stree_ptr <- private$.simplicial_complex$as_XPtr()
+      connected_ls <- lapply(res$ls_to_update, function(ls){
+        adj_lsfis <- check_connected(ls, private$.cl_map, self$vertices, stree_ptr)
+        if (length(adj_lsfis) > 0){
+          cbind(pmin(ls, adj_lsfis-1L), pmax(ls, adj_lsfis-1L))
+        } else { NULL }
+      })
+      ls_pairs_to_update <- unique(rbind(res$ls_pairs_to_update, do.call(rbind, connected_ls)))
+      
+      ## Update the vertices directly, without storing the level sets explicitly. 
       if (length(res$ls_to_update) > 0){
-        self$compute_vertices(self$cover$index_set[res$ls_to_update+1L])
+        ms_ptr <- private$.multiscale$as_XPtr()
+        private$.vertices <- update_level_sets(
+          which_levels = res$ls_to_update,
+          ms = ms_ptr, 
+          X = private$.X, 
+          f = self$clustering_algorithm, 
+          vertices = private$.vertices, 
+          ls_vertex_map = private$.cl_map, 
+          stree = stree_ptr
+        )
       }
-      if (nrow(res$ls_pairs_to_update) > 0){
-        self$compute_edges(res$ls_pairs_to_update+1L)
+      
+      ## Update the 1-skeleton
+      if (nrow(ls_pairs_to_update) > 0){
+        self$compute_edges(ls_pairs_to_update+1)
       }
       
       ## Always return self 
@@ -1133,6 +1165,5 @@ rowmatch <- function(A,B) {
   match(a, b)
 }
 
-## Load the exported id generator 
+## Load the exported multiscale Rcpp Module
 Rcpp::loadModule("multiscale_module", TRUE)
-Rcpp::loadModule("multiscale2_module", TRUE)

@@ -268,6 +268,54 @@ IntegerMatrix nodeMap(const IntegerVector& node_lsfi1, const IntegerVector& node
   return(res);
 }
 
+// Computes the absolute distances from a given point to the closest endpoint of each level set. This distance should 
+// represent 1/2 the smallest interval length the target level set would have to be (via expansion) to intersect the given point.
+// [[Rcpp::export]]
+List dist_to_boxes(const IntegerVector& positions, const double interval_length, const int num_intervals, const NumericVector& dist_to_lower, const NumericVector& dist_to_upper) {
+  
+  // Sequence from 1 - < number of intervals >  
+  std::vector<int> all_positions = std::vector<int>(num_intervals);
+  std::iota(std::begin(all_positions), std::end(all_positions), 1);
+  
+  // Iterators 
+  IntegerVector::const_iterator pos_it = positions.begin();
+  NumericVector::const_iterator dtl_it = dist_to_lower.begin(), dtu_it = dist_to_upper.begin();
+  //IntegerVector::iterator k; 
+  
+  // Variables needed 
+  const int n = positions.size();
+  std::array<int, 1> current_position = { {0} };
+  
+  // To fill each iteration
+  IntegerVector target_positions = no_init(num_intervals - 1);
+  NumericVector target_distances = no_init(num_intervals - 1);
+  
+  // Outputs 
+  IntegerMatrix res_pos = no_init_matrix(n, num_intervals - 1);
+  NumericMatrix res_dist = no_init_matrix(n, num_intervals - 1);
+  
+  double dtl = 0.0, dtu = 0.0;
+  for (int i = 0, pos = 0; i < n; ++i, ++pos_it, ++dtl_it, ++dtu_it){
+    pos = *pos_it, dtl = *dtl_it, dtu = *dtu_it;
+    current_position[0] = pos;
+    
+    // Only compute distances to level sets not intersecting the current point
+    std::set_difference(all_positions.begin(), all_positions.end(), current_position.begin(), current_position.end(), target_positions.begin());
+    
+    // Distance calculation
+    std::transform(target_positions.begin(), target_positions.end(), target_distances.begin(), 
+                   [interval_length, num_intervals, pos, dtl, dtu](int target_position){
+                     if (target_position < pos){ return(dtl + (pos - target_position - 1) * interval_length); }
+                     else { return(dtu + (target_position - pos - 1) * interval_length); }
+                   });
+    
+    // Store results
+    res_dist.row(i) = clone(target_distances);
+    res_pos.row(i) = clone(target_positions);
+  }
+  return(List::create(_["target_pos"] = res_pos, _["target_dist"] = res_dist));
+}
+
 
 
 /*** R

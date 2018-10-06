@@ -3,7 +3,7 @@ using namespace Rcpp;
 
 // Allows indexing lower triangular (dist objects)
 #include <math.h>
-#define INDEX_TF(N,to,from) (N)*(to) - (to)*(to+1)/2 + (from) - (to) - (1) // expects 0-based, returns lower-triangular indices, must obey to < from
+#define INDEX_TF(N,to,from) (N)*(to) - (to)*(to+1)/2 + (from) - (to) - (1) // expects 0-based, returns lower-triangular indices, must obey order to < from
 #define INDEX_TO(k, n) n - 2 - floor(sqrt(-8*k + 4*n*(n-1)-7)/2.0 - 0.5) // expects 0-based, returns 0-based
 #define INDEX_FROM(k, n, i) k + i + 1 - n*(n-1)/2 + (n-i)*((n-i)-1)/2 // expects 0-based, returns 0-based
 

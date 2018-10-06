@@ -4,7 +4,7 @@
 \alias{simplex_tree}
 \title{Simplex Tree}
 \usage{
-simplex_tree(n_vertices)
+simplex_tree()
 }
 \value{
 A queryable simplex tree.
@@ -15,12 +15,6 @@ Simplex tree class exposed as an Rcpp Module.
 \details{
 A simplex tree is a trie specialized for storing simplicial complexes.
 }
-\section{Fields}{
-
-\describe{
-\item{\code{n_vertices}}{Number of 0-simplexes to initialize the simplex tree with.}
-}}
-
 \references{
-Mehta, Dinesh P., and Sartaj Sahni. "Chapter 18: Interval, Segment, Range, and Priority Search Trees." Handbook of data structures and applications. Chapman and Hall/CRC, 2004.
+Boissonnat, Jean-Daniel, and Clement Maria. "The simplex tree: An efficient data structure for general simplicial complexes." Algorithmica 70.3 (2014): 406-427.
 }

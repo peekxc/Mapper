@@ -39,3 +39,6 @@ inline void CartesianProduct(const std::vector< std::vector<T> >& elems, Func f)
     index = 0;
   }
 }
+
+IntegerMatrix make_cartesian_product(const List& vecs);
+

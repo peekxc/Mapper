@@ -59,11 +59,25 @@ FixedRectangularCover$set("public", "format", function(...){
           paste0(format(private$.percent_overlap, digits = 3), collapse = ", "))
 })
 
-# FixedRectangularCover$set("public", "set_fields", function(...){
-#   params <- list(...)
-#   if ("number_intervals" %in% names(params)){ self$number_intervals <- params[["number_intervals"]] }
-#   if ("percent_overlap" %in% names(params)){ self$percent_overlap <- params[["percent_overlap"]] }
-# })
+## This Function is specific to the rectangular-type covers
+FixedRectangularCover$set("public", "get_level_set_bounds", function(which_levels){
+  stopifnot(!is.na(private$.percent_overlap))
+  stopifnot(!is.na(private$.number_intervals))
+  
+  ## Get filter min and max ranges
+  filter_rng <- apply(self$filter_values, 2, range)
+  { filter_min <- filter_rng[1,]; filter_max <- filter_rng[2,] }
+  filter_len <- diff(filter_rng)
+  
+  ## Construct the interval bounds for each level set 
+  base_interval_length <- filter_len/self$number_intervals
+  interval_length <- base_interval_length + (base_interval_length * self$percent_overlap)/(1.0 - self$percent_overlap)
+  eps <- interval_length/2.0
+  ls_bounds <- t(apply(cart_prod, 1, function(idx){
+    centroid <- filter_min + ((as.integer(idx)-1L)*base_interval_length) + base_interval_length/2.0
+    c(centroid - eps, centroid + eps)
+  }))
+})
 
 ## Given the current set of parameter values, construct the level sets whose union covers the filter space
 FixedRectangularCover$set("public", "construct_cover", function(...){
