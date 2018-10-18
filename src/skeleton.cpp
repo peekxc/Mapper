@@ -3,9 +3,6 @@
 // Includes exported functions for building the skeletons both with and without the simplex tree. 
 #include "skeleton.h"
 
-template <typename K, typename V>
-using umap = std::unordered_map< K, V >;
-
 std::vector< IntegerVector > apply_clustering(const NumericMatrix& X, const IntegerVector& level_set, const Function f){
   // Apply the clustering
   const IntegerVector cl_results = f(_["X"] = X, _["idx"] = level_set);
@@ -26,7 +23,7 @@ std::vector< IntegerVector > apply_clustering(const NumericMatrix& X, const Inte
 
 
 // Updates a single level set.
-void update_level_set(const int ls_flat_index, const IntegerVector level_set, const NumericMatrix& X, const Function f, umap< int, IntegerVector >& v_map, List& ls_vertex_map, SEXP stree){
+void update_level_set(const int ls_flat_index, const IntegerVector level_set, const NumericMatrix& X, const Function f, std::map< int, IntegerVector >& v_map, List& ls_vertex_map, SEXP stree){
   Rcpp::XPtr<SimplexTree> stree_ptr(stree); // Collect the simplex tree
     
   // Get which vertices need to be updated 
@@ -36,10 +33,11 @@ void update_level_set(const int ls_flat_index, const IntegerVector level_set, co
   // Remove any vertices associated with the current level set
   // NOTE: The ls_vertex_map maps vertex *ids*, not indices! 
   std::for_each(c_vertices.begin(), c_vertices.end(), [&v_map](const int v_id){
-    v_map.erase(umap<int, IntegerVector>::key_type(v_id));
-    Rprintf("Removing vertex id=%d\n", v_id);
+    v_map.erase(std::map<int, IntegerVector>::key_type(v_id));
+    // Rprintf("Removing vertex id=%d\n", v_id);
   });
   stree_ptr->remove_vertices(c_vertices); // remove them from the simplex tree
+  ls_vertex_map.at(ls_flat_index) = IntegerVector::create(); // Remove from the level set map
     
   if (level_set.size() > 0){
     // Apply the clustering to get the new vertices
@@ -48,7 +46,7 @@ void update_level_set(const int ls_flat_index, const IntegerVector level_set, co
       
     // Update the map with new vertex map with the new indices
     IntegerVector new_0_simplexes = stree_ptr->vertex_available(n_new_v);
-    Rcout << "Adding new simplexes: " << new_0_simplexes << " to map for ls: " << ls_flat_index << std::endl; 
+    // Rcout << "Adding new simplexes: " << new_0_simplexes << " to map for ls: " << ls_flat_index << std::endl; 
     ls_vertex_map.at(ls_flat_index) = new_0_simplexes;
     
     // Update the simplex tree by inserting the 0-simplices
@@ -57,17 +55,12 @@ void update_level_set(const int ls_flat_index, const IntegerVector level_set, co
       stree_ptr->insert_simplex(v);
     });
     
-    // Update the vertices directly 
-    // if (n_new_v > c_vertices.size()){
-    //   std::size_t num_new_v = n_new_v - c_vertices.size();
-    //   Rprintf("Resizing vertex list: %d --> %d\n", vertices.size(), vertices.size()+num_new_v);
-    //   vertices.resize(vertices.size() + num_new_v);
-    // }
-    
     // Replace the old vertices with the new ones
     std::size_t i = 0; 
     std::for_each(new_0_simplexes.begin(), new_0_simplexes.end(), [&i, &ls_flat_index, &v_map, &new_vertices](const int v_i){
       new_vertices.at(i).attr("level_set") = ls_flat_index+1; // 1-based
+      // Rprintf("Emplacing new vertex %d w/ pts: ", v_i);
+      // Rcout << new_vertices.at(i) << std::endl; 
       v_map[v_i] = new_vertices.at(i++);
     }); 
   }
@@ -86,8 +79,9 @@ IntegerVector check_connected(const IntegerVector ls_to_check, const List& ls_ve
     const IntegerVector c_vertices = ls_vertex_map.at(c_ls); // vertex ids
     std::for_each(c_vertices.begin(), c_vertices.end(), [&](const int v_i){
       const IntegerVector adj_vertices = stree_ptr->adjacent_vertices(v_i);
+      // Rcout << "Checking adjacent vertices: " << adj_vertices << std::endl; 
       std::for_each(adj_vertices.begin(), adj_vertices.end(), [&]( const int adj_v ){
-        const IntegerVector& tmp = vertices.at(adj_v);
+        const IntegerVector& tmp = vertices[ std::to_string(adj_v) ];
         res.push_back(tmp.attr("level_set")); // pushes back 1-based level set  
       });
     });
@@ -97,18 +91,11 @@ IntegerVector check_connected(const IntegerVector ls_to_check, const List& ls_ve
   return(unique(res));
 }
 
-// Converts the level_set_idx --> vertex_id map into a level_set_idx --> vertex_idx map 
-// List id_to_idx_map(const List& ls_vertex_id_map, SEXP stree){
-//   Rcpp::XPtr<SimplexTree> stree_ptr(stree); // Extract the simplex tree
-//   
-// }
-
-
 // Turns vertex list into a mapping between vertex id --> points 
-umap< int, IntegerVector > vertices_to_map(List& ls_vertex_map, List& vertices, SEXP stree){
+std::map< int, IntegerVector > vertices_to_map(List& ls_vertex_map, List& vertices, SEXP stree){
   Rcpp::XPtr<SimplexTree> stree_ptr(stree); // Extract the simplex tree
   const std::size_t n_level_sets = ls_vertex_map.size();
-  umap< int, IntegerVector > res; 
+  std::map< int, IntegerVector > res; 
   
   // Loop through each level set, creating the mapping along the way
   for (std::size_t i = 0; i < n_level_sets; ++i){
@@ -117,18 +104,12 @@ umap< int, IntegerVector > vertices_to_map(List& ls_vertex_map, List& vertices, 
     // Save the vertices into the map with their corresponding ids. 
     std::for_each(v_ids.begin(), v_ids.end(), [&stree_ptr, &vertices, &res](const int v_id){
       const std::size_t v_idx = stree_ptr->find_vertex(v_id);
-      const IntegerVector& pts = as<IntegerVector>(vertices.at(v_idx));
+      const IntegerVector& pts = as<IntegerVector>(vertices.at(v_idx)); // okay to access by index
       res.emplace(v_id, pts);
     });
   }
   return(res); 
 }
-
-// Converts a map of vertex id --> points to a list of IntegerVectors representing the vertices 
-// List map_to_vertices(const umap< int, IntegerVector > ){
-//   
-// }
-
 
 // Builds the 0-skeleton by applying a given clustering function 'f' to a given set of level sets indexed by 'lsfis'.
 // Only the level sets in 'which_levels' are updated. Returns a new list containing the updated vertices.
@@ -144,10 +125,11 @@ umap< int, IntegerVector > vertices_to_map(List& ls_vertex_map, List& vertices, 
 List build_0_skeleton(const IntegerVector which_levels, const NumericMatrix& X, Function f, const List& level_sets, List& vertices, List& ls_vertex_map, SEXP stree){
   
   // std::vector< IntegerVector > res(vertices.begin(), vertices.end());
-  umap< int, IntegerVector > v_map = vertices_to_map(ls_vertex_map, vertices, stree);
+  std::map< int, IntegerVector > v_map = vertices_to_map(ls_vertex_map, vertices, stree);
   
   // Loop through the levels to update. This will update the vertices, the vertex map, and the simplex tree
   for (const int index: which_levels){
+    // Rcout << "UPDATING LEVEL SET: " << index << std::endl;
     const IntegerVector ls_pt_idx = level_sets.at(index);
     update_level_set(index, ls_pt_idx, X, f, v_map, ls_vertex_map, stree);
   }
@@ -168,7 +150,6 @@ List build_0_skeleton(const IntegerVector which_levels, const NumericMatrix& X, 
 // [[Rcpp::export]]
 void build_1_skeleton(const IntegerMatrix& ls_pairs, const List& vertices, const List& ls_vertex_map, SEXP stree){
   Rcpp::XPtr<SimplexTree> stree_ptr(stree); // Collect the simplex tree
-  int n = vertices.length();
   for (int i = 0; i < ls_pairs.nrow(); ++i){
     
     // Get the current pair of level sets to compare; skip if either are empty
@@ -240,7 +221,7 @@ List update_level_sets(const IntegerVector which_levels, SEXP ms, const NumericM
   
   // // Shallow(?) copy the internals vectors 
   // std::vector< IntegerVector > res(vertices.begin(), vertices.end());
-  umap< int, IntegerVector > v_map = vertices_to_map(ls_vertex_map, vertices, stree);
+  std::map< int, IntegerVector > v_map = vertices_to_map(ls_vertex_map, vertices, stree);
 
   // Update the vertices in the level sets dynamically
   for (const int index: which_levels){

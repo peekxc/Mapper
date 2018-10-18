@@ -129,7 +129,8 @@ m$compute_k_skeleton(k = 1L)
 All the methods can chained. 
 ```{r}
 m <- MapperRef$new(noisy_circle[1:10,])$
-  use_cover(filter_values = matrix(f_x[1:10,]), type = "fixed rectangular", number_intervals = 5L, percent_overlap = 0.35)$
+  use_cover(filter_values = matrix(f_x[1:10,]), type = "fixed rectangular", 
+            number_intervals = 5L, percent_overlap = 0.35)$
   use_clustering_algorithm(cl = "single", num_bins = 10)$
   use_distance_measure(measure = "euclidean")$
   compute_vertices()$

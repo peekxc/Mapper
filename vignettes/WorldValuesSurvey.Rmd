@@ -1,0 +1,239 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+## World Values Survey 
+load("/Users/mpiekenbrock/Downloads/WV6_Data_R_v_2016_01_01.rdata")
+WV_survey <- data.table::data.table(WV6_Data_R)
+WV_US <- WV_survey[V2 == 840]
+
+key_vals <- c(V4="FamilyImportance", V5="FriendImportance", V7="PoliticsImportance", V8="WorkImportance", 
+              V9="ReligionImportance", V10="Happiness", V11="Health", V23="Satisfied", V24="TrustInOthers", 
+              V25="ReligiousMember", V29="PoliticsMember", V30="EnvironMember", V32="CharityMember", 
+              V55="ControlOverLife", V56="TakeAdvantageOf", V57="MarriedStatus", V58="NumChildren", 
+              V59="FinancialSatisfaction", V60="CountryAimsFirstChoice", V61="CountryAimsSecondChoice", 
+              V67="FutureWorkEmphasis", V68="FutureTechnologyEmphasis", V69="FutureRespectAuthority", 
+              V84="InterestInPolitics", V95="PoliticalLeaning", V97="OwnershipOfBusiness", V98="BeliefInCompetition", 
+              V101="BeliefOnWealth")
+
+WV_US_subset <- WV_US[,.SD, .SDcols = names(key_vals)]
+normalize <- function(x){ (x - min(x))/(max(x) - min(x)) }
+WV_US_normed <- apply(WV_US_subset, 2, normalize)
+WV_US_dist <- parallelDist::parallelDist(WV_US_normed, method = "euclidean")
+```
+
+## Get a low-dimensional projection
+```{r}
+wv_us_uniq <- unique(WV_US_normed)
+wv_tsne <- Rtsne::Rtsne(X = wv_us_uniq)
+wv_filter <- wv_tsne$Y
+
+plot(g, log(cumsum(perf_stats[, 1])), type = "l", ylab = "Cumulative # of LS pairs (log scale)", 
+     main = "World Values Survey data", xlab = "Percent overlap", col = "red", lwd = 2)
+mtext("Resolution = 10, 2D filter space, n=2.5k")
+lines(g, log(cumsum(perf_stats[, 2])), lwd = 2, col = "blue")
+lines(g, log(cumsum(perf_stats[, 3])), lwd = 2, col = "green")
+points(g, log(cumsum(perf_stats[, 3])), col = "green", pch = 20, cex = 0.02)
+```
+
+
+```{r}
+library("Mapper")
+m <- MapperRef$new(wv_us_uniq)
+m$
+  use_cover(filter_values=wv_filter, type="fixed rectangular", number_intervals=10L, percent_overlap=0)$
+  use_distance_measure(measure = "euclidean")
+# m$use_clustering_algorithm(cl = "single", num_bins = 10L)
+m$clustering_algorithm <- function(X, idx){ rep(1L, length(idx)) }
+m$compute_k_skeleton(1L)
+
+m$enable_multiscale()
+```
+
+```{r}
+library("grapher")
+g <- m$plot_interactive()
+g %>% addForce()
+```
+
+```{r}
+m$enable_multiscale()
+m$update_mapper(c(0.20, 0.20))$plot_interactive() %>% addForce()
+```
+
+```{r}
+m2 <- MapperRef$new(wv_us_uniq)
+m2$
+  use_cover(filter_values=wv_filter, type="fixed rectangular", number_intervals=10L, percent_overlap=0.20)$
+  use_distance_measure(measure = "euclidean")
+m2$use_clustering_algorithm(cl = "single", num_bins = 10L)
+# m2$clustering_algorithm <- function(X, idx){ rep(1L, length(idx)) }
+m2$compute_k_skeleton(1L)
+```
+
+```{r}
+bounded_cover <- FixedRectangularCover$new(filter_values = wv_filter)
+bounded_cover$number_intervals <- c(10L, 10L)
+bounded_cover$percent_overlap <- c(0, 0)
+bounded_cover$construct_cover()
+
+
+
+g <- seq(0.0025, 0.50, by = 0.0025)
+
+perf_stats <- lapply(g, function(g_i){
+  print(g_i)
+  worst_case <- choose(prod(m$cover$number_intervals), 2)
+  g_i <- rep(g_i, ncol(m$cover$filter_values))
+  bounded_cover$percent_overlap <- g_i
+  bounded_case <- nrow(bounded_cover$level_sets_to_compare())
+  
+  stats <- m$update_mapper(g_i, stats = TRUE)
+  optimal_case <- nrow(stats$updated_ls_pairs)
+  
+  c(worst_case, bounded_case, optimal_case)
+})
+perf_stats <- do.call(rbind, perf_stats)
+
+plot(1:nrow(perf_stats), log(cumsum(perf_stats[, 1])))
+points(1:nrow(perf_stats), log(cumsum(perf_stats[, 2])))
+points(1:nrow(perf_stats), log(cumsum(perf_stats[, 3])))
+```
+
+
+```{r}
+library("grapher")
+library("Mapper")
+
+## Define filter values equal to the distance from each point to the left-most point in the circle 
+data("noisy_circle")
+left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
+f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
+
+
+m <- MapperRef$new(noisy_circle[1:20, ])$
+  use_cover(filter_values = matrix(f_x[1:20], ncol = 1), type="fixed rectangular", 
+            number_intervals=5L, percent_overlap=0)
+# m$use_clustering_algorithm(cl = "single", num_bins = 10)
+m$clustering_algorithm <- function(X, idx){ rep(1L, length(idx)) }
+m$use_distance_measure(measure = "euclidean")$
+  compute_vertices()$
+  compute_edges()
+
+## Enable multiscale 
+m$enable_multiscale()
+# updates <- m$update_mapper(0.20, stats = TRUE)
+```
+
+
+```{r}
+library("shiny")
+# n_nodes <- 10L
+# G <- igraph::sample_grg(n_nodes, radius = 0.5)
+
+# g <- grapher(G) %>% enableForce()
+
+ui <- pageWithSidebar(
+  headerPanel("Simple shiny app with Grapher"),
+  sidebarPanel(
+    numericInput("overlap", "Percent Overlap: ", value = 0, min = 0, max = 0.99, step = 0.01)
+  ),
+  mainPanel(
+    grapherOutput(outputId = "grapher", height = "100vh")
+  )
+)
+
+server <- function(input, output, session) {
+  output$grapher <- renderGrapher({ g <- m$as_grapher() %>% enableForce() })
+  # grapher_network <- reactive({ input$network })
+  # grapher_network <- NULL
+  
+  # observeEvent(input$network, {
+  #   print("here")
+  #   grapher_network <- input$network
+  # })
+  
+  observeEvent(input$overlap, {
+    req(input$overlap)
+    # browser()
+    # browser()
+    d <- ncol(m$cover$filter_values)
+    update <- m$update_mapper(rep(input$overlap, d), stats = TRUE) 
+
+    widget_width <- reactive({ input$widget_width })
+    widget_height <- reactive({ input$widget_height })
+    network <- reactive({ input$network })
+    # grapher::getNetwork(id="grapher")
+    
+    # browser()
+    ## Remove old vertices
+    if (!is.null(update$old_vertices)){
+      removeNodes("grapher", node_ids = update$old_vertices)
+    }
+
+    ## Insert new vertices
+    if (!is.null(update$new_vertices)){
+      # browser()
+      
+      ## Get the edges of the new vertices, if any 
+      # browser()
+      new_el <- lapply(update$new_vertices, function(i){
+        adj_v <- m$simplicial_complex$adjacent_vertices(i)
+        if (length(adj_v) > 1){ cbind(i, adj_v) } else { NULL }
+      })
+      new_el <- do.call(rbind, new_el)
+      
+      ## get the edges
+      browser()
+      c_network <- network()
+      c_nodes <- data.table::rbindlist(c_network$nodes)
+      new_v_coords <- lapply(update$new_vertices, function(v) {
+        ls_idx <- which(sapply(update$new_ls_map, function(ls) v %in% ls))
+        v_old_neighbors <- as.vector(unlist(update$old_ls_map[ls_idx]))
+        new_x <- mean(c_nodes[match(v_old_neighbors, c_nodes$id)]$x/widget_width())
+        new_y <- mean(c_nodes[match(v_old_neighbors, c_nodes$id)]$y/widget_height())
+        c(new_x, new_y)
+      })
+      c_node_coords <- matrix(do.call(rbind, new_v_coords), ncol=2)
+
+
+      node_config <- data.frame(
+        id = update$new_vertices, 
+        x = c_node_coords[,1], y=c_node_coords[,2], 
+        r = 5, 
+        color = hex2rgba(rgb(1, 0, 0, 1))
+      )
+      insertNodes("grapher", node_config = node_config)
+      
+      if (!is.null(new_el) && is.matrix(new_el) && dim(new_el)[[2]] == 2){
+        insertLinks("grapher", links = new_el, color = "#000000")
+      }
+    }
+    
+    ## Insert the new edges
+    # if (!is.null(new_el)){ 
+    #   new_el <- unique(cbind(pmin.int(new_el[, 1]), pmax.int(new_el[, 2])))
+    #   insertLinks("grapher", links = new_el) 
+    # }
+
+    # req(input$insert_id)
+    # if (input$insert_id >= 0){
+    #   node_config <- data.frame(id=input$insert_id, x = 0.50, y=0.50, r=10, color="#000000")
+    #   grapher::insertNodes("grapher", node_config)
+    # }
+  })
+}
+
+shinyApp(ui, server)
+```
+
+
+```{r}
+test_statistics <- lapply(seq(0.05, 0.50, by = 0.05), function(g_i){
+  m$update_mapper(c(g_i, g_i), stats = TRUE)
+})
+```
+
+

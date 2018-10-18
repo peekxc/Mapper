@@ -11,10 +11,9 @@ simplex_tree <- function(){
   return(new(SimplexTree))
 }
 
-## Load the exported SegmentTree class into the package namespace
-Rcpp::loadModule("simplex_tree_module", TRUE)
 
-SimplexTree.default_print <- setMethod("show", "Rcpp_SimplexTree", function (object) {
+setClass("Rcpp_SimplexTree")
+.print_simplex_tree <- setMethod("show", "Rcpp_SimplexTree", function (object) {
   max_k <- length(object$n_simplexes)
   if (max_k == 0){ cat("< empty simplex tree >\n") }
   else {

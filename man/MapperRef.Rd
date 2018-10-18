@@ -4,14 +4,48 @@
 \name{MapperRef}
 \alias{MapperRef}
 \title{Mapper Reference Class (R6) implementation}
-\format{An object of class \code{R6ClassGenerator} of length 24.}
+\format{An \code{\link{R6Class}} generator object}
 \usage{
 MapperRef
+}
+\value{
+Instance object of the \code{\link{MapperRef}} class with methods for building the mapper.
 }
 \description{
 Composes a set of classes to perform Mapper efficiently.
 }
+\section{Fields}{
+
+\describe{
+\item{\code{X}}{The data matrix.}
+
+\item{\code{cover}}{The cover.}
+
+\item{\code{clustering_algorithm}}{The clustering algorithm to use.}
+
+\item{\code{measure}}{String value of the measure to use to compute distances in ambient space. Read-only. See \code{use_distance_measure} for more details.}
+
+\item{\code{vertices}}{The vertices.}
+
+\item{\code{ls_vertex_map}}{Map where the level set (by index) are keys and the vertices (by id) are the values.}
+
+\item{\code{simplicial_complex}}{A simplex tree object.}
+}}
+
+\section{Methods}{
+
+\describe{
+  \item{Documentation}{ For full documentation see.}
+  \item{\code{new(X)}}{This method uses \code{parameter_1} to ...}
+  \item{\code{new(X)}}{This method uses \code{parameter_1} to ...}
+}
+}
+
+\examples{
+Examples
+
+}
 \author{
 Matt Piekenbrock
 }
-\keyword{datasets}
+\keyword{keyword}

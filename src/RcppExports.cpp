@@ -195,21 +195,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// createUpdateBlocks
-NumericVector createUpdateBlocks(const List& G, const List& overlap_blocks, const int n_lvl_sets, const int n_blocks, const int n);
-RcppExport SEXP _Mapper_createUpdateBlocks(SEXP GSEXP, SEXP overlap_blocksSEXP, SEXP n_lvl_setsSEXP, SEXP n_blocksSEXP, SEXP nSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const List& >::type G(GSEXP);
-    Rcpp::traits::input_parameter< const List& >::type overlap_blocks(overlap_blocksSEXP);
-    Rcpp::traits::input_parameter< const int >::type n_lvl_sets(n_lvl_setsSEXP);
-    Rcpp::traits::input_parameter< const int >::type n_blocks(n_blocksSEXP);
-    Rcpp::traits::input_parameter< const int >::type n(nSEXP);
-    rcpp_result_gen = Rcpp::wrap(createUpdateBlocks(G, overlap_blocks, n_lvl_sets, n_blocks, n));
-    return rcpp_result_gen;
-END_RCPP
-}
 // test_merge
 IntegerVector test_merge(const List& data);
 RcppExport SEXP _Mapper_test_merge(SEXP dataSEXP) {
@@ -307,30 +292,8 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// test_it
-NumericVector test_it(NumericVector x);
-RcppExport SEXP _Mapper_test_it(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(test_it(x));
-    return rcpp_result_gen;
-END_RCPP
-}
-// test_map
-void test_map(const IntegerMatrix& index_set);
-RcppExport SEXP _Mapper_test_map(SEXP index_setSEXP) {
-BEGIN_RCPP
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const IntegerMatrix& >::type index_set(index_setSEXP);
-    test_map(index_set);
-    return R_NilValue;
-END_RCPP
-}
 
 RcppExport SEXP _rcpp_module_boot_multiscale_module();
-RcppExport SEXP _rcpp_module_boot_multi_segment_tree_module();
 RcppExport SEXP _rcpp_module_boot_segment_tree_module();
 RcppExport SEXP _rcpp_module_boot_simplex_tree_module();
 
@@ -350,7 +313,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Mapper_concatDist", (DL_FUNC) &_Mapper_concatDist, 3},
     {"_Mapper_dist_from_to", (DL_FUNC) &_Mapper_dist_from_to, 2},
     {"_Mapper_index_test", (DL_FUNC) &_Mapper_index_test, 1},
-    {"_Mapper_createUpdateBlocks", (DL_FUNC) &_Mapper_createUpdateBlocks, 5},
     {"_Mapper_test_merge", (DL_FUNC) &_Mapper_test_merge, 1},
     {"_Mapper_test_merge2", (DL_FUNC) &_Mapper_test_merge2, 1},
     {"_Mapper_check_connected", (DL_FUNC) &_Mapper_check_connected, 4},
@@ -358,10 +320,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Mapper_build_1_skeleton", (DL_FUNC) &_Mapper_build_1_skeleton, 4},
     {"_Mapper_intersectNodes", (DL_FUNC) &_Mapper_intersectNodes, 4},
     {"_Mapper_update_level_sets", (DL_FUNC) &_Mapper_update_level_sets, 7},
-    {"_Mapper_test_it", (DL_FUNC) &_Mapper_test_it, 1},
-    {"_Mapper_test_map", (DL_FUNC) &_Mapper_test_map, 1},
     {"_rcpp_module_boot_multiscale_module", (DL_FUNC) &_rcpp_module_boot_multiscale_module, 0},
-    {"_rcpp_module_boot_multi_segment_tree_module", (DL_FUNC) &_rcpp_module_boot_multi_segment_tree_module, 0},
     {"_rcpp_module_boot_segment_tree_module", (DL_FUNC) &_rcpp_module_boot_segment_tree_module, 0},
     {"_rcpp_module_boot_simplex_tree_module", (DL_FUNC) &_rcpp_module_boot_simplex_tree_module, 0},
     {NULL, NULL, 0}

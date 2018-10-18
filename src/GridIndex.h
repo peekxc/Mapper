@@ -19,6 +19,9 @@ struct GridIndex {
   
   T flat_from_multi(std::vector<T> index);
   std::vector<T> multi_from_flat(std::size_t index);
+  
+  // Utility 
+  std::string multi_to_string(std::vector<T> index);
     
   // Wrappers for interfacing from R for testing
   int flat_from_multi_rcpp(IntegerVector index);

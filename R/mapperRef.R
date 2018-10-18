@@ -1,6 +1,26 @@
-#' @title Mapper Reference Class (R6) implementation
+#' Mapper Reference Class (R6) implementation
 #' @docType class
 #' @description Composes a set of classes to perform Mapper efficiently.
+#' @format An \code{\link{R6Class}} generator object
+#' @keywords keyword
+#' @return Instance object of the \code{\link{MapperRef}} class with methods for building the mapper.
+#' 
+#' @field X The data matrix.
+#' @field cover The cover. 
+#' @field clustering_algorithm The clustering algorithm to use. 
+#' @field measure String value of the measure to use to compute distances in ambient space. Read-only. See \code{use_distance_measure} for more details.  
+#' @field vertices The vertices. 
+#' @field ls_vertex_map Map where the level set (by index) are keys and the vertices (by id) are the values.  
+#' @field simplicial_complex A simplex tree object.
+#' 
+#' @section Methods:
+#' \describe{
+#'   \item{Documentation}{ For full documentation see.}
+#'   \item{\code{new(X)}}{This method uses \code{parameter_1} to ...}
+#'   \item{\code{new(X)}}{This method uses \code{parameter_1} to ...}
+#' }
+#' @examples Examples
+#' 
 #' @author Matt Piekenbrock
 #' @import methods
 #' @export MapperRef
@@ -15,25 +35,22 @@ MapperRef$set("public", "initialize", function(X){
   if (is.null(dim(X)) && !is(X, "dist")){ X <- as.matrix(X) }
   private$.X <- X
   private$.simplicial_complex <- simplex_tree()
+  return(self)
 })
 
 ## The level_set -> vertex mapping is available to view, but read-only
 MapperRef$set("active", "ls_vertex_map", 
   function(value){ 
-    if (missing(value)){
-      private$.cl_map
-    } else {
-      stop("'ls_vertex_map' is read-only.")
-    }
+    if (missing(value)){ private$.cl_map } 
+    else { stop("'ls_vertex_map' is read-only.") }
   }
 )
 
 ## The cover stores the filter values
 MapperRef$set("active", "cover", 
   function(value){ #function(fv, type = c("restrained rectangular"), ...)
-    if (missing(value)){
-      private$.cover
-    } else {
+    if (missing(value)){ private$.cover } 
+    else {
       stopifnot(inherits(value, "CoverRef"))
       private$.cover <- value
       invisible(self)
@@ -61,16 +78,7 @@ MapperRef$set("active", "simplicial_complex",
   }
 )
 
-  # if (is.null(dim(fv)) && is.numeric(fv)){ fv <- matrix(fv, nrow = length(fv), ncol = 1) }
-  # if (is.null(dim(fv)) || (!"matrix" %in% class(fv))) { stop("Filter values must be numeric and in matrix form") }
-  # if (missing(type) || type == "restrained rectangular"){
-  #   cover <<- r_rect_cover$new(filter_values = fv, type = "restrained rectangular", ...) # additional arguments to pass to the rectangular cover initialization method
-  # } else if (type == "fixed rectangular"){
-  #   cover <<- f_rect_cover$new(filter_values = fv, type = "fixed rectangular", ...) # additional arguments to pass to the rectangular cover initialization method
-  # } else {
-  #   stop(sprintf("%s cover not supported. Perhaps consider contributing it to the package w/ a pull request?", type))
-  # }
-
+## Clustering algorithm must be a function
 MapperRef$set("active", "clustering_algorithm", 
   function(value){
     if (missing(value)){ private$.clustering_algorithm }
@@ -106,15 +114,26 @@ MapperRef$set("public", "use_clustering_algorithm",
   }
 )
 
-## Sets the distance measure to use
-## Supports any measure in proxy::pr_DB$get_entry_names()
+#' Active binding for the distance measure
+MapperRef$set("active", "measure",
+  function(value){
+    if (missing(value)){ private$.measure }
+    else {
+      available_measures <- toupper(proxy::pr_DB$get_entry_names())
+      stopifnot(is.character(value))
+      stopifnot(toupper(value) %in% available_measures)
+      private$.measure <- value
+    }
+  }
+)
+
+#' Sets the distance measure to use
+#' Supports any measure in proxy::pr_DB$get_entry_names()
 MapperRef$set("public", "use_distance_measure", function(measure){
-  available_measures <- toupper(proxy::pr_DB$get_entry_names())
-  stopifnot(is.character(measure))
-  stopifnot(toupper(measure) %in% available_measures)
-  private$.measure <- measure
+  self$measure <- measure
   invisible(self)
 })
+
 
 MapperRef$set("public", "use_cover", function(filter_values, type=c("fixed rectangular", "restrained rectangular"), ...){
   stopifnot(is.matrix(filter_values))
@@ -128,38 +147,17 @@ MapperRef$set("public", "use_cover", function(filter_values, type=c("fixed recta
   invisible(self)
 })
 
-
-## Computes the distance matrix for each level set
-# MapperRef$set("public", "computeLevelSetDist", function(...){
-#   for (i in 1:length(self$cover$level_sets)){
-#     pt_idx <- self$cover$level_sets[[i]]$points_in_level_set
-#     if (length(pt_idx) <= 1){ self$cover$level_sets[[i]]$dist <- dist(0L) }
-#     else {
-#       if ("dist" %in% class(X)){
-#         self$cover$level_sets[[i]]$dist <- dist_subset(dist = self$X, idx = pt_idx)
-#       } else {
-#         if (is.character(measure)){
-#           self$cover$level_sets[[i]]$dist <- parallelDist::parallelDist(self$X[pt_idx,], method = measure)
-#         } else if (is.function(measure)){
-#           self$cover$level_sets[[i]]$dist <- measure(self$X[pt_idx,], ...)
-#         } else {
-#           stop("Unknown 'measure' argument. Must be either character string or function.")
-#         }
-#       }
-#     }
-#   }
-#   return(self)
-# })
-
-## Computes the K-skeleton in a similar fashion as described by Singh et. al, section 3.2. Note that this
-## procedure implicitly assumes the full abstract simplicial complex produced by Mapper can be treated as
-## a flag complex.
+#' Computes the K-skeleton 
+#' @description For the details on how this is computed, see Singh et. al, section 3.2. 
 MapperRef$set("public", "compute_k_skeleton", function(k, ...){
   stopifnot(k >= 0)
   if (k >= 0L){ self$compute_vertices(...) }
   if (k >= 1L){ self$compute_edges(...) }
   if (k >= 2L){
     stop("k-skeletons for k > 1 are an experimental feature!")
+    ## TODO: offer option to use flag complex k-expansion algorithm w/ Simplex tree or 
+    ## more general brute-force intersection method. 
+    
     # k_simplex <- vector(mode = "list", length = k - 2L)
     # for (k_i in 3L:k){
     #   pt_map <- lapply(1:length(m$nodes), function(lsfi) cbind(pt_id = m$nodes[[lsfi]], node_id = rep(lsfi)))
@@ -173,9 +171,9 @@ MapperRef$set("public", "compute_k_skeleton", function(k, ...){
   }
 })
 
-## Executes the clustering algorithm for the level sets indexed by the 'which_levels' parameter. If not given, 
-## runs the clustering algorithm and computes the subsequent vertices for all the available level sets. Additional 
-## parameters passed via the '...' are passed to the clustering algorithm. 
+#' @description Executes the clustering algorithm for the level sets indexed by the 'which_levels' parameter. If not given, 
+#' runs the clustering algorithm and computes the subsequent vertices for all the available level sets. Additional 
+#' parameters passed via the '...' are passed to the clustering algorithm. 
 MapperRef$set("public", "compute_vertices", function(which_levels=NULL, ...){
   stopifnot(!is.na(self$cover$level_sets))
   stopifnot(is.function(private$.clustering_algorithm))
@@ -212,6 +210,7 @@ MapperRef$set("public", "compute_vertices", function(which_levels=NULL, ...){
 
 ## Computes the edges composing the topological graph (1-skeleton). 
 ## Assumes the nodes have been computed. 
+## TODO: use weight of intersection to augment distance between edges in visualization
 MapperRef$set("public", "compute_edges", function(which_level_pairs = NULL){
   stopifnot(!is.na(self$cover$level_sets))
   if (!missing(which_level_pairs) && !is.null(which_level_pairs)){
@@ -231,75 +230,33 @@ MapperRef$set("public", "compute_edges", function(which_level_pairs = NULL){
   invisible(self)
 })
 
-
-## plotNetwork uses the 'network' package to plot the Mapper construction, w/ suitable defaults
-## corresponding to what's commonly used in practice, all of which can be overridden.
-# MapperRef$methods(plotNetwork = function(...){
-# 
-#   normalize <- function(x){ (x - min(x))/(max(x) - min(x)) }
-#   ## Turn any given parameters into list
-#   params <- list(...)
-# 
-#   ## If vertex color supplied, great! If not, use rainbow scale from blue --> red with values
-#   ## corresponding to average filter values
-#   if (is.null(params[["vertex.col"]])){
-#     agg_pt_fv <- sapply(G$nodes, function(n_idx){ apply(matrix(cover$filter_values[n_idx,], nrow = length(n_idx)), 1, mean)})
-#     agg_node_fv <- sapply(agg_pt_fv, mean)
-#     rbw_pal <- rev(rainbow(100, start = 0, end = 4/6))
-#     binned_idx <- cut(agg_node_fv, breaks = 100, labels = F)
-#     params[["vertex.col"]] <- rbw_pal[binned_idx]
-#   }
-# 
-#   ## If vertex size specified, great! If not, scale node size logarithmically with the number of points each contains
-#   if (is.null(params[["vertex.cex"]])){
-#     node_sizes <- sapply(G$nodes, function(n_idx){ length(n_idx) })
-#     node_cex <- (6 - 1)*normalize(log(pmax(2, node_sizes)))+1 ## Scale node size logarithmically between [0.1, 4]
-#     params[["vertex.cex"]] <- node_cex
-#   }
-# 
-#   ## Other defaults
-#   if (is.null(params[["label"]])){ params[["label"]] <- 1:length(G$nodes) }
-#   if (is.null(params[["displaylabels"]])){ params[["displaylabels"]] <- TRUE }
-# 
-#   ## Construct the core network w/ network package
-#   base_net <- network::network.initialize(nrow(G$adjacency), directed = F)
-#   mapper_graph <- network::network.adjacency(x = G$adjacency, g = base_net)
-#   params[["x"]] <- mapper_graph
-# 
-#   ## Evaluate in terms of passed in parameters
-#   do.call(network::plot.network, params)
-# })
-
 ## S3-like print override
 MapperRef$set("public", "format", function(...){
   if ("dist" %in% class(private$.X)){ n <- attr(private$.X, "Size") } else { n <- nrow(private$.X) }
-  # if (!is.null(self$config$call))
-  #   cat("\nCall:\n", deparse(self$config$call), "\n\n", sep = "")
   message <- sprintf("Mapper construction for %d objects", n)
-  message <- append(message, format(self$cover))
+  if (is(m$cover, "CoverRef")){ message <- append(message, format(self$cover)) }
   return(message)
 })
 
-
-MapperRef$set("public", "plot_interactive", function(...){
+#' as_grapher
+#' Exports the 1-skeleton as a grapher object
+MapperRef$set("public", "as_grapher", function(...){
   require("grapher")
-  json_config <- list()
-  rbw_pal <- rev(rainbow(100, start = 0, end = 4/6))
   
+  ## Make the igraph 
+  am <- private$.simplicial_complex$as_adjacency_matrix()
+  G <- igraph::graph_from_adjacency_matrix(am, mode = "undirected", add.colnames = NA) 
+  json_config <- grapher::getDefaultJsonConfig(network=G)
+
   ## Color nodes and edges by a default rainbow palette
+  rbw_pal <- rev(rainbow(100, start = 0, end = 4/6))
   agg_node_val <- sapply(sapply(private$.vertices, function(v_idx){ 
     apply(as.matrix(self$cover$filter_values[v_idx,]), 1, mean)
   }), mean)
   binned_idx <- cut(agg_node_val, breaks = 100, labels = F)
   vertex_colors <- rbw_pal[binned_idx]
-  
-  ## Vertex sizes 
   vertex_sizes <- sapply(private$.vertices, length) 
   
-  ## Make the igraph graph
-  am <- private$.simplicial_complex$as_adjacency_matrix()
-  G <- igraph::graph_from_adjacency_matrix(am, mode = "undirected", add.colnames = NA) 
-
   ## Normalize between 0-1, unless all the same
   normalize <- function(x) { 
     if (all(x == x[1])){ return(rep(1, length(x))) }
@@ -310,29 +267,31 @@ MapperRef$set("public", "plot_interactive", function(...){
   if (length(igraph::V(G)) > 0){
     vertex_radii <- (15L - 10L)*normalize(log(vertex_sizes)) + 10L
     vertex_xy <- apply(igraph::layout.auto(G), 2, normalize)
-    json_config$nodes <- data.frame(x=vertex_xy[, 1], y=vertex_xy[, 2], r=vertex_radii,
-                                    color=grapher::hex2rgba(vertex_colors),
-                                    index = 0:(length(vertex_sizes)-1))
+    json_config$nodes$x <- vertex_xy[, 1]
+    json_config$nodes$y <- vertex_xy[, 2]
+    json_config$nodes$r <- vertex_radii
+    json_config$nodes$color <- grapher::hex2rgba(vertex_colors)
+    # index = 0:(length(vertex_sizes)-1))
+  } else {
+    json_config$nodes <- integer(length = 0L)
   }
     
   ## Create the edges w/ a similar coloring scheme.
   if (length(igraph::E(G)) > 0){
     el <- igraph::as_edgelist(G, names = FALSE)
     edge_binned_idx <- apply(el, 1, function(vertex_ids) { (binned_idx[vertex_ids[1]] + binned_idx[vertex_ids[2]])/2 })
-    edge_links <- cbind(data.frame(matrix(apply(el, 2, as.integer) - 1L, ncol = 2)), substr(rbw_pal[edge_binned_idx], start = 0, stop = 7))
-    json_config$links <- structure(edge_links, names = c("from", "to", "color"))
+    edge_links <- matrix(apply(el, 2, as.integer) - 1L, ncol = 2)
+    json_config$links$from <- edge_links[,1]
+    json_config$links$to <- edge_links[,2]
+    json_config$links$color <- substr(rbw_pal[edge_binned_idx], start = 0, stop = 7) 
+  } else {
+    json_config$links <- integer(length = 0L)
   }
     
   ## Return the grapher instance
   grapher::grapher(json_config)
 })
 
-# only_combinations <- function(mat){
-#   mn <- pmin(mat[, 2], mat[, 1])
-#   mx <- pmax(mat[, 2], mat[, 1])
-#   int <- as.numeric(interaction(mn, mx))
-#   mat[match(unique(int), int),]
-# }
 
 ## Exports the internal mapper core structures to a TDAmapper output
 # MapperRef$methods(exportTDAmapper = function(){
@@ -373,7 +332,4 @@ MapperRef$set("public", "plot_interactive", function(...){
   # class(result) <- "Mapper"
   # return(result)
 # })
-
-## Load the exported Simplex Tree class into the package namespace
-Rcpp::loadModule("simplex_tree_module", TRUE)
 

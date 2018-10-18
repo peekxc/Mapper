@@ -30,6 +30,14 @@ GridIndex<T>::GridIndex(const IntegerVector idx) : d(idx.size()) {
 }
 
 template <typename T>
+std::string GridIndex<T>::multi_to_string(std::vector<T> index){
+  std::stringstream result;
+  std::copy(index.begin(), index.end(), std::ostream_iterator< int >(result, " "));
+  std::string key = result.str();
+  return(key.substr(0, key.length() - 1));
+}
+
+template <typename T>
 T GridIndex<T>::flat_from_multi(std::vector<T> index){
   if (index.size() != d){ return(T(-1)); }
   std::size_t flat_index = 0, d_i = d;
@@ -97,7 +105,7 @@ List index_test(IntegerVector sizes) {
   return(res);
 }
 
-template class GridIndex<uint_fast8_t>; 
+template struct GridIndex<uint_fast8_t>; 
 
 /*** R
 # x <- sample(1L:5L, size = 15, replace = TRUE)

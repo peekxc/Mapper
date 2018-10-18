@@ -61,10 +61,6 @@ index_test <- function(sizes) {
     .Call('_Mapper_index_test', PACKAGE = 'Mapper', sizes)
 }
 
-createUpdateBlocks <- function(G, overlap_blocks, n_lvl_sets, n_blocks, n) {
-    .Call('_Mapper_createUpdateBlocks', PACKAGE = 'Mapper', G, overlap_blocks, n_lvl_sets, n_blocks, n)
-}
-
 test_merge <- function(data) {
     .Call('_Mapper_test_merge', PACKAGE = 'Mapper', data)
 }
@@ -91,13 +87,5 @@ intersectNodes <- function(nodes1, nodes2, node_ids1, node_ids2) {
 
 update_level_sets <- function(which_levels, ms, X, f, vertices, ls_vertex_map, stree) {
     .Call('_Mapper_update_level_sets', PACKAGE = 'Mapper', which_levels, ms, X, f, vertices, ls_vertex_map, stree)
-}
-
-test_it <- function(x) {
-    .Call('_Mapper_test_it', PACKAGE = 'Mapper', x)
-}
-
-test_map <- function(index_set) {
-    invisible(.Call('_Mapper_test_map', PACKAGE = 'Mapper', index_set))
 }
 

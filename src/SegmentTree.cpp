@@ -276,11 +276,14 @@ set.seed(1234)
 # pt_cuts <- findInterval(pts[pt_order], vec = s_endpts, rightmost.closed = TRUE)
 test_wut(3, 11, 16)
 
+## Benchmarking 
+
+
+
 ## Testing multi segment tree 
 set.seed(1234)
 xy <- cbind(runif(10), runif(10))
 xy_endpts <- cbind(c(0, 0.5, 0.5, 1), c(0, 0.5, 0.5, 1))
-
 
 xy_endpts <- cbind(c(0, 0.5, 0.5, 1), c(0.0, 0.5, 0.5, 1))
 y <- kdtools::kd_sort(xy_endpts)
@@ -337,6 +340,9 @@ microbenchmark::microbenchmark({
     invisible(kdtools::kd_range_query(y, l = aug_endpts[I[1]+1], u = aug_endpts[I[2]+1]))
   })
 })
+
+## Using ANN 
+ANN::
 
 ## Segment Tree query equivalent
 microbenchmark::microbenchmark({ 

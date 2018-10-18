@@ -16,7 +16,3 @@ segment_tree <- function(intervals){
   # return(new(st_module$segment_tree, x))
   return(new(SegmentTree, intervals))
 }
-
-## Load the exported SegmentTree class into the package namespace
-Rcpp::loadModule("segment_tree_module", TRUE)
-Rcpp::loadModule("multi_segment_tree_module", TRUE)

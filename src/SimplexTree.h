@@ -50,15 +50,18 @@ struct SimplexTree {
   void add_vertices(const uint v_i);
   void remove_vertices(IntegerVector vertex_ids);
   void remove_edge(IntegerVector labels);
+  void remove_vertex_cofaces(const int v);
   void insert_simplex(std::vector<uint> labels);
   bool find_simplex(const IntegerVector& simplex);
   void expansion(const uint k);
   void print_tree();
+  void print_cofaces(int depth);
+
   
   // Export utilities
   IntegerMatrix as_adjacency_matrix(); // Exports the 1-skeleton as an adjacency matrix 
-  List as_adjacency_list(bool one_based = false); // Exports the 1-skeleton as an adjacency matrix 
-  IntegerMatrix as_edge_list(bool one_based = false); // Exports the 1-skeleton as an edgelist 
+  List as_adjacency_list(); // Exports the 1-skeleton as an adjacency matrix 
+  IntegerMatrix as_edge_list(); // Exports the 1-skeleton as an edgelist 
   
   // Recursive helper functions
   void add_child(node_ptr c_parent, uint child_label, uint depth);

@@ -11,6 +11,7 @@ using namespace Rcpp;
 
 // Using typenames 
 using u8 = uint_fast8_t;
+using s8 = int_fast8_t;
 using index_t = std::vector<u8>;
 using pdiff = std::ptrdiff_t;
 using l_index_t = std::vector< std::ptrdiff_t >;
@@ -21,9 +22,9 @@ using u_ptr = std::unique_ptr<T>;
 
 // Each point requires the following 4 pieces of information
 struct path_info {
-  u8 k_idx;       // (constant) index into key map giving ls path
+  u8 k_idx;       // (constant) index representing key that returns the level set path
+  u8 c_idx;       // current index *into* path
   u8 p_idx;       // 'previous' index in path; reset to c_idx after each move 
-  u8 c_idx;       // current index in path
   u8 c_segment;   // current segment the point lies in
 }; 
 
@@ -79,6 +80,8 @@ struct MultiScale {
   MultiScale(const int n_pts, IntegerVector resolution);
   SEXP as_XPtr();
   IntegerVector extract_level_set(const int lsfi);
+  IntegerMatrix point_info(const int d_i);
+  IntegerMatrix uniq_paths(const int d_i);
   List get_segment_map();
   void create_filtration(const IntegerVector& f_idx, const NumericVector& intervals, const int d_i);
   IntegerVector get_nearest_filtration_index(NumericVector intervals);

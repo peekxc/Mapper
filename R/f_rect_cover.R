@@ -59,11 +59,15 @@ FixedRectangularCover$set("public", "format", function(...){
           paste0(format(private$.percent_overlap, digits = 3), collapse = ", "))
 })
 
+## 
 ## This Function is specific to the rectangular-type covers
-FixedRectangularCover$set("public", "get_level_set_bounds", function(which_levels){
+FixedRectangularCover$set("public", "level_set_bounds", function(){
   stopifnot(!is.na(private$.percent_overlap))
   stopifnot(!is.na(private$.number_intervals))
   
+  ## LS Multi-indices == Cartesian product of the intervals
+  cart_prod <- arrayInd(seq(prod(self$number_intervals)), .dim = self$number_intervals)
+ 
   ## Get filter min and max ranges
   filter_rng <- apply(self$filter_values, 2, range)
   { filter_min <- filter_rng[1,]; filter_max <- filter_rng[2,] }
@@ -72,11 +76,14 @@ FixedRectangularCover$set("public", "get_level_set_bounds", function(which_level
   ## Construct the interval bounds for each level set 
   base_interval_length <- filter_len/self$number_intervals
   interval_length <- base_interval_length + (base_interval_length * self$percent_overlap)/(1.0 - self$percent_overlap)
-  eps <- interval_length/2.0
+  eps <- (interval_length/2.0) + sqrt(.Machine$double.eps) ## ensures each point is in the cover
   ls_bounds <- t(apply(cart_prod, 1, function(idx){
     centroid <- filter_min + ((as.integer(idx)-1L)*base_interval_length) + base_interval_length/2.0
     c(centroid - eps, centroid + eps)
   }))
+  
+  ## Return 
+  return(ls_bounds)
 })
 
 ## Given the current set of parameter values, construct the level sets whose union covers the filter space
@@ -84,29 +91,46 @@ FixedRectangularCover$set("public", "construct_cover", function(...){
   stopifnot(!is.na(private$.percent_overlap))
   stopifnot(!is.na(private$.number_intervals))
   
-  ## Setup a valid index set (e.g. cartesian product)
-  indices <- lapply(self$number_intervals, function(k) seq(k)) ## per-dimension possible indexes
-  cart_prod <- as.matrix(do.call(expand.grid, structure(indices, names = paste0("d", 1:private$.filter_dim))))
+  ## Setup a valid index set (via cartesian product)
+  cart_prod <- arrayInd(seq(prod(self$number_intervals)), .dim = self$number_intervals)
   self$index_set <- apply(cart_prod, 1, function(x){ sprintf("(%s)", paste0(x, collapse = " ")) })
+  
+  ## Retrieve the level set bounds
+  ls_bnds <- self$level_set_bounds()
+  self$level_sets <- constructIsoAlignedLevelSets(self$filter_values, as.matrix(ls_bnds))
+  
+  ## Always return self 
+  invisible(self)
+})
+
+FixedRectangularCover$set("public", "level_sets_to_compare", function(){
+  # browser()
+  all_pairs <- t(combn(1L:length(private$.index_set), 2))
+  multi_index <- arrayInd(seq(prod(self$number_intervals)), .dim = self$number_intervals)
   
   ## Get filter min and max ranges
   filter_rng <- apply(self$filter_values, 2, range)
   { filter_min <- filter_rng[1,]; filter_max <- filter_rng[2,] }
   filter_len <- diff(filter_rng)
-
-  ## Construct the level sets
+  d_rng <- 1:ncol(self$filter_values)
+  
+  ## Compute the critical distances wherein if the 
   base_interval_length <- filter_len/self$number_intervals
-  interval_length <- base_interval_length + (base_interval_length * self$percent_overlap)/(1.0 - self$percent_overlap)
-  eps <- interval_length/2.0
-  ls_bnds <- t(apply(cart_prod, 1, function(idx){
-    centroid <- filter_min + ((as.integer(idx)-1L)*base_interval_length) + base_interval_length/2.0
-    c(centroid - eps, centroid + eps)
-  }))
-  self$level_sets <- constructIsoAlignedLevelSets(self$filter_values, as.matrix(ls_bnds))
-  # all(which(filter_values[, 1] >= 3.247658 & filter_values[, 2] >= 3.247658 & filter_values[, 1] <= 4.295289 & filter_values[, 2] <= 4.295289) == level_sets[[25]]$points_in_level_set)
-
-  invisible(self)
-  #  ## length(unique(unlist(lapply(level_sets, function(ls) ls$points_in_level_set))))
+  critical_dist <- lapply(d_rng, function(d_i) { base_interval_length[d_i] + ((base_interval_length[d_i]/2)*seq(1, self$number_intervals[d_i] - 1))*2 })
+  c_interval_length <- base_interval_length + (base_interval_length * self$percent_overlap)/(1.0 - self$percent_overlap)
+  
+  ## Get the maximum index deviation allowed between level sets
+  max_dev <- sapply(d_rng, function(d_i) { findInterval(c_interval_length[d_i], critical_dist[[d_i]])+1L })
+  
+  ## Filter based on percent overlap  
+  which_pairs <- apply(all_pairs, 1, function(ls_pair){
+    m1 <- multi_index[ls_pair[1],]
+    m2 <- multi_index[ls_pair[2],]
+    all(sapply(d_rng, function(d_i){ abs(m1[d_i] - m2[d_i]) <= max_dev[d_i] }))
+  })
+  
+  ## Return the bounded pairs to compute
+  return(all_pairs[which_pairs,])
 })
 
 ## Given a single LSFI 'from' and a vector of LSFIs 'to' orthogonal to the level set mapper by 'from',

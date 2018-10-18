@@ -38,31 +38,6 @@ IntegerMatrix valid_pairs(const IntegerMatrix& level_set_pairs){
   return(result);
 }
 
-// Returns a list of
-List getUpdateBlocks(const NumericMatrix& overlap, const IntegerMatrix& target_lsfi, const IntegerMatrix& block_idx,
-                     const IntegerVector& block_ids){
-  // const int d = g.length();
-  const int n = block_idx.nrow();
-  const int n_blocks = block_ids.size();
-  // for (int di = 0; di < d; ++di){
-    // const List params_di = g[di];
-    // const NumericMatrix overlap = params_di["overlap"];
-    // const IntegerMatrix target_lsfi = params_di["target_lsfi"];
-  List output = List(n_blocks);
-  // std::vector< std::list< IntegerVector > > level_sets_to_update =  std::vector< std::list< IntegerVector > >(n_blocks);
-  // for (int i = 0; i < n; ++i){
-  //   IntegerMatrix::ConstRow i_blocks = block_idx(i, _);
-  //   IntegerMatrix::ConstRow i_lsfis = target_lsfi(i, _);
-  //   IntegerMatrix::ConstRow::const_iterator i_block = i_blocks.begin();
-  //   IntegerMatrix::ConstRow::const_iterator i_lsfi = i_lsfis.begin();
-  //   for (; i_block != i_blocks.end(); ++i_block, ++i_lsfi){
-  //     level_sets_to_update.at(*i_block)[*i_lsfi].push_back();
-  //   }
-  // }
-  // }
-  return(output);
-}
-
 // Must be disjoint cover 
 // [[Rcpp::export]]
 IntegerVector constructLevelSetIndex(const NumericMatrix& x, const NumericMatrix& bnds){
@@ -304,7 +279,7 @@ List dist_to_boxes(const IntegerVector& positions, const double interval_length,
     
     // Distance calculation
     std::transform(target_positions.begin(), target_positions.end(), target_distances.begin(), 
-                   [interval_length, num_intervals, pos, dtl, dtu](int target_position){
+                   [interval_length, pos, dtl, dtu](int target_position){
                      if (target_position < pos){ return(dtl + (pos - target_position - 1) * interval_length); }
                      else { return(dtu + (target_position - pos - 1) * interval_length); }
                    });
