@@ -8,7 +8,7 @@
 #' @field percent_overlap := vector of overlap percentages
 #' @author Matt Piekenbrock
 #' @export
-FixedRectangularCover <- R6Class("FixedRectangularCover",
+FixedRectangularCover <- R6::R6Class("FixedRectangularCover",
   inherit = CoverRef,
   private = list(.number_intervals=NA, .percent_overlap=NA)
 )

@@ -1,13 +1,12 @@
 ## helper_mapper.R
 ## Helper functions to test validity of mappers
-require("igraph")
-context("Helper functions for testing mapper")
 
 ## Short command for getting the adjacency matrix
 am <- function(m){ m$simplicial_complex$as_adjacency_matrix() }
 
 ## Make sure the two mappers have the same number of simplices, and that their neighborhood statistics are the same
 check_neighborhoods <- function(m1, m2){
+  require("igraph")
   g1 <- igraph::graph_from_adjacency_matrix(am(m1))
   g2 <- igraph::graph_from_adjacency_matrix(am(m2))
   initial_check <- all(c(

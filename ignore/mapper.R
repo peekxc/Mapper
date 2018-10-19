@@ -51,7 +51,7 @@
 #'
 #' @seealso \code{\link[stats]{dist}} \code{\link[stats]{hclust}} \code{\link[Mapper]{cutoff_first_bin}}
 #' @useDynLib Mapper
-#' @import methods parallelDist htmlwidgets
+#' @import methods
 #' @importFrom Rcpp sourceCpp
 #'
 #' @author Matt Piekenbrock, \email{matt.piekenbrock@@gmail.com}

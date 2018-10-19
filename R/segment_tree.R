@@ -16,3 +16,6 @@ segment_tree <- function(intervals){
   # return(new(st_module$segment_tree, x))
   return(new(SegmentTree, intervals))
 }
+
+## Segment Tree module
+Rcpp::loadModule("segment_tree_module", TRUE)

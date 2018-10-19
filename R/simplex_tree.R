@@ -11,7 +11,6 @@ simplex_tree <- function(){
   return(new(SimplexTree))
 }
 
-
 setClass("Rcpp_SimplexTree")
 .print_simplex_tree <- setMethod("show", "Rcpp_SimplexTree", function (object) {
   max_k <- length(object$n_simplexes)
@@ -20,3 +19,6 @@ setClass("Rcpp_SimplexTree")
     cat(sprintf("Simplex Tree with (%s) (%s)-simplices\n", paste0(object$n_simplexes, collapse = ", "), paste0(0L:(max_k-1L), collapse = ", ")))
   }
 })
+
+## Simplex Tree module (can be loaded anywhere)
+Rcpp::loadModule("simplex_tree_module", TRUE)

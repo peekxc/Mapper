@@ -1,29 +1,25 @@
 Package: Mapper
 Type: Package
 Title: Topological Data Analysis using Mapper
-Version: 0.5.0
-Date: 2018-08-05
+Version: 0.6.0
+Date: 2018-10-18
 Authors@R: c(person("Matt", "Piekenbrock", email = "matt.piekenbrock@gmail.com", role = c("aut", "cre", "cph")), 
-             person("Daniel", "Muellner", role = c("ctb","cph")), 
              person("Gurjeet","Singh", role = c("ctb","cph")))
 Author: Matt Piekenbrock [aut, cre, ctb],
-        Daniel Muellner [ctb, cph],
         Gurjeet Singh [ctb, cph]
 Maintainer: Matt Piekenbrock <matt.piekenbrock@gmail.com>
 Description: This package provides an efficient open source implementation of the Mapper algorithm, and other related algorithms used in Topological Data Analysis. 
-Imports: Rcpp, DT, htmlwidgets, methods, parallelDist, shiny
+Imports: R6, Rcpp, stats, methods 
 LinkingTo: Rcpp
 RcppModules: segment_tree_module, simplex_tree_module
 License: file LICENSE
 BugReports: https://github.com/peekxc/mapper
 Suggests: 
-    network,
-    testthat,
     igraph,
-    knitr
-Copyright: The Mapper construction was originally developed by Gurjeet Singh, Facundo Mémoli, and Gunnar Carlsson. 
-    Some of the code was inspired by source scripts ported from the Python Mapper library, copyright by Daniel Müellner and Aravindakshan Babu.  
-    All other code is copyright by Matt Piekenbrock.
+    htmlwidgets, shiny, DT,
+    proxy, parallelDist, fastcluster,
+    testthat, knitr
+Copyright: The Mapper construction was originally developed by Gurjeet Singh, Facundo Mémoli, and Gunnar Carlsson. Copyright by Matt Piekenbrock.
 Encoding: UTF-8
 LazyData: true
 SystemRequirements: C++11

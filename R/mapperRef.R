@@ -19,12 +19,15 @@
 #'   \item{\code{new(X)}}{This method uses \code{parameter_1} to ...}
 #'   \item{\code{new(X)}}{This method uses \code{parameter_1} to ...}
 #' }
-#' @examples Examples
 #' 
-#' @author Matt Piekenbrock
 #' @import methods
-#' @export MapperRef
-MapperRef <- R6Class("MapperRef", 
+#' @importFrom Rcpp sourceCpp
+#'
+#' @author Matt Piekenbrock, \email{matt.piekenbrock@@gmail.com}
+#' @encoding UTF-8
+#' @references Singh, Gurjeet, Facundo Memoli, and Gunnar E. Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.
+#' @useDynLib Mapper
+MapperRef <- R6::R6Class("MapperRef", 
   private = list(.X=NA, .cover=NA, .clustering_algorithm=NA, .measure=NA, .simplicial_complex = NA, .vertices=list(), .cl_map=list(), .config=NA),
   lock_class = FALSE,  ## Feel free to add your own members
   lock_objects = FALSE ## Or change existing ones 
@@ -89,8 +92,9 @@ MapperRef$set("active", "clustering_algorithm",
   }
 )
 
-## Changes the clustering algorithm used by mapper.
-## Must accept a 'dist' object and return a static or 'flat' clustering result
+#' @name use_clustering_algorithm 
+#' @title Sets the clustering algorithm 
+#' @description Sets a default hierarchical clustering algorithm.
 MapperRef$set("public", "use_clustering_algorithm", 
   function(cl = c("single", "ward.D", "ward.D2", "complete", "average", "mcquitty", "median", "centroid"), num_bins = 10L){
     ## Use a linkage criterion + cutting rule
@@ -103,7 +107,12 @@ MapperRef$set("public", "use_clustering_algorithm",
       create_cl <- function(cl, num_bins.default){
         function(X, idx, num_bins = num_bins.default){
           if (length(idx) <= 1){ return(1L); }
-          dist_x <- parallelDist::parallelDist(X[idx,], method = "euclidean")
+          if (requireNamespace("parallelDist", quietly = TRUE)) {
+            dist_f <- function(x) { parallelDist::parallelDist(x, method = self$measure) }
+          } else {
+            dist_f <- function(x) { stats::dist(x = x, method = self$measure) } 
+          }
+          dist_x <- dist_f(X[idx,])
           hcl <- fastcluster::hclust(dist_x, method = cl)
           cutoff_first_bin(hcl, num_bins)
         }
@@ -114,7 +123,7 @@ MapperRef$set("public", "use_clustering_algorithm",
   }
 )
 
-#' Active binding for the distance measure
+## Active binding for the distance measure
 MapperRef$set("active", "measure",
   function(value){
     if (missing(value)){ private$.measure }
@@ -127,8 +136,8 @@ MapperRef$set("active", "measure",
   }
 )
 
-#' Sets the distance measure to use
-#' Supports any measure in proxy::pr_DB$get_entry_names()
+## Sets the distance measure to use
+## Supports any measure in proxy::pr_DB$get_entry_names()
 MapperRef$set("public", "use_distance_measure", function(measure){
   self$measure <- measure
   invisible(self)
@@ -147,7 +156,8 @@ MapperRef$set("public", "use_cover", function(filter_values, type=c("fixed recta
   invisible(self)
 })
 
-#' Computes the K-skeleton 
+#' @name comput_k_skeleton 
+#' @title Computes the K-skeleton 
 #' @description For the details on how this is computed, see Singh et. al, section 3.2. 
 MapperRef$set("public", "compute_k_skeleton", function(k, ...){
   stopifnot(k >= 0)
@@ -171,6 +181,8 @@ MapperRef$set("public", "compute_k_skeleton", function(k, ...){
   }
 })
 
+#' @name compute_vertices 
+#' @title Computes the vertices of mapper. 
 #' @description Executes the clustering algorithm for the level sets indexed by the 'which_levels' parameter. If not given, 
 #' runs the clustering algorithm and computes the subsequent vertices for all the available level sets. Additional 
 #' parameters passed via the '...' are passed to the clustering algorithm. 
@@ -238,8 +250,9 @@ MapperRef$set("public", "format", function(...){
   return(message)
 })
 
-#' as_grapher
-#' Exports the 1-skeleton as a grapher object
+#' @name as_grapher
+#' @title Exports the 1-skeleton as a grapher object.
+#' @description Uses the grapher library. 
 MapperRef$set("public", "as_grapher", function(...){
   require("grapher")
   

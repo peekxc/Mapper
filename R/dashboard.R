@@ -13,9 +13,6 @@
 #' These values are automatically converted to color hex codes based on the current palette. 
 #' 
 #' If this isn't supplied, a few default color functions are supplied.
-#'
-#' @import shiny htmlwidgets
-#' @importFrom DT DTOutput renderDT
 #' @export
 dashboard <- function(mapper_obj, X = mapper_obj$X, node_color_f = "default"){
 

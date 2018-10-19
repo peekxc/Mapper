@@ -1,20 +1,4 @@
-#' Enable multiscale 
-#' @description 
-#' After calling this function, a new function 'update_mapper' becomes available as part of the MapperRef instance,
-#' which accepts as its argument a single parameter 'percent_overlap', and returns the corresponding Mapper for that overlap parameterization. 
-#' 
-#' @details 
-#' Calling this function produces an internal indexing structure capable of computing Mappers efficiently
-#' between overlap parameterizations. Only supported for the the fixed rectangular cover. It's assumed the 
-#' number of intervals is fixed--if the number of intervals to distribute along any dimension changes, this 
-#' function must be recalled.  
-#' 
-#' @examples 
-#'   data("noisy_circle")
-#'   ll <- noisy_circle[which.min(apply(noisy_circle, 1, sum)),]
-#'   f_x <- t(apply(noisy_circle, 1, function(x) abs(x - ll)))
-#'   m_ref <- Mapper::mapper(noisy_circle, filter_values = f_x)
-#' @export
+
 MapperRef$set("public", "enable_multiscale", 
   function(){
     # if (self$cover$type != "rectangular"){ stop("'multiscale' is only compatible with rectangular covers.") }
@@ -1193,3 +1177,6 @@ rowmatch <- function(A,B) {
   b <- do.call("f", as.data.frame(B))
   match(a, b)
 }
+
+## Multiscale Module
+Rcpp::loadModule("multiscale_module", TRUE)
