@@ -1,0 +1,151 @@
+---
+output: html_document
+---
+
+# R implementation of Mapper 
+[![CRAN\_Status\_Badge](https://www.r-pkg.org/badges/version/reticulate)](https://cran.r-project.org/package=reticulate)
+[![Travis-CI Build Status](https://travis-ci.org/rstudio/reticulate.svg?branch=master)](https://travis-ci.org/rstudio/reticulate) [![Appveyor Build Status](https://ci.appveyor.com/api/projects/status/github/rstudio/reticulate?svg=true)](https://ci.appveyor.com/project/rstudio/reticulate)  
+
+The **Mapper** package provides a configurable impementation of the _mapper_ framework. The package includes: 
+
+<img src="man/figures/mapper_logo.png" width=150 style="margin-left: 15px;" align="right" />
+
+- Chainable [R6 class generators](https://github.com/r-lib/R6) for efficiently generating _mappers_ 
+
+- Easy to use-and-customize default components for people unfamiliar with Mapper
+
+- Several tools for visualizing the _mapper_ constructions
+
+- Options to export the $1$-skeleton to any graph-based representation.
+
+The package was designed to make modifying or extending the _mapper_ construction process simple and efficient, without limiting Mappers generality. 
+
+### Getting started
+
+#### Installation
+
+Install the **Mapper** package from github as follows:
+
+```{r, eval=FALSE}
+require("devtools")
+devtools::install_github("peekxc/mapper")
+```
+
+A CRAN release is planned for the near future. 
+
+#### Creating a complex
+
+Mapper takes as input a point cloud $X$ and a reference map $f : X \to Z$, and returns a topological summary of $X$ expressed via a cover equipped on the codomain of the map. 
+Here's an example where points are sampled from an 'eight-curve' in $\mathbb{R}^2$: 
+
+$$g(t) = [\cos(t), \sin(t)\cos(t)],\; t \in \Big(-\frac{1}{2}\pi, \frac{3}{2}\pi\Big)$$
+In the example below, $X$ is created from equally spaced samples over $t$, and the map chosen is simply the $x$-coordinate of the shape, $Z = f(X) = x_1$.
+```{r, echo=TRUE, fig.keep='none'}
+t <- seq(-0.5*pi, (3/2)*pi, length.out = 100)
+eight <- cbind(x1=cos(t), x2=sin(t)*cos(t))
+f_x <- matrix(cos(t))
+
+## Use a rainbow palette 
+rbw_col <- rainbow(length(f_x), start = 0, end = 4/6)
+col <- rbw_col[cut(f_x, length(f_x), labels = FALSE)]
+
+## View the data along with the mapping 
+layout(matrix(1:2, nrow = 1))
+plot(eight, pch = 20, col = col, main = expression(X %subset% R^2))
+stripchart(f_x, pch = "|", main = expression(f(X) %subset% R)) 
+points(cbind(f_x, 1), pch = "|", col = col, cex = 2)
+```
+
+<img src="man/figures/figure_eight.png" width=100% />
+
+Below is a possible way to construct a _mapper_ of the data visualized with the [grapher]() package. 
+```{r, echo=TRUE, eval=FALSE}
+m <- MapperRef$
+  new(X = eight)$                                             
+  use_cover(filter_values = f_x, 
+            type = "restrained rectangular", 
+            number_intervals = 10, percent_overlap = 0.50)$
+  use_distance_measure(measure = "euclidean")$
+  use_clustering_algorithm(cl = "single")$
+  compute_k_skeleton(k = 1L)
+
+## Visualize interactively 
+m$as_grapher() %>% center()
+```
+
+<img src="man/figures/figure_eight_grapher.png" width=100% height=70% />
+
+
+#### Customizing Mapper
+
+Almost any component of the Mapper method can be customized. 
+
+Want to change the metric? Pass any measure used in the [proxy](https://cran.r-project.org/web/packages/proxy/index.html) package.
+```{r}
+## See ?proxy::pr_DB for more details.
+m$use_distance_measure("Mahalanobis")
+```
+
+Or just replace the clustering algorithm entirely
+```{r}
+m$clustering_algorithm <- function(X, idx){
+  kmeans(X[idx,], k = 2)$cluster
+}
+```
+
+If you prefer a different cover, 
+
+Want to only update specific open sets in the cover?
+```{r}
+m$compute_vertices(which_levels = )
+```
+
+
+
+<!-- ## Sphere example  -->
+
+<!-- TODO -->
+<!-- Show rgl + grapher shiny example to better demonstrate the concept of the pullback  -->
+<!-- ```{r} -->
+<!-- # xyz <- replicate(3L, rnorm(5000)) -->
+<!-- # sphere <- t(apply(xyz, 1, function(x) x/norm(matrix(x), type="F"))) -->
+<!-- # filter_pts <- sphere[, c(3, 1)] -->
+<!-- #  -->
+<!-- # sphere_mapper <- MapperRef$ -->
+<!-- #   new(sphere)$ -->
+<!-- #   use_cover(filter_pts, "fixed rectangular", number_intervals = 6, percent_overlap = 0.15)$ -->
+<!-- #   use_distance_measure(measure = "euclidean") -->
+<!-- # sphere_mapper$clustering_algorithm <- function(X, idx){ -->
+<!-- #   rep(1L, length(idx)) -->
+<!-- # } -->
+<!-- #  -->
+<!-- # sphere_mapper$compute_k_skeleton(k = 1L) -->
+<!-- ``` -->
+
+<!-- # ```{r} -->
+<!-- # data("chemdiab", package="locfit") -->
+<!-- # colnames(chemdiab) <- c("RelativeWeight", "FastingPlasmaGlucose", "ToleranceTestAUC",  -->
+<!-- #                         "InsulinCurveAUC", "SteadyStatePlasmaGlucoseResponse",  -->
+<!-- #                         "DiabetesClassification") -->
+<!-- #  -->
+<!-- # chem_ica <- ica::icafast(chemdiab[, 1:5], nc = 3) -->
+<!-- #  -->
+<!-- # m <- MapperRef$ -->
+<!-- #   new(X = as.matrix(chemdiab[, 1:5]))$                                              -->
+<!-- #   use_cover(filter_values = chem_ica$S,  -->
+<!-- #             type = "restrained rectangular",  -->
+<!-- #             number_intervals = 5, percent_overlap = 0.35)$ -->
+<!-- #   use_distance_measure(measure = "euclidean")$ -->
+<!-- #   use_clustering_algorithm(cl = "single", num_bins = 5L)$ -->
+<!-- #   compute_k_skeleton(k = 1L) -->
+<!-- #  -->
+<!-- #  -->
+<!-- #  -->
+<!-- # with(chemdiab, { -->
+<!-- #   matchlevels(DiabetesClassification) -->
+<!-- # }) -->
+<!-- #  -->
+<!-- # m$as_grapher() %>% setNodeColor(color = ) -->
+<!-- # ``` -->
+
+

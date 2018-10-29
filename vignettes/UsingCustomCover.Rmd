@@ -1,0 +1,60 @@
+---
+title: "Using a custom covering method"
+output: html_notebook
+---
+
+## Introduction
+Perhaps one of the most important aspects of parameterizing Mapper is the choice of the cover.
+Given data $X$ and a continuous map $f : X \to Z$, the cover (often denoted as $\mathcal{U} = \{U_\alpha\}_{\alpha \in A}$) is constructed over the values of $Z$. Since $f$ is continuous, $\mathcal{U}$ also forms a cover of $X$. That is, the sets 
+
+$$\{ f^{-1}(U_\alpha), \alpha \in A \}$$
+form an open cover over $X$, i.e. $X \subseteq \bigcup\limits_{\alpha \in A} f^{-1}(U_\alpha)$. By applying a _partial clustering_ to each of these open sets in $X$, $f^{-1}(U_\alpha)$ decomposes into a set of path-connected components. These form the $0$-simplices of the resulting _mapper_ construction. 
+
+The `Mapper` package works with any covering strategy, so long as a few requirements are satisfied. All covers can be constructed either directly via their R6 generators, or more succinctly using the \code{$use_cover} member function associated with a \code{MapperRef} object. See \code{?MapperRef} for more details. A few frequently used methods are included in the package. Their typenames, generators, and parameters can be listed via: 
+```{r}
+Mapper::covers_available()
+```
+
+
+## Making a custom cover 
+
+To use a custom covering strategy, a new `R6` class must be defined satisfying the following requirements:
+1. The class inherits from the `CoverRef` class. 
+2. The class overrides the `construct_cover` function. 
+3. Upon calling `construct_cover`, the class populates the `level_sets` member with a named list whose names are uniquely indexed by the `index_set` member, and whose values are integer indices that form a valid cover. 
+
+Below is an example of a simplified version of the source code used to create the `AdaptiveCover` generator. First, a generator is defined that satisfies (1). The public fields represent the parameters of the cover.  
+
+```{r}
+## Parameters to make the cover
+params <- list(number_intervals=NA, percent_overlap=NA, quantile_method=NA)
+
+## The generator
+# AdaptiveCover_ex <- R6::R6Class(
+#   classname = "AdaptiveCover_ex",
+#   inherit = CoverRef,
+#   public = append(params, 
+#     list(initialize = function(filter_values, number_intervals, percent_overlap, quantile_method){
+#         super$initialize(filter_values, typename="adaptive cover example")
+#         self$number_intervals <- number_intervals
+#         self$percent_overlap <- percent_overlap 
+#         self$quantile_method <- quantile_method
+#     })
+#   )
+# )
+```
+
+In the example above, 
+
+```{r}
+CoverRef
+```
+
+
+#' \itemize{
+#'  \item{.level_sets}{names list of indices in the original data set to cluster over.}
+#'  \item{.index_set}{character vector of keys that uniquely index the level sets.}
+#'  \item{.filter_dim}{constant representing the filter dimension.}
+#'  \item{.filter_size}{constant representing the number of points in the filter space.}
+#'  \item{.typename}{string identifier of the covering method.}
+#' }

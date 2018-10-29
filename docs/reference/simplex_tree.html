@@ -11,8 +11,8 @@
 <!-- jquery -->
 <script src="https://code.jquery.com/jquery-3.1.0.min.js" integrity="sha384-nrOSfDHtoPMzJHjVTdCopGqIqeYETSXhZDFyniQ8ZHcVy08QesyHcnOUpMpqnmWq" crossorigin="anonymous"></script>
 <!-- Bootstrap -->
+<link href="https://maxcdn.bootstrapcdn.com/bootswatch/3.3.7/simplex/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
 
-<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
 
 <!-- Font Awesome icons -->
@@ -61,7 +61,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Mapper</a>
-        <span class="label label-default" data-toggle="tooltip" data-placement="bottom" title="Released package">0.5.0</span>
+        <span class="label label-danger" data-toggle="tooltip" data-placement="bottom" title="Unreleased package">0.6.0</span>
       </span>
     </div>
 
@@ -85,12 +85,6 @@
   <ul class="dropdown-menu" role="menu">
     <li>
       <a href="../articles/UsingMapper.html">Using the Mapper package</a>
-    </li>
-    <li>
-      <a href="../articles/test_map.html">R Notebook</a>
-    </li>
-    <li>
-      <a href="../articles/test_reverse.html">R Notebook</a>
     </li>
   </ul>
 </li>
@@ -121,7 +115,7 @@
     
     </div>
 
-    <pre class="usage"><span class='fu'>simplex_tree</span>(<span class='no'>n_vertices</span>)</pre>
+    <pre class="usage"><span class='fu'>simplex_tree</span>()</pre>
         
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
@@ -131,16 +125,9 @@
 
     <p>A simplex tree is a trie specialized for storing simplicial complexes.</p>
     
-    <h2 class="hasAnchor" id="fields"><a class="anchor" href="#fields"></a>Fields</h2>
-
-    
-    <dl class='dl-horizontal'>
-<dt><code>n_vertices</code></dt><dd><p>Number of 0-simplexes to initialize the simplex tree with.</p></dd>
-</dl>
-    
     <h2 class="hasAnchor" id="references"><a class="anchor" href="#references"></a>References</h2>
 
-    <p>Mehta, Dinesh P., and Sartaj Sahni. "Chapter 18: Interval, Segment, Range, and Priority Search Trees." Handbook of data structures and applications. Chapman and Hall/CRC, 2004.</p>
+    <p>Boissonnat, Jean-Daniel, and Clement Maria. "The simplex tree: An efficient data structure for general simplicial complexes." Algorithmica 70.3 (2014): 406-427.</p>
     
 
   </div>
@@ -151,8 +138,6 @@
       <li><a href="#value">Value</a></li>
 
       <li><a href="#details">Details</a></li>
-
-      <li><a href="#fields">Fields</a></li>
 
       <li><a href="#references">References</a></li>
           </ul>

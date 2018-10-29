@@ -296,6 +296,7 @@ END_RCPP
 RcppExport SEXP _rcpp_module_boot_multiscale_module();
 RcppExport SEXP _rcpp_module_boot_segment_tree_module();
 RcppExport SEXP _rcpp_module_boot_simplex_tree_module();
+RcppExport SEXP _rcpp_module_boot_union_find_module();
 
 static const R_CallMethodDef CallEntries[] = {
     {"_Mapper_make_cartesian_product", (DL_FUNC) &_Mapper_make_cartesian_product, 1},
@@ -323,6 +324,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_rcpp_module_boot_multiscale_module", (DL_FUNC) &_rcpp_module_boot_multiscale_module, 0},
     {"_rcpp_module_boot_segment_tree_module", (DL_FUNC) &_rcpp_module_boot_segment_tree_module, 0},
     {"_rcpp_module_boot_simplex_tree_module", (DL_FUNC) &_rcpp_module_boot_simplex_tree_module, 0},
+    {"_rcpp_module_boot_union_find_module", (DL_FUNC) &_rcpp_module_boot_union_find_module, 0},
     {NULL, NULL, 0}
 };
 

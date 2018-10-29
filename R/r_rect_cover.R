@@ -76,7 +76,7 @@ RestrainedRectangularCover$set("public", "construct_cover", function(){
   filter_len <- diff(filter_rng)
   
   ## Construct the level sets
-  browser()
+  # browser()
   { k <- self$number_intervals; g <- self$percent_overlap } 
   r <- filter_len/(k - g*(k - 1L))
   e <- r * (1 - g)

@@ -13,7 +13,8 @@ A queryable simplex tree.
 Simplex tree class exposed as an Rcpp Module.
 }
 \details{
-A simplex tree is a trie specialized for storing simplicial complexes.
+A simplex tree is a trie specialized for storing simplicial complexes. The current implementation provides 
+a limited API and basic functionality.
 }
 \references{
 Boissonnat, Jean-Daniel, and Clement Maria. "The simplex tree: An efficient data structure for general simplicial complexes." Algorithmica 70.3 (2014): 406-427.

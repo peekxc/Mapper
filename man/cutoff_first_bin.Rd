@@ -4,10 +4,12 @@
 \alias{cutoff_first_bin}
 \title{cutoff_first_bin function}
 \usage{
-cutoff_first_bin(hcl, num_bins)
+cutoff_first_bin(hcl, diam, num_bins)
 }
 \arguments{
 \item{hcl}{hierarchical clustering in the form an 'hclust' object.}
+
+\item{diam}{largest pairwise distance between the objects used to create the hierarchy.}
 
 \item{num_bins}{Controls how many bins there are in the histogram used to determine cutoff.}
 }

@@ -15,7 +15,7 @@ FixedRectangularCover <- R6::R6Class("FixedRectangularCover",
 
 #' @export
 FixedRectangularCover$set("public", "initialize", function(filter_values, ...){
-  super$initialize(filter_values, type="Fixed Rectangular")
+  super$initialize(filter_values, typename="Fixed Rectangular")
   params <- list(...)
   if ("number_intervals" %in% names(params)){ self$number_intervals <- params[["number_intervals"]] }
   if ("percent_overlap" %in% names(params)){ self$percent_overlap <- params[["percent_overlap"]] }
@@ -26,7 +26,7 @@ FixedRectangularCover$set("active", "percent_overlap",
   function(value){
     if (missing(value)){ private$.percent_overlap }
     else {
-      if (any(value < 0) || any(value > 1)){ stop("The percent overlap must be a percentage between [0, 1].") }
+      if (any(value < 0) || any(value >= 100)){ stop("The percent overlap must be a percentage between [0, 100).") }
       if (length(value) != private$.filter_dim && length(value) != 1){ stop("The percent overlap must be a single scalar or a vector of scalars with length equal to the dimensionality of the filter space.") }
       if (length(value) == 1 && private$.filter_dim > 1){ value <- rep(value, private$.filter_dim) } ## create a vector
       private$.percent_overlap <- value
@@ -52,9 +52,9 @@ FixedRectangularCover$set("active", "number_intervals",
 )
 
 FixedRectangularCover$set("public", "format", function(...){
-  type_pretty <- paste0(toupper(substr(self$type, start = 1, stop = 1)), tolower(substr(self$type, start = 2, stop = nchar(self$type))))
-  sprintf("Cover: (type = %s, number intervals = [%s], overlap = [%s])",
-          type_pretty,
+  # type_pretty <- paste0(toupper(substr(self$typename, start = 1, stop = 1)), tolower(substr(self$typename, start = 2, stop = nchar(self$typename))))
+  sprintf("Cover: (typename = %s, number intervals = [%s], percent overlap = [%s]%%)",
+          private$.typename,
           paste0(private$.number_intervals, collapse = ", "),
           paste0(format(private$.percent_overlap, digits = 3), collapse = ", "))
 })
@@ -74,8 +74,9 @@ FixedRectangularCover$set("public", "level_set_bounds", function(){
   filter_len <- diff(filter_rng)
   
   ## Construct the interval bounds for each level set 
+  prop_overlap <- self$percent_overlap/100
   base_interval_length <- filter_len/self$number_intervals
-  interval_length <- base_interval_length + (base_interval_length * self$percent_overlap)/(1.0 - self$percent_overlap)
+  interval_length <- base_interval_length + (base_interval_length * prop_overlap)/(1.0 - prop_overlap)
   eps <- (interval_length/2.0) + sqrt(.Machine$double.eps) ## ensures each point is in the cover
   ls_bounds <- t(apply(cart_prod, 1, function(idx){
     centroid <- filter_min + ((as.integer(idx)-1L)*base_interval_length) + base_interval_length/2.0
@@ -116,8 +117,9 @@ FixedRectangularCover$set("public", "level_sets_to_compare", function(){
   
   ## Compute the critical distances wherein if the 
   base_interval_length <- filter_len/self$number_intervals
+  prop_overlap <- self$percent_overlap/100
   critical_dist <- lapply(d_rng, function(d_i) { base_interval_length[d_i] + ((base_interval_length[d_i]/2)*seq(1, self$number_intervals[d_i] - 1))*2 })
-  c_interval_length <- base_interval_length + (base_interval_length * self$percent_overlap)/(1.0 - self$percent_overlap)
+  c_interval_length <- base_interval_length + (base_interval_length * prop_overlap)/(1.0 - prop_overlap)
   
   ## Get the maximum index deviation allowed between level sets
   max_dev <- sapply(d_rng, function(d_i) { findInterval(c_interval_length[d_i], critical_dist[[d_i]])+1L })
@@ -133,34 +135,3 @@ FixedRectangularCover$set("public", "level_sets_to_compare", function(){
   return(all_pairs[which_pairs,])
 })
 
-## Given a single LSFI 'from' and a vector of LSFIs 'to' orthogonal to the level set mapper by 'from',
-## retrieves the LSFIs that lie between 'from' and 'to', in both orthogonal and non-orthogonal directions (inclusively)
-# FixedRectangularCover$methods(getRectLSFI = function(from, to){
-#   filter_dim <- ncol(filter_values) ## filter dimensionality
-#   if (length(from) != 1 || length(to) != filter_dim){ stop("'from' must be length 1 and 'to' must be length < filter dim >") }
-#   sbase <- getLSMI(from)
-#   to_lsmi <- lapply(1:filter_dim, function(d_i) getLSMI(to[d_i]))
-#   for (d_i in 1:filter_dim){
-#     if (any(to_lsmi[[d_i]][, -d_i] != sbase[, -d_i])){ stop("'to' level sets must be orthogonal to originating set") }
-#   }
-#   to_indices <- lapply(1:filter_dim, function(d_i){ sbase[,d_i]:to_lsmi[[d_i]][,d_i] })
-#   target_lvl_sets <- as.matrix(eval(as.call(append(quote(expand.grid), to_indices))))
-#   getLSFI(target_lvl_sets)
-# })
-
-
-
-## Which level set (flat indices) are valid to compare against? When the overlap is <= 50%, it's required that the
-## level sets are checked only against immediate neighbors of that set (when the index is at maximum one
-## index away). If the overlap is > 50%, then check every combination.
-# FixedRectangularCover$methods(valid_pairs = function(){
-#   all_ls_pairs <- t(combn(1:length(level_sets), 2))
-#   idx_set_pairs <- as.matrix(index_set[all_ls_pairs[, 1],] - index_set[all_ls_pairs[, 2],])
-#   if (all(overlap <= 0.50)){
-#     valid_ls_pairs <- as.vector(abs(apply(idx_set_pairs, 1, max))) <= 1
-#     return(all_ls_pairs[valid_ls_pairs,])
-#   } else {
-#     ## TODO: Improve this, and extend mapper to compute more than the 1-skeleton efficiently
-#     return(all_ls_pairs)
-#   }
-# })

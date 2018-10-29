@@ -1,9 +1,35 @@
-#' Cover reference class - Reference Class (R6) implementation of a Cover
-#'
+#' Cover abstract class
+#' 
+#' @description Reference Class (R6) implementation of a Cover. This class is meant to act as an abstract class to derive other 
+#' types of covering generators with. Minimally, a derived covering class must implement the
+#' 'construct_cover' method to populate the 'level_sets' list with point indices, and any parameters 
+#' that the derived class requires. 
+#' 
+#' Additional methods may also be added to improve the efficiency of the cover. See the vignette on creating a custom 
+#' cover for details. 
+#' 
+#' @section Private variables:
+#' The following is a list of private variables available for derived classes. Each may be accessed 
+#' by the \code{private$} access method, see \code{?R6} for more details. 
+#' \itemize{
+#'  \item{.level_sets}{names list of indices in the original data set to cluster over.}
+#'  \item{.index_set}{character vector of keys that uniquely index the level sets.}
+#'  \item{.filter_dim}{constant representing the filter dimension.}
+#'  \item{.filter_size}{constant representing the number of points in the filter space.}
+#'  \item{.typename}{string identifier of the covering method.}
+#' }
+#'  
+#'    
 #' @docType class
 #' @field filter_values (n x d) matrix of filter values
 #' @field type character string of the type of cover
-#' @author: Matt Piekenbrock
+#' @field index_set character vector used to index the 'level_sets' list 
+#' @field level_sets list of the 
+#' @format An \code{\link{R6Class}} generator object
+#' 
+#' @method level_sets_to_compare testing
+#' 
+#' @author Matt Piekenbrock
 #' @export CoverRef
 CoverRef <- R6::R6Class("CoverRef", 
   public = list(filter_values=NA),
@@ -12,30 +38,29 @@ CoverRef <- R6::R6Class("CoverRef",
     .index_set = NA,
     .filter_size = NA,
     .filter_dim = NA, 
-    .type = character(0)
+    .typename = character(0)
   )
 )
 
 ## Cover initialization
-CoverRef$set("public", "initialize", function(filter_values, type){
+CoverRef$set("public", "initialize", function(filter_values, typename){
   if (is.null(dim(filter_values))) { filter_values <- array(filter_values, dim = c(length(filter_values), 1)) }
   self$filter_values <- filter_values
   private$.filter_size <- dim(filter_values)[[1]]
   private$.filter_dim <- dim(filter_values)[[2]]
-  private$.type <- type
+  private$.typename <- typename
 })
 
 CoverRef$set("public", "format", function(...){
-  browser()
   message <- c(sprintf("Open cover for %d objects (d = %d)", nrow(self$filter_values), private$.filter_dim))
   return(message)
 })
 
-## Type field
-CoverRef$set("active", "type", 
+## Typename field
+CoverRef$set("active", "typename", 
   function(value){
-    if (missing(value)){ private$.type } else {
-      stop("Cover 'type' member is read-only.")
+    if (missing(value)){ private$.typename } else {
+      stop("Cover 'typename' member is read-only.")
     }
 })
 
@@ -78,4 +103,32 @@ CoverRef$set("public", "construct_cover", function(){
 CoverRef$set("public", "level_sets_to_compare", function(){
   t(combn(1L:length(private$.index_set), 2))
 })
+
+## Validates that the constructed cover is indeed a valid cover. 
+CoverRef$set("public", "validate", function(){
+  if ( length(private$.index_set) != length(private$.level_sets) ){
+    stop("Cover invalid: length of the index set does nto match length of the level sets")
+  }
+  if ( all(!names(private$.level_sets) %in% private$.index_set) ) {
+    stop("Cover invalid: Not all the level sets have a corresponding index in the index set.")
+  }
+  idx <- unique(unlist(private$.level_sets))
+  if ( length(idx) != private$.filter_size ){
+    stop("Cover invalid: Not all point indices account for in the open sets!")
+  }
+})
+
+# TODO
+# .available_covers <- list()
+
+#' @export
+covers_available <- function(){
+  writeLines(c(
+    sprintf("Typename:%-20sGenerator:%-25sParameters:%-26s", "", "", ""),
+    sprintf(" %-28s %-34s %-15s", "fixed rectangular", "FixedRectangularCover", paste0(c("number_intervals", "percent_overlap"), collapse = ", ")), 
+    sprintf(" %-28s %-34s %-15s", "restrained rectangular", "RestrainedRectangularCover", paste0(c("number_intervals", "percent_overlap"), collapse = ", ")),
+    sprintf(" %-28s %-34s %-15s", "adaptive", "AdaptiveCover", paste0(c("number_intervals", "percent_overlap", "quantile_method"), collapse = ", ")),
+    sprintf(" %-28s %-34s %-15s", "ball", "BallCover", paste0("epsilon", collapse = ", "))
+  ))
+}
 

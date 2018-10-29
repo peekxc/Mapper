@@ -17,7 +17,7 @@ BugReports: https://github.com/peekxc/mapper
 Suggests: 
     igraph,
     htmlwidgets, shiny, DT,
-    proxy, parallelDist, fastcluster,
+    proxy, parallelDist, fastcluster, RANN,
     testthat, knitr
 Copyright: The Mapper construction was originally developed by Gurjeet Singh, Facundo Mémoli, and Gunnar Carlsson. Copyright by Matt Piekenbrock.
 Encoding: UTF-8

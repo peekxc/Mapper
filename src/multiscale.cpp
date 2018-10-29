@@ -319,7 +319,7 @@ List MultiScale::update_segments(const IntegerVector target_idx){
     );
     segment_map[c_target_segment].push_back(pt_idx);
     for (auto& d_i: d_range){ pt_info.at(d_i).at(pt_idx).c_segment = c_target_segment.at(d_i); }
-    // 
+    
     // Rprintf("Pt idx: %d, source segment: %s, target_segment: %s\n", pt_idx,
     //         ls_grid.multi_to_string(pt_source_segment).c_str(),
     //         ls_grid.multi_to_string(c_target_segment).c_str());
@@ -345,7 +345,6 @@ List MultiScale::update_segments(const IntegerVector target_idx){
         end = c_ls_path.begin() + int(c_path.p_idx)+1;
       }
 
-      
       auto ls_range = std::minmax_element(begin, end);
       // Rprintf("(d_i=%d) = min ls: %d, max ls: %d\n", d_i, *ls_range.first, *ls_range.second);
       int s = (int) *ls_range.first, e = (int) *ls_range.second;

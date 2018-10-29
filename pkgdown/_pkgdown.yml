@@ -1,0 +1,44 @@
+template:
+  params:
+    bootswatch: simplex
+development:
+  mode: unreleased
+reference:
+- title: All functions
+  desc: ~
+  contents:
+  - '`CoverRef`'
+  - '`FixedRectangularCover`'
+  - '`MapperRef`'
+  - '`RestrainedRectangularCover`'
+  - '`as_grapher`'
+  - '`comput_k_skeleton`'
+  - '`compute_vertices`'
+  - '`cutoff_first_bin`'
+  - '`dashboard`'
+  - '`segment_tree`'
+  - '`simplex_tree`'
+  - '`use_clustering_algorithm`'
+navbar:
+  structure:
+    left:
+    - home
+    - intro
+    - reference
+    - articles
+    - tutorials
+    - news
+    right: github
+  components:
+    home:
+      icon: fa-home fa-lg
+      href: index.html
+    reference:
+      text: Reference
+      href: reference/index.html
+    articles:
+      text: Articles
+      menu:
+      - text: Using the Mapper package
+        href: articles/UsingMapper.html
+

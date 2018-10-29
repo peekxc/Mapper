@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Using the Mapper package • Mapper</title>
-<!-- jquery --><script src="https://code.jquery.com/jquery-3.1.0.min.js" integrity="sha384-nrOSfDHtoPMzJHjVTdCopGqIqeYETSXhZDFyniQ8ZHcVy08QesyHcnOUpMpqnmWq" crossorigin="anonymous"></script><!-- Bootstrap --><link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+<!-- jquery --><script src="https://code.jquery.com/jquery-3.1.0.min.js" integrity="sha384-nrOSfDHtoPMzJHjVTdCopGqIqeYETSXhZDFyniQ8ZHcVy08QesyHcnOUpMpqnmWq" crossorigin="anonymous"></script><!-- Bootstrap --><link href="https://maxcdn.bootstrapcdn.com/bootswatch/3.3.7/simplex/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script><!-- Font Awesome icons --><link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-T8Gy5hrqNKT+hzMclPo118YTQO6cYprQmhrYwIiQ/3axmI1hQomh7Ud2hPOy8SP1" crossorigin="anonymous">
 <!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.7.1/clipboard.min.js" integrity="sha384-cV+rhyOuRHc9Ub/91rihWcGmMmCXDeksTtCihMupQHSsi8GIIRDG0ThDc3HGQFJ3" crossorigin="anonymous"></script><!-- sticky kit --><script src="https://cdnjs.cloudflare.com/ajax/libs/sticky-kit/1.1.3/sticky-kit.min.js" integrity="sha256-c4Rlo1ZozqTPE2RLuvbusY3+SU1pQaJC0TjuhygMipw=" crossorigin="anonymous"></script><!-- pkgdown --><link href="../pkgdown.css" rel="stylesheet">
 <script src="../pkgdown.js"></script><meta property="og:title" content="Using the Mapper package">
@@ -29,7 +29,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Mapper</a>
-        <span class="label label-default" data-toggle="tooltip" data-placement="bottom" title="Released package">0.5.0</span>
+        <span class="label label-danger" data-toggle="tooltip" data-placement="bottom" title="Unreleased package">0.6.0</span>
       </span>
     </div>
 
@@ -66,7 +66,7 @@
 <!--/.navbar -->
 
       
-      </header><script src="UsingMapper_files/htmlwidgets-1.2.1/htmlwidgets.js"></script><script src="UsingMapper_files/grapher-1.3.2/grapher.min.js"></script><script src="UsingMapper_files/grapher-1.3.2/zoom.min.js"></script><script src="UsingMapper_files/grapher-1.3.2/center.min.js"></script><script src="UsingMapper_files/grapher-1.3.2/target.min.js"></script><script src="UsingMapper_files/grapher-1.3.2/grapher_helpers.js"></script><script src="UsingMapper_files/d3-4.9.1/d3.min.js"></script><script src="UsingMapper_files/lodash-4.17.10/lodash.min.js"></script><script src="UsingMapper_files/grapher-binding-1.0/grapher.js"></script><div class="row">
+      </header><script src="UsingMapper_files/htmlwidgets-1.3/htmlwidgets.js"></script><script src="UsingMapper_files/grapher-1.3.2/grapher.min.js"></script><script src="UsingMapper_files/grapher-1.3.2/zoom.min.js"></script><script src="UsingMapper_files/grapher-1.3.2/center.min.js"></script><script src="UsingMapper_files/grapher-1.3.2/target.min.js"></script><script src="UsingMapper_files/grapher-1.3.2/grapher_helpers.js"></script><script src="UsingMapper_files/grapher-1.3.2/lasso.js"></script><script src="UsingMapper_files/d3-4.9.1/d3.min.js"></script><script src="UsingMapper_files/lodash-4.17.10/lodash.min.js"></script><script src="UsingMapper_files/jquery-3.3.1/jquery-3.3.1.min.js"></script><script src="UsingMapper_files/grapher-binding-1.0/grapher.js"></script><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1>Using the Mapper package</h1>
@@ -80,138 +80,153 @@
 
     
     
-<p>Consider a noisy sampling along the perimeter of a circle</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## Generate noisy points around the perimeter of a circle 
-n &lt;-<span class="st"> </span><span class="dv">150</span>
-t &lt;-<span class="st"> </span><span class="dv">2</span><span class="op">*</span>pi<span class="op">*</span><span class="kw">runif</span>(n)
-r &lt;-<span class="st"> </span><span class="kw">runif</span>(n, <span class="dt">min =</span> <span class="dv">2</span>, <span class="dt">max =</span> <span class="fl">2.1</span>)
-circ &lt;-<span class="st"> </span><span class="kw">cbind</span>(r<span class="op">*</span><span class="kw">cos</span>(t), r<span class="op">*</span><span class="kw">sin</span>(t))
-
-## Define filter values equal to the distance from each point to the left-most point in the circle 
-left_pt &lt;-<span class="st"> </span>circ[<span class="kw">which.min</span>(circ[, <span class="dv">1</span>]),]
-f_x &lt;-<span class="st"> </span><span class="kw">sqrt</span>(<span class="kw">colSums</span>(<span class="kw">apply</span>(circ, <span class="dv">1</span>, <span class="cf">function</span>(pt) (pt <span class="op">-</span><span class="st"> </span>left_pt)<span class="op">^</span><span class="dv">2</span>)))
-
-## Bin the data onto a sufficiently high-resolution rainbow gradient from blue (low) to red (high), 
-## and plot the original circle  with these values
-rbw_pal &lt;-<span class="st"> </span><span class="kw">rev</span>(<span class="kw">rainbow</span>(<span class="dv">100</span>, <span class="dt">start =</span> <span class="dv">0</span>, <span class="dt">end =</span> <span class="dv">4</span><span class="op">/</span><span class="dv">6</span>))
-binned_idx &lt;-<span class="st"> </span><span class="kw">cut</span>(f_x, <span class="dt">breaks =</span> <span class="dv">100</span>, <span class="dt">labels =</span> F)
-<span class="kw">plot</span>(circ, <span class="dt">pch =</span> <span class="dv">20</span>, <span class="dt">asp =</span> <span class="dv">1</span>, <span class="dt">col =</span> rbw_pal[binned_idx], <span class="dt">xlab =</span> <span class="st">"X"</span>, <span class="dt">ylab =</span> <span class="st">"Y"</span>, <span class="dt">main =</span> <span class="st">"Circle"</span>)</code></pre></div>
+<p>Consider a noisy sampling of points along the perimeter of a circle in <span class="math inline">\(\mathbb{R}^2\)</span></p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">set.seed</span>(<span class="dv">1234</span>)</a>
+<a class="sourceLine" id="cb1-2" data-line-number="2"></a>
+<a class="sourceLine" id="cb1-3" data-line-number="3"><span class="co">## Generate noisy points around the perimeter of a circle </span></a>
+<a class="sourceLine" id="cb1-4" data-line-number="4">n &lt;-<span class="st"> </span><span class="dv">1500</span></a>
+<a class="sourceLine" id="cb1-5" data-line-number="5">t &lt;-<span class="st"> </span><span class="dv">2</span><span class="op">*</span>pi<span class="op">*</span><span class="kw">runif</span>(n)</a>
+<a class="sourceLine" id="cb1-6" data-line-number="6">r &lt;-<span class="st"> </span><span class="kw">runif</span>(n, <span class="dt">min =</span> <span class="dv">2</span>, <span class="dt">max =</span> <span class="fl">2.1</span>)</a>
+<a class="sourceLine" id="cb1-7" data-line-number="7">noisy_circle &lt;-<span class="st"> </span><span class="kw">cbind</span>(r<span class="op">*</span><span class="kw">cos</span>(t), r<span class="op">*</span><span class="kw">sin</span>(t))</a>
+<a class="sourceLine" id="cb1-8" data-line-number="8"></a>
+<a class="sourceLine" id="cb1-9" data-line-number="9"><span class="co">## Plot the circle</span></a>
+<a class="sourceLine" id="cb1-10" data-line-number="10"><span class="kw">plot</span>(noisy_circle, <span class="dt">pch =</span> <span class="dv">20</span>, <span class="dt">asp =</span> <span class="dv">1</span>, <span class="dt">xlab =</span> <span class="st">"X"</span>, <span class="dt">ylab =</span> <span class="st">"Y"</span>, <span class="dt">main =</span> <span class="st">"Circle"</span>)</a></code></pre></div>
 <p><img src="UsingMapper_files/figure-html/unnamed-chunk-1-1.png" width="700"></p>
-<p>To get the mapper of this circle, first supply the data via the <code>X</code> parameter and the filtered values via the <code>filter_values</code> argument, e.g. <code><a href="../reference/mapper.html">mapper(X = circ, filter_values = f_x, ...)</a></code>. <code>Mapper</code> dispatches additional parameters passed in <code>...</code> to other methods to further configure the construction. See <code><a href="../reference/mapper.html">?mapper</a></code> for more details. To use a primitive multidimensional, ‘hyper-rectangular’ cover, supply the <code>number_intervals</code> and <code>overlap</code> parameters. A summary is available with the default print method.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">m &lt;-<span class="st"> </span>Mapper<span class="op">::</span><span class="kw"><a href="http://www.rdocumentation.org/packages/Mapper/topics/mapper">mapper</a></span>(<span class="dt">X =</span> circ, <span class="dt">filter_values =</span> f_x, <span class="dt">number_intervals =</span> <span class="dv">5</span>, <span class="dt">overlap =</span> <span class="fl">0.20</span>)
-m</code></pre></div>
-<pre><code>## Mapper object with filter function f: X^2 -&gt; Z
-## Configured with a fixed rectangular cover comprising 5 open sets
-## The 1-skeleton contains 15 nodes and 7 edges
-## 
-## Call:  Mapper::mapper(X = circ, filter_values = f_x, number_intervals = 5, overlap = 0.2)</code></pre>
-<p>By default, the core information of the <span class="math inline">\(1\)</span>-skeleton of the <code>Mapper</code> construction is returned, including: 1. The nodes of the topological graph, and the indices of the points contained within each node. 2. The adjacency matrix of the topological graph. 3. The level sets indexing information, and the indices of the nodes they contain in each level set. This is, generally, all one needs to analyze the Mapper construction.</p>
-<p>Internally, Mapper uses <code>ReferenceClasses</code> to efficiently compute the simplicial complex. If more information is required beyond the static construction, the <code>return_reference</code> parameter may be set to <code>TRUE</code> to access the underlying <code>MapperRef</code> object. This is useful in situations where each step of the mapper framework needs fine-tuned, e.g. where the construction is requested under multiple parameter settings.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">m_ref &lt;-<span class="st"> </span>Mapper<span class="op">::</span><span class="kw"><a href="http://www.rdocumentation.org/packages/Mapper/topics/mapper">mapper</a></span>(<span class="dt">X =</span> circ, <span class="dt">filter_values =</span> f_x, <span class="dt">number_intervals =</span> <span class="dv">5</span>, <span class="dt">overlap =</span> <span class="fl">0.20</span>, <span class="dt">return_reference =</span> <span class="ot">TRUE</span>)
-m_ref</code></pre></div>
-<pre><code>## Mapper construction for 150 objects
-## Cover: (type = Fixed rectangular, number intervals = [5], overlap = [0.2])</code></pre>
-<p>There are many internal methods which may be called at any time to reconfigure the Mapper object.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">ls</span>(m_ref)</code></pre></div>
-<pre><code>##  [1] "clustering_algorithm"   "computeEdges"          
-##  [3] "computeLevelSetDist"    "computeNodes"          
-##  [5] "config"                 "cover"                 
-##  [7] "G"                      "setClusteringAlgorithm"
-##  [9] "setCover"               "show"                  
-## [11] "X"</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">ls</span>(m_ref<span class="op">$</span>cover)</code></pre></div>
-<pre><code>##  [1] "constructCover"   "filter_values"    "index_set"       
-##  [4] "initialize"       "initialize#Cover" "level_sets"      
-##  [7] "number_intervals" "overlap"          "setOverlap"      
-## [10] "setResolution"    "summary"          "type"            
-## [13] "valid_pairs"</code></pre>
-<p>Keep in mind that to keep the reference object around, copies of the original data and filter values are stored internally. Thus, the reference object takes up significantly more memory than the bare components.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">suppressMessages</span>(<span class="kw">library</span>(<span class="st">"pryr"</span>, <span class="dt">quietly =</span> <span class="ot">TRUE</span>))</code></pre></div>
-<pre><code>## Warning: package 'pryr' was built under R version 3.4.3</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">pryr<span class="op">::</span><span class="kw"><a href="http://www.rdocumentation.org/packages/pryr/topics/object_size">object_size</a></span>(m)</code></pre></div>
-<pre><code>## 6.02 kB</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">pryr<span class="op">::</span><span class="kw"><a href="http://www.rdocumentation.org/packages/pryr/topics/object_size">object_size</a></span>(m_ref)</code></pre></div>
-<pre><code>## 1.28 MB</code></pre>
-<p>If the dimensionality is low enough, there’s default methods to plot the network or look at the filter space:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">m_ref<span class="op">$</span><span class="kw">plotNetwork</span>()</code></pre></div>
-<p><img src="UsingMapper_files/figure-html/unnamed-chunk-6-1.png" width="700"></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">m_ref<span class="op">$</span>cover<span class="op">$</span><span class="kw">plotFilterSpace</span>()</code></pre></div>
-<p><img src="UsingMapper_files/figure-html/unnamed-chunk-6-2.png" width="700"></p>
-<p>The Mapper packages provides a <a href="https://github.com/d3/d3-force">force-directed</a> <a href="https://www.htmlwidgets.org/">htmlwidget</a> implementation of Ayasdi’s open source <a href="https://github.com/ayasdi/grapher">grapher</a> library, which can be used to visualize the Mapper network.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(<span class="st">"grapher"</span>)
-g &lt;-<span class="st"> </span>grapher<span class="op">::</span><span class="kw"><a href="http://www.rdocumentation.org/packages/grapher/topics/grapher">grapher</a></span>(m_ref)
-g</code></pre></div>
-<canvas id="htmlwidget-065c1f961f4526e839ca" class="grapher html-widget" style="width:700px;height:432.632880098888px;"></canvas><script type="application/json" data-for="htmlwidget-065c1f961f4526e839ca">{"x":{"net":{"nodes":[{"x":0.8711,"y":0.8666,"r":12.2634,"color":"#0000FFFF","index":0},{"x":0.3022,"y":0,"r":12.9244,"color":"#00A5FFFF","index":1},{"x":0,"y":0.7079,"r":12.2634,"color":"#00B9FFFF","index":2},{"x":0.354,"y":0.9982,"r":10.9748,"color":"#003EFFFF","index":3},{"x":0.4782,"y":0.0193,"r":13.7114,"color":"#00FFC9FF","index":4},{"x":0.1201,"y":0.822,"r":13.3722,"color":"#00FFDEFF","index":5},{"x":0.6543,"y":0.0773,"r":13.9844,"color":"#0FFF00FF","index":6},{"x":0.3133,"y":0.469,"r":13.8084,"color":"#24FF00FF","index":7},{"x":0.8067,"y":0.1808,"r":14.4095,"color":"#D3FF00FF","index":8},{"x":0.1592,"y":0.3737,"r":13.9844,"color":"#FCFF00FF","index":9},{"x":1,"y":0.6002,"r":15,"color":"#FF0000FF","index":10},{"x":0.0099,"y":0.2805,"r":13.6072,"color":"#FF8600FF","index":11},{"x":0.9337,"y":0.2978,"r":13.09,"color":"#FFA500FF","index":12},{"x":0.6404,"y":0.6448,"r":11.9496,"color":"#FF1500FF","index":13},{"x":0.6175,"y":1,"r":10,"color":"#FF4800FF","index":14}],"links":[{"from":1,"to":4,"color":"#00EDFF"},{"from":2,"to":5,"color":"#00EDFF"},{"from":4,"to":6,"color":"#00FF62"},{"from":6,"to":8,"color":"#6CFF00"},{"from":7,"to":9,"color":"#8BFF00"},{"from":8,"to":12,"color":"#FFED00"},{"from":9,"to":11,"color":"#FFC400"}]},"api":[]},"evals":[],"jsHooks":[]}</script><p>A simple interface class <code>grapher</code> is provided to programmatically interact with the widget. The methods can be printed as follows:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(printr)
-<span class="kw">help</span>(<span class="dt">package =</span> <span class="st">"grapher"</span>)</code></pre></div>
-<pre><code>##      Information on package 'grapher'
-## 
-## Description:
-## 
-## Package:           grapher
-## Type:              Package
-## Title:             Create interactive network visualizations with
-##                    Grapher
-## Version:           1.0
-## Date:              2018-07-04
-## Author:            Matt Piekenbrock
-## Maintainer:        Matt Piekenbrock &lt;matt.piekenbrock@gmail.com&gt;
-## Description:       Based on the 'grapher.js' library by Ayasdi,
-##                    'grapher' provides an extensive API for
-##                    visualizing and interacting with
-##                    WebGL-accelerated force-directed graphs.
-##                    Provides additional support for the 'Mapper'
-##                    package.
-## Encoding:          UTF-8
-## VignetteBuilder:   knitr
-## Imports:           htmltools (&gt;= 0.2.6), htmlwidgets (&gt;= 0.6),
-##                    jsonlite, magrittr, methods, rmarkdown, shiny,
-##                    igraph
-## RoxygenNote:       6.0.1
-## License:           GPL-v3
-## Built:             R 3.4.2; ; 2018-07-19 02:52:29 UTC; unix
-## RemoteType:        github
-## RemoteHost:        https://api.github.com
-## RemoteRepo:        grapher
-## RemoteUsername:    peekxc
-## RemoteRef:         master
-## RemoteSha:         8ffce0976ad26a2d884cb1e316abcb5f1b879c5f
-## GithubRepo:        grapher
-## GithubUsername:    peekxc
-## GithubRef:         master
-## GithubSHA1:        8ffce0976ad26a2d884cb1e316abcb5f1b879c5f
-## 
-## Index:
-## 
-## %&gt;%                     Chain API calls with an htmlwidget.
-## addEdges                Add selected edges.
-## getDefaultJsonConfig    Creates a default JSON configuration
-## grapher                 Grapher
-## groupSingletons         Group singletons.
-## logNetwork              Logs the network to the rendering console.
-##                         Useful for debugging.
-## removeEdges             Remove selected edges.
-## removeNodes             Remove selected nodes.
-## splitByLabel            Splits nodes by a given labeling
-## updateEdgeColor         Update the edge colors.
-## updateNetwork           Update the network.
-## updateNodeColor         Update the node colors.
-## updateNodeSize          Update the node sizes.</code></pre>
-<p>The grapher instance is fully shiny-compatible. For larger datasets An interactive dashbaord is included to help analyze the Mapper.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># ## Load FICO heloc data set</span>
-<span class="co"># fico &lt;- data.table::data.table(readr::read_csv("~/WaCS/TDA/heloc_dataset_v1.csv"))</span>
-<span class="co"># normalize &lt;- function(x){ (x - min(x))/(max(x) - min(x)) }</span>
-<span class="co"># fico_x &lt;- fico[, -1, with = FALSE]</span>
-<span class="co"># fico_x &lt;- apply(as.matrix(fico_x), 2, normalize)</span>
-<span class="co"># </span>
-<span class="co"># ## Do very basic LDA on Risk Performance</span>
-<span class="co"># fico_lda &lt;- MASS::lda(x = fico_x, grouping = fico$RiskPerformance, prior = c(0.50, 0.50)) # everybody deserves an equal chance</span>
-<span class="co"># f_x &lt;- as.matrix(fico_x) %*% fico_lda$scaling ## Binary classification == 1D subspace </span>
-<span class="co"># fico_m &lt;- Mapper::mapper(fico_x, filter_values = f_x, number_intervals = 50L, overlap = 1/3, return_reference = TRUE)</span>
-<span class="co"># Mapper::dashboard(fico_m, X = fico, node_color_f = "default")</span></code></pre></div>
+<!-- To get the mapper of this circle, first supply the data via the `X` parameter and the filtered values via the  -->
+<!-- `filter_values` argument, e.g. `mapper(X = circ, filter_values = f_x, ...)`. `Mapper` dispatches additional parameters passed in `...` to other methods to further configure the construction. See `?mapper` for more details. To use a primitive multidimensional, 'hyper-rectangular' cover, supply the `number_intervals` and `overlap` parameters. A summary is available with the default print method.  -->
+<!-- ```{r} -->
+<!-- m <- Mapper::mapper(X = noisy_circle, filter_values = f_x, number_intervals = 5, overlap = 0.20) -->
+<!-- m -->
+<!-- ``` -->
+<!-- By default, the core information of the $1$-skeleton of the `Mapper` construction is returned, including: -->
+<!--   1. The vertices of the topological graph, and the indices of the points contained within each vertex -->
+<!--   2. The adjacency matrix of the topological graph.  -->
+<!--   3. The index set of the cover, and the indices of the vertices they contain in each level set. -->
+<!-- This is, in the simplest case, all of the central information one needs prior to doing a more in-depth analysis.  -->
+<div id="interactively-building-the-mapper" class="section level2">
+<h2 class="hasAnchor">
+<a href="#interactively-building-the-mapper" class="anchor"></a>Interactively building the Mapper</h2>
+<!-- For most use-cases, the static method above is sufficient for getting a compact Mapper construction back. However, building the 'right' Mapper may be an interactive process, requiring parameter tuning, exploring alternative filter functions, tweaking clustering algorithms, etc. For large data sets, this iterative fitting process can be prohibitively expensive.  -->
+<p>Internally, Mapper uses <code>R6</code> classes to efficiently compute the simplicial complex. One of the nice benefits of R6 is that it allows <a href="https://adv-r.hadley.nz/R6.html#method-chaining">method chaining</a>. To demonstrate this, consider a very simplified interpretation of the Mapper pipeline: 1. “Filter” the data via a reference map 2. Equip the filter space with a cover 3. Construct the <em>k</em>-skeleton <!-- If more information is required beyond the static construction, the `return_reference` parameter may be set to `TRUE` to access the underlying `MapperRef` object. This is useful in situations where each step of the mapper framework needs fine-tuned, e.g. where the construction is requested under multiple parameter settings.   --></p>
+<p>These steps are demonstrated below using the <code>noisy_circle</code> data set above with the <code>Mapper</code> package.</p>
+<p>The first step is to create a <em>filter</em> of the data. Below is an example of a very simple filter mentioned in the original paper that builds the mapper by looking at the distance from every point <span class="math inline">\(x\)</span> to the point with left-most coordinate, <span class="math inline">\(p\)</span>, i.e.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="co">## 1. Specify a filter function for the data </span></a>
+<a class="sourceLine" id="cb2-2" data-line-number="2">left_pt &lt;-<span class="st"> </span>noisy_circle[<span class="kw">which.min</span>(noisy_circle[, <span class="dv">1</span>]),]</a>
+<a class="sourceLine" id="cb2-3" data-line-number="3">f_x &lt;-<span class="st"> </span><span class="kw">apply</span>(noisy_circle, <span class="dv">1</span>, <span class="cf">function</span>(pt) (pt <span class="op">-</span><span class="st"> </span>left_pt)[<span class="dv">1</span>])</a></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="co">## Bin the data onto a sufficiently high-resolution rainbow gradient from blue (low) to red (high)</span></a>
+<a class="sourceLine" id="cb3-2" data-line-number="2">rbw_pal &lt;-<span class="st"> </span><span class="kw">rev</span>(<span class="kw">rainbow</span>(<span class="dv">100</span>, <span class="dt">start =</span> <span class="dv">0</span>, <span class="dt">end =</span> <span class="dv">4</span><span class="op">/</span><span class="dv">6</span>))</a>
+<a class="sourceLine" id="cb3-3" data-line-number="3">binned_idx &lt;-<span class="st"> </span><span class="kw">cut</span>(f_x, <span class="dt">breaks =</span> <span class="dv">100</span>, <span class="dt">labels =</span> F)</a>
+<a class="sourceLine" id="cb3-4" data-line-number="4"><span class="kw">plot</span>(noisy_circle, <span class="dt">pch =</span> <span class="dv">20</span>, <span class="dt">asp =</span> <span class="dv">1</span>, <span class="dt">col =</span> rbw_pal[binned_idx], <span class="dt">xlab =</span> <span class="st">"X"</span>, <span class="dt">ylab =</span> <span class="st">"Y"</span>, <span class="dt">main =</span> <span class="st">"Circle"</span>)</a></code></pre></div>
+<p><img src="UsingMapper_files/figure-html/unnamed-chunk-3-1.png" width="700"></p>
+<div id="building-the-cover" class="section level3">
+<h3 class="hasAnchor">
+<a href="#building-the-cover" class="anchor"></a>Building the cover</h3>
+<p>Once the filter function has been applied to the data, a cover must be constructed over the function values. Here, a simple rectangular cover with fixed centers is used.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="co">## 2. Create cover of the filter space</span></a>
+<a class="sourceLine" id="cb4-2" data-line-number="2">rec_cover &lt;-<span class="st"> </span>FixedRectangularCover<span class="op">$</span><span class="kw">new</span>(<span class="dt">filter_values =</span> f_x)</a></code></pre></div>
+<p>The only required argument is the filter point values themselves; cover-specific parameters may optionally be supplied at initialization, or set via assignment.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1">rec_cover<span class="op">$</span>number_intervals &lt;-<span class="st"> </span>5L</a>
+<a class="sourceLine" id="cb5-2" data-line-number="2">rec_cover<span class="op">$</span>percent_overlap &lt;-<span class="st"> </span><span class="fl">0.20</span></a></code></pre></div>
+<p>If you supply a single value when the filter dimensionality <span class="math inline">\(&gt; 1\)</span>, the argument is recycled. The cover summary can be printed as follows:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="kw">print</span>(rec_cover)</a></code></pre></div>
+<pre><code>## Cover: (type = Fixed rectangular, number intervals = [5], overlap = [0.2])</code></pre>
+<p>Once parameterized, the cover may be explicitly constructed via the <code>construct_cover</code> member function before sending to Mapper. The <code>construct_cover</code> function uses the given set of parameters to populate the intersection between the open sets in the cover and the given filter data. If not explicity called, the cover will be constructed when the Mapper reference is made. <code>Mapper</code> accepts any cover that is a valid <code>CoverRef</code> R6 class. If you want to use a cover outside of the ones offers by the package, feel free to derive a new type cover class (and consider submitting a pull request!).</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" data-line-number="1"><span class="co">## 3.  Apply a partial clustering to the data subsets indexed by the cover </span></a>
+<a class="sourceLine" id="cb8-2" data-line-number="2">m &lt;-<span class="st"> </span>Mapper<span class="op">::</span>MapperRef<span class="op">$</span><span class="kw">new</span>(noisy_circle)</a>
+<a class="sourceLine" id="cb8-3" data-line-number="3">m<span class="op">$</span>cover &lt;-<span class="st"> </span>rec_cover<span class="op">$</span><span class="kw">construct_cover</span>()</a></code></pre></div>
+<p>The final step to create a Mapper is to construct the <em>k</em>-skeleton. This step requires a different set of procedures, based on <em>k</em>.</p>
+</div>
+<div id="building-the-0-skeleton" class="section level3">
+<h3 class="hasAnchor">
+<a href="#building-the-0-skeleton" class="anchor"></a>Building the 0-skeleton</h3>
+<p>Since the definition of a <em>k</em>-skeleton is inductive, the first step is to construct the <span class="math inline">\(0\)</span>-skeleton. This amounts to applying a partial clustering over [subsets of] the data within a given metric space, indexed by the level sets given by cover. The choice of clustering algorithm, metric, hyper-parameters, etc. is completely up to the user–the only requirement is that the function take as input at least the data <code>X</code> and a vector of indices <code>idx</code><span class="math inline">\(\subset \{1, 2, \dots, n\}\)</span> and return an integer vector giving a partitioning on the subset <code>idx</code> of the data <code>X</code>. An example of using a custom clustering function using the <code>parallelDist</code> and <code>fastcluster</code> packages is given below, wherein the [single linkage criterion] is used to build a cluster hierarchy, and then a histogram-based heuristic is used to set the <a href="?stats::cutree">cut value</a>. The heuristic is similar to the idea discussed in Section 3.1 of the original Mapper paper.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" data-line-number="1">{ <span class="kw">require</span>(<span class="st">"parallelDist"</span>, <span class="dt">warn.conflicts =</span> <span class="ot">FALSE</span>); <span class="kw">require</span>(<span class="st">"fastcluster"</span>, <span class="dt">quietly =</span> <span class="ot">TRUE</span>, <span class="dt">warn.conflicts =</span> <span class="ot">FALSE</span>) }</a></code></pre></div>
+<pre><code>## Loading required package: parallelDist</code></pre>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" data-line-number="1">custom_clustering_f &lt;-<span class="st"> </span><span class="cf">function</span>(X, idx, num_bins){</a>
+<a class="sourceLine" id="cb11-2" data-line-number="2">  dist_x &lt;-<span class="st"> </span>parallelDist<span class="op">::</span><span class="kw"><a href="http://www.rdocumentation.org/packages/parallelDist/topics/parDist">parallelDist</a></span>(X[idx,], <span class="dt">method =</span> <span class="st">"euclidean"</span>)</a>
+<a class="sourceLine" id="cb11-3" data-line-number="3">  hcl &lt;-<span class="st"> </span>fastcluster<span class="op">::</span><span class="kw"><a href="http://www.rdocumentation.org/packages/fastcluster/topics/hclust">hclust</a></span>(dist_x, <span class="dt">method =</span> <span class="st">"single"</span>)</a>
+<a class="sourceLine" id="cb11-4" data-line-number="4">  <span class="kw"><a href="../reference/cutoff_first_bin.html">cutoff_first_bin</a></span>(hcl, <span class="dt">num_bins =</span> num_bins)</a>
+<a class="sourceLine" id="cb11-5" data-line-number="5">}</a>
+<a class="sourceLine" id="cb11-6" data-line-number="6">m<span class="op">$</span>clustering_algorithm &lt;-<span class="st"> </span>custom_clustering_f</a></code></pre></div>
+<p>The user may alternatively choose from the list of widely-supported linkage criteria and distance measures used in hierarchical clustering with the <code>set_clustering_algorithm</code> and <code>set_distance_measure</code> functions, respectively.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" data-line-number="1">m<span class="op">$</span><span class="kw"><a href="../reference/use_clustering_algorithm.html">use_clustering_algorithm</a></span>(<span class="dt">cl =</span> <span class="st">"single"</span>)</a>
+<a class="sourceLine" id="cb12-2" data-line-number="2">m<span class="op">$</span><span class="kw">use_distance_measure</span>(<span class="dt">measure =</span> <span class="st">"euclidean"</span>)</a></code></pre></div>
+<p>For a complete list of the available linkage criteria and distance/similarity measures, see <code><a href="http://www.rdocumentation.org/packages/stats/topics/hclust">?stats::hclust</a></code> and <code><a href="http://www.rdocumentation.org/packages/proxy/topics/registry">?proxy::pr_DB</a></code>, respectively.</p>
+<p>Once these have been set, the <span class="math inline">\(0\)</span>-skeleton is computed with the <code>compute_vertices</code> function. All parameters passed to <code>compute_vertices</code> are passed via <code>...</code> as hyper-parameters to the clustering algorithm.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb13-1" data-line-number="1">m<span class="op">$</span><span class="kw"><a href="../reference/compute_vertices.html">compute_vertices</a></span>(<span class="dt">num_bins =</span> 10L)</a></code></pre></div>
+<p>The parameters of these functions may be fine-tuned to allow adjusting only specific parts of the skeleton at a time.</p>
+</div>
+<div id="building-the-1-skeleton" class="section level3">
+<h3 class="hasAnchor">
+<a href="#building-the-1-skeleton" class="anchor"></a>Building the 1-skeleton</h3>
+<p>The <span class="math inline">\(1\)</span>-skeleton is computed analogously.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb14-1" data-line-number="1">m<span class="op">$</span><span class="kw">compute_edges</span>()</a></code></pre></div>
+<p>Generally, this is sufficient. However, if the user wishes too, the <span class="math inline">\(k\)</span>-skeleton for any <span class="math inline">\(k &gt; 1\)</span> can also be computed.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb15-1" data-line-number="1">m<span class="op">$</span><span class="kw">compute_k_skeleton</span>(<span class="dt">k =</span> 1L)</a></code></pre></div>
+<p>All the methods can chained.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb16-1" data-line-number="1">m &lt;-<span class="st"> </span>MapperRef<span class="op">$</span><span class="kw">new</span>(noisy_circle)<span class="op">$</span></a>
+<a class="sourceLine" id="cb16-2" data-line-number="2"><span class="st">  </span><span class="kw">use_cover</span>(<span class="dt">filter_values =</span> <span class="kw">matrix</span>(f_x), <span class="dt">type =</span> <span class="st">"fixed rectangular"</span>, </a>
+<a class="sourceLine" id="cb16-3" data-line-number="3">            <span class="dt">number_intervals =</span> 5L, <span class="dt">percent_overlap =</span> <span class="fl">0.20</span>)<span class="op">$</span></a>
+<a class="sourceLine" id="cb16-4" data-line-number="4"><span class="st">  </span><span class="kw"><a href="../reference/use_clustering_algorithm.html">use_clustering_algorithm</a></span>(<span class="dt">cl =</span> <span class="st">"single"</span>, <span class="dt">num_bins =</span> <span class="dv">10</span>)<span class="op">$</span></a>
+<a class="sourceLine" id="cb16-5" data-line-number="5"><span class="st">  </span><span class="kw">use_distance_measure</span>(<span class="dt">measure =</span> <span class="st">"euclidean"</span>)<span class="op">$</span></a>
+<a class="sourceLine" id="cb16-6" data-line-number="6"><span class="st">  </span><span class="kw"><a href="../reference/compute_vertices.html">compute_vertices</a></span>()<span class="op">$</span></a>
+<a class="sourceLine" id="cb16-7" data-line-number="7"><span class="st">  </span><span class="kw">compute_edges</span>()</a></code></pre></div>
+<p>The output of Mapper is a simplicial complex, or in the simplest case (when <span class="math inline">\(k = 1\)</span>), a topological graph. Internally, the complex is stored in a <a href="https://hal.inria.fr/hal-00707901v1/document">Simplex Tree</a>. The underlying simplex tree is exported as an <a href="https://cran.r-project.org/web/packages/Rcpp/vignettes/Rcpp-modules.pdf">Rcpp Module</a>, and is accessible via the <code>$simplicial_complex</code> member.</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb17-1" data-line-number="1">m<span class="op">$</span>simplicial_complex</a></code></pre></div>
+<pre><code>## Simplex Tree with (8, 8) (0, 1)-simplices</code></pre>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb19-1" data-line-number="1">m<span class="op">$</span>simplicial_complex<span class="op">$</span><span class="kw">print_tree</span>()</a></code></pre></div>
+<pre><code>## 0 (h = 1): .( 1 2 )
+## 1 (h = 1): .( 4 )
+## 2 (h = 1): .( 3 )
+## 3 (h = 1): .( 6 )
+## 4 (h = 1): .( 5 )
+## 5 (h = 1): .( 7 )
+## 6 (h = 1): .( 7 )
+## 7 (h = 0):</code></pre>
+</div>
+<div id="visualizing-the-mapper" class="section level3">
+<h3 class="hasAnchor">
+<a href="#visualizing-the-mapper" class="anchor"></a>Visualizing the Mapper</h3>
+<p>The <code>grapher</code> package provides a <a href="https://www.htmlwidgets.org/">htmlwidget</a> implementation of Ayasdi’s Apache-licensed <a href="https://github.com/ayasdi/grapher">grapher</a> library, which can be used to visualize the Mapper network, with options to support nice things like <a href="https://github.com/d3/d3-force">D3 force</a>. The <code>$as_grapher</code> function provides a few default coloring and sizing options.</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb21-1" data-line-number="1"><span class="kw">library</span>(<span class="st">"grapher"</span>)</a>
+<a class="sourceLine" id="cb21-2" data-line-number="2">m<span class="op">$</span><span class="kw"><a href="../reference/as_grapher.html">as_grapher</a></span>()</a></code></pre></div>
+<canvas id="htmlwidget-4f26eefa72a7f0d30d01" class="grapher html-widget" style="width:700px;height:432.632880098888px;"></canvas><script type="application/json" data-for="htmlwidget-4f26eefa72a7f0d30d01">{"x":{"net":{"nodes":[{"id":0,"x":0.1514,"y":0.8591,"r":15,"color":"rgba(0,0,255,255.00)"},{"id":1,"x":0,"y":0.5068,"r":10.8013,"color":"rgba(0,247,255,255.00)"},{"id":2,"x":0.5067,"y":1,"r":10.8769,"color":"rgba(0,255,252,255.00)"},{"id":3,"x":0.8581,"y":0.8516,"r":10.6978,"color":"rgba(0,255,15,255.00)"},{"id":4,"x":0.1397,"y":0.1501,"r":10,"color":"rgba(5,255,0,255.00)"},{"id":5,"x":0.4911,"y":0,"r":10.7757,"color":"rgba(252,255,0,255.00)"},{"id":6,"x":1,"y":0.4948,"r":10.618,"color":"rgba(242,255,0,255.00)"},{"id":7,"x":0.8453,"y":0.1414,"r":14.9778,"color":"rgba(255,0,0,255.00)"}],"links":[{"from":0,"to":1,"color":"#007CFF"},{"from":0,"to":2,"color":"#007CFF"},{"from":1,"to":4,"color":"#00FF81"},{"from":2,"to":3,"color":"#00FF8B"},{"from":3,"to":6,"color":"#6CFF00"},{"from":4,"to":5,"color":"#81FF00"},{"from":5,"to":7,"color":"#FF8600"},{"from":6,"to":7,"color":"#FF8600"}]},"api":[]},"evals":[],"jsHooks":[]}</script><p>To customize the visualization, refer to graphers <a href="">documentation</a>.</p>
+</div>
+<div id="accessing-other-members" class="section level3">
+<h3 class="hasAnchor">
+<a href="#accessing-other-members" class="anchor"></a>Accessing other members</h3>
+<p>The full help pages for are accessible via the <code><a href="../reference/MapperRef.html">?MapperRef</a></code> page or the additional reference pages on the documentation website.</p>
+<p>Below is a brief summary:</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb22-1" data-line-number="1"><span class="kw">str</span>(m<span class="op">$</span>cover<span class="op">$</span>filter_values)          <span class="co">## filter values used to build the cover </span></a></code></pre></div>
+<pre><code>##  num [1:1500, 1] 3.644 0.615 0.51 0.611 3.439 ...</code></pre>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb24-1" data-line-number="1"><span class="kw">str</span>(m<span class="op">$</span>cover<span class="op">$</span>index_set)              <span class="co">## index set of the cover </span></a></code></pre></div>
+<pre><code>##  chr [1:5] "(1)" "(2)" "(3)" "(4)" "(5)"</code></pre>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb26-1" data-line-number="1"><span class="kw">str</span>(m<span class="op">$</span>cover<span class="op">$</span>level_sets)             <span class="co">## level set point memberships</span></a></code></pre></div>
+<pre><code>## List of 5
+##  $ (1): int [1:459] 2 3 4 6 10 12 27 31 34 41 ...
+##   ..- attr(*, "bounds")= num [1:2] -0.105 0.944
+##  $ (2): int [1:269] 6 9 11 13 15 17 21 22 33 42 ...
+##   ..- attr(*, "bounds")= num [1:2] 0.734 1.782
+##  $ (3): int [1:234] 8 13 17 18 20 25 32 36 38 49 ...
+##   ..- attr(*, "bounds")= num [1:2] 1.57 2.62
+##  $ (4): int [1:258] 5 16 19 23 25 26 29 35 37 40 ...
+##   ..- attr(*, "bounds")= num [1:2] 2.41 3.46
+##  $ (5): int [1:456] 1 5 7 14 24 28 30 39 51 55 ...
+##   ..- attr(*, "bounds")= num [1:2] 3.25 4.3</code></pre>
+<div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb28-1" data-line-number="1"><span class="kw">str</span>(<span class="kw">args</span>(m<span class="op">$</span>clustering_algorithm))   <span class="co">## function used to perform the partial clustering </span></a></code></pre></div>
+<pre><code>## function (X, idx, num_bins = num_bins.default)</code></pre>
+</div>
+</div>
   </div>
 
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
+        <div id="tocnav">
+      <h2 class="hasAnchor">
+<a href="#tocnav" class="anchor"></a>Contents</h2>
+      <ul class="nav nav-pills nav-stacked">
+<li><a href="#interactively-building-the-mapper">Interactively building the Mapper</a></li>
+      </ul>
+</div>
       </div>
 
 </div>

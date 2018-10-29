@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Topological Data Analysis using Mapper • Mapper</title>
-<!-- jquery --><script src="https://code.jquery.com/jquery-3.1.0.min.js" integrity="sha384-nrOSfDHtoPMzJHjVTdCopGqIqeYETSXhZDFyniQ8ZHcVy08QesyHcnOUpMpqnmWq" crossorigin="anonymous"></script><!-- Bootstrap --><link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+<!-- jquery --><script src="https://code.jquery.com/jquery-3.1.0.min.js" integrity="sha384-nrOSfDHtoPMzJHjVTdCopGqIqeYETSXhZDFyniQ8ZHcVy08QesyHcnOUpMpqnmWq" crossorigin="anonymous"></script><!-- Bootstrap --><link href="https://maxcdn.bootstrapcdn.com/bootswatch/3.3.7/simplex/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script><!-- Font Awesome icons --><link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-T8Gy5hrqNKT+hzMclPo118YTQO6cYprQmhrYwIiQ/3axmI1hQomh7Ud2hPOy8SP1" crossorigin="anonymous">
 <!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.7.1/clipboard.min.js" integrity="sha384-cV+rhyOuRHc9Ub/91rihWcGmMmCXDeksTtCihMupQHSsi8GIIRDG0ThDc3HGQFJ3" crossorigin="anonymous"></script><!-- sticky kit --><script src="https://cdnjs.cloudflare.com/ajax/libs/sticky-kit/1.1.3/sticky-kit.min.js" integrity="sha256-c4Rlo1ZozqTPE2RLuvbusY3+SU1pQaJC0TjuhygMipw=" crossorigin="anonymous"></script><!-- pkgdown --><link href="pkgdown.css" rel="stylesheet">
 <script src="pkgdown.js"></script><meta property="og:title" content="Topological Data Analysis using Mapper">
@@ -18,7 +18,7 @@
 <![endif]-->
 </head>
 <body>
-    <div class="container template-home">
+    <div class="container template-article">
       <header><div class="navbar navbar-default navbar-fixed-top" role="navigation">
   <div class="container">
     <div class="navbar-header">
@@ -29,7 +29,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">Mapper</a>
-        <span class="label label-default" data-toggle="tooltip" data-placement="bottom" title="Released package">0.5.0</span>
+        <span class="label label-danger" data-toggle="tooltip" data-placement="bottom" title="Unreleased package">0.6.0</span>
       </span>
     </div>
 
@@ -55,10 +55,7 @@
       <a href="articles/UsingMapper.html">Using the Mapper package</a>
     </li>
     <li>
-      <a href="articles/test_map.html">R Notebook</a>
-    </li>
-    <li>
-      <a href="articles/test_reverse.html">R Notebook</a>
+      <a href="articles/xaringan.html">Presentation Ninja</a>
     </li>
   </ul>
 </li>
@@ -73,18 +70,116 @@
 
       
       </header><div class="row">
-  <div class="contents col-md-9">
-    <div id="mapper" class="section level1">
+  <div class="col-md-9 contents">
+    
+
+    
+    
+<div id="r-implementation-of-mapper" class="section level1">
 <div class="page-header"><h1 class="hasAnchor">
-<a href="#mapper" class="anchor"></a>mapper</h1></div>
-<p><img src="https://img.shields.io/travis/com/peekxc/mapper.svg?token=Hx3A92eGgRqqiu1NfKUb&amp;branch=master" alt="Travis-CI Linux Build Status"></p>
-<p><img src="https://img.shields.io/travis-ci/com/peekxc/mapper.svg?&amp;env=BADGE=osx&amp;label=build&amp;branch=master&amp;logo=data%3Aimage%2Fpng%3Bbase64%2CiVBORw0KGgoAAAANSUhEUgAAAMwAAAD4CAMAAACXF%2Fl7AAAAJ1BMVEUAAADT09PU1NTW1tbZ2dne3t7y8vLT09PV1dXX19fZ2dnb29ve3t6GwIgJAAAAB3RSTlMAnZ2dnZ2dLboFEAAAAvxJREFUeAHt3OFuIkkMReE7mRpcvuH9n3f%2FROpdKcpOJ4aqPvi8APlidwMFQjvVdV13nylC%2FkiXL2wIZvrfDV249H%2B7X%2FpKoWD8EWDNwp%2BlKzZsDMbmYMzBTHMw%2FiqSxSTLL5DFJItJFpMsv0EWA54rj0iDGSCLdZXS%2F1v0YBZkECZ6MHuWPZi27ICJvpUtqJesB1NbvycboMFEn8gs6dcrHZUJhBEHk%2BJgpjiYAfrIT8JgQhwM6HsYFgYzJQbmoACumaELB7hUjra6FXfduN%2F%2FDC1oeEZkRhTcnd78SW%2FrntHzIe%2Bppx7Z79ovV9jLPkwvfmT%2FdQs%2B%2Bjq1b8OnmtVTKfxPhk8X9ZQKjr9ZVFJqFiP9g%2FTTsvCxp48WaEbdo7uiqN%2BwM2WOP850VSst9Y3qA6%2BlBWEsRySLTbLYJItNstgkixNksSfIYiMsJzRhjmYYhGnLlhRNX6V8rTsZiKIBsohkmSCLSJYJsghj6cEsKFFLBsLoBTHRg%2BmTsocf%2FkcPpjEPt0wvqAeDwAQJo4dfMr1ljVFjLo8J1mAa05jGvJEwasz1MTcS5p2Emd6zxoQ3LxsDWLMkYaIxjWlMvwLoF5q7PWveaWcAjWlMYyYJ48Zs22tiovfsuUVfNNvWmKtrskfz7Kb66%2BbX1pikyR7NglCYJGFswKnm0UCNBoUxCuN9Ma0ZJIynvixs0KqZpLHNWbX05SKNxg4Q5ovppEkcXzQ%2BJnrPlhckjPgYCYVJkEVqzKYWDRJGjel3zyUF6WDjpY4DA2SRUJgAWSQUJkAWCYWZ%2FcWgJ5eXx%2FQvUbF%2B8CBJGJEs2t9C0YRAGoEwEkeTAmkEwkgcTQik0fcjWRTeqylxRqOfRbJogCxSAO7KGy6aKiJZpF0tjVEALv6NZiNxNBJHI3E0Ekcj7aIZOhr7WKSa9x6x3nL27yj6bC70uEbZX3B%2BSdesWt1P3unRzbrjxnVjOcrC84asHksRJyovw6EnVnsGFOd3tbr3SDvj%2Faaabvf7TV3XdWf7B1Mhcamft2WLAAAAAElFTkSuQmCC" alt="Travis-CI Linux Build Status"><img src="https://img.shields.io/travis-ci/com/peekxc/mapper.svg?&amp;env=BADGE=linux&amp;label=build&amp;branch=master&amp;logo=data%3Aimage%2Fpng%3Bbase64%2CiVBORw0KGgoAAAANSUhEUgAAANIAAADQCAMAAABFj897AAAAaVBMVEUAAAAzMzM0NDQ2NjY3Nzc4ODg6Ojo7Ozs9PT1DQ0NHR0dISEhNTU1OTk5PT09VVVVYWFhaWlpbW1tpaWl4eHh7e3t9fX1%2Ff3%2BCgoKSkpKXl5ecnJyfn5%2BkpKSqqqrY2NjZ2dnj4%2BPm5uaXkaJPAAAAAXRSTlMAQObYZgAABVtJREFUeAHt3dt228YShOGxt%2Fdhx0nlEFpRDgn%2B5P0fMhdZhmWDI9NdjUZDi3XLMTmfiwJALAww7rnnnv5hmvNjJjm%2F5pQugnkpnqVWZXjislOBlpN9AUlNf9ByOhS7pCHIz1lAep%2BmqKBmzaUb6ou2Bprks%2B%2FQtSE9kzZN%2BaBmJgxRwER%2FUTsTtihgor%2FINzUW%2BaZ80VJEogMIKdVEiQgqSTQXNTBRQKo10YNEW1EDEwWkWhOdSBwmQlUmX7QcTfJN1JQkykx0JOGLUkmT1ykyYZNgNnWLRL2IWSNwpMknbSd%2FhV1KwiRtJ49F8k3sTcIi4Yh8Ek9n%2FSAZJMOETeI6SZKUQuIQkqQ2JNJIekpaGRHSYpkoIWG2BNWkVeK35JNIIl0%2BJimdREy0BEna7pAkJZMIkbBJfMhBJBJy%2BUCaHv0pRloCJsisiU0s0gZliAIkraJrKMVIm9SSJGaR6kgkkm5A%2ByQqSTyfKhJ5JPgSE7uZCkU8lpB4ksUl%2FZ9Zfn31HUASicLv3X%2B5njfvAFAFiVwSb7iSt18nbx%2BgiCSAf%2FFpfvzPOqaCRCpJAF99y9P8%2FPqPD0NII2GQAscOr3%2FifX54%2FRtPRBTUZG7rZifu%2Fvfv73%2F5%2Fd3bV9%2FAU1EFieSWQHp%2Br5VGoox01SRdKNrmscufkniaT5DKNxWQ0Fx0HtLmJMoElGoqLGl%2BGX8uiZqS5pmQ1J9UaSoQBUieqUlJcAKSTJLakWSQTNPuInG0KZ1EnKROJPUl%2BSLhmBqQHBHKMhWXVG%2BqFdWTfJGwTQ1Iskl%2FWqa9SbF%2F%2B5dryiV5s9E%2FwSeliwhORkmmRiRWhGfySWmiVZJM8kUBkmGqIK0ih0QdyS%2FJr6mepBQSVSS%2FJN9UT9IepEeTlF%2BSbzJI9kT00kh%2BSf4hRBLpIZ8kOJQkezfr1zQnLc4s%2BpGi0T4kOpAyRHCVJINkiFJJ2pN0J2HnKumxkKQakgzS0oOESfJbWudweXkkEnIwSXfSbREppNGIxJZ0CYgs0mpiN9NRpCzJwwZ1EAmlX2JQT1I%2B6ZOLzCeiEpLIiAQfoxzSaEGa7Z8CIp%2BkZNJa1IEk%2BSCJicklLTFT%2FuJBnxSdRY5J%2BaThfFN8kwToGjIuGoYIZKIkza70N0iGyDdJzy7HqCHNbv1kiJB05b%2FIuFdtaBY5JonVdKV0SQVX80sPTEyKky6z3YLkkpbI4matCZOYiJBkLo0JiByT9NmqpYhoBHeKvklXjlfTScuzHs1eDJqk0JglZTHgOlvf5JNuEA0DtCGpB2kYbxswmaQlYUG3cZ8Nn%2FSwHVRDIkZ6tN1jGlcUqkmyR40dSexGepRCpJFKUiYJSRGRT2I3EkHS8D85QvIGjjOTFCEN%2F5ONzUPINAKkqCmdRICUUxN5xw6TmpaNqIBEjBQYPAyThG9KJw2TZJgOJY38z84SIQVENsk%2FzJlHUdJwRbfPVZJMkWGSyDYpX%2BSTHFPgJgrESSNBxI03bo2BVpFhiq%2FDTPgFIkuUT5J506sVZJJGHun53PQul%2FQHXSwxEhmk6ZgRSE1NQdAqckySykmSSBJNapJKSHPR4pKGt2%2FkYpKkgsdkfem2as38FVdkmAKuGxZMSK7IMM1p5kl0%2B%2BSqYVqmLuvXhS3ye5qjAiKQfJFlmqMCoulA%2BSLTtN6SfmsMmSRhiQyTcYA9E2wqWo59rHDAc%2B0xMm0f%2Fpxxffbii3yTp2r%2BIHU%2FvqiPafFF%2FVA%2BqL1p7Ja2IiN9RUb6g%2FqbRkWWriAjfUUNUIsBOmFToz79Qa1Q47j0BRnpDmqAGk3S09MANdrlpXk81eid83Mc1zhfzoy55557%2FgbTCCsVPb17rAAAAABJRU5ErkJggg%3D%3D" alt="Travis-CI Linux Build Status"><img src="https://img.shields.io/appveyor/ci/peekxc/clustertree.svg?logo=data%3Aimage%2Fpng%3Bbase64%2CiVBORw0KGgoAAAANSUhEUgAAAIAAAACACAQAAABpN6lAAAAIwUlEQVR42u1deWxURRgvVy9KAbWcpSnlqFAlESwiClXAA08koEQF0Ygaj4QjIOD5B0W5TFAwQBRBIvGKIkEBFRWVhKigIG1n5r3d7bbddru9sOUo57jLmyVt2a3lfft7vm068w%2Fsbt98329mfvN933wzLyamrbSVthL5IrvwMUZ13Vk8ufDu%2FBzjf1X9ZMfWrvoA5mZuXsZlqCpqWLH%2F230yofUpnshyte9Cqx26OtazXNmtNajeXsu6HMWbVvcIZ89oVn8g%2B4uifqAyn%2F6J7BCFyp%2FMKFpLVb7hlPDcHFXqlyyOnPINal%2FZLjqGfhJE%2FUDdU3hdFADAXoYB4K%2Byu%2B0B4K8jAQi24nnCtgBoOk599wY1zW7kUnOyj2xoNsmOyP4%2FNEqNsqPBT0re4BNlJzsxwFYkAHzkBZBjWW0ja6Ga74ysv0IBYDuUAtsH2nAMDmktfM1WyzSS4hlstXOL%2F1knKQzwJ059Ld9ooyynuV9VLxSjWLbs3FJzXXZn2cUTG8Hcg7IGAPv%2FKzU0hfe%2FfysKGWe8Yp7MCKN4Vzkm8AsmhCfcSmNmEA3DL4EyDsoyUvxGYQAvULA%2FVRuPYgHgP5tW39mTnwIKpnpGewILgGe0aQAcadAVQM1m5x4sADYlwIsM0A7bivMjmwIgflQT4HkwA6w0rf6hVKhgaxTI72ABkJnmTaApUMGuNVpxfWVbBmB78EYwmmccX9qVAnWjjcYma%2BRr%2FkN2pcDH1SjbjwWgfpB5I7g%2F1Di5SXkBh8AUaD4Ez5ZDBetoBQNwF2ECODZaYAT1xQJwZKhNGaB0rGrjPJRn6r3m4wCyG1C08%2FogI3SBBYBVBJdau02AOiPo6R4KBsBHmQC%2F4gQrqFVe4BgsA5xIsykDyOFWrADinG33Aqxxg7WfCACUvoQTTD9otOEbjgWA7aC4QSeAon2v2ngWC0Bdlnk3OJWfwQlW%2FLQygsFeAKH%2FC66FCtbOCgp0byYA4JtmAQVmgL2A1%2BzqBqsIHd%2BEBcA10Y4JMQEAXlQM8I1tGUCbCjWCEqxggOL3CQCI2fie8fYAG0H32ZQBCp9UbeSDKXCCeQboBBVskgKA2TYQVobdC%2Bh6gWXiRDU0FL6PYgSvwzPA%2FmTwbjDJDXaFsKoWselsem2mTG6a2irjZErgOzFTa8Gsdi5RwZZd4DXgCvMM0NBFLea72dbLCSqxLmw3280rwvpnfaxwg3khIRAmRwQf4%2B1%2FJMmkHZHsDmnmiirDBpApYDdYpzDAQf8aulj2iUBmXiKbw%2F9oJFqJ8U3eePAKkEERe2z44SM7FA3QrgtU982eCZ77vA%2BX3Ft8a%2F5w47PQKa51PdgBcVaNgB%2BMz4qW2tYIDqt6P5bH8ngBr2vGxncEfiMHhhhVmcb%2Bn4y1wggmBcKa9rh3HF9cdNlem76LL5J9mzwrhS9V%2F%2BoFZoCtEVDdk6j34wepmx9lQ1mIDF2%2BEMwAWdR%2B78L3ahGy1IXDsezScJsLygGEQzh%2BL2CW521ABGC2I%2B2Slt7kgDMIjl%2BLphH63nkb0DpfGgLwHuw4PxmxuX%2F81BDi4Nf%2FBgKwLMyo6%2BOMQJqs4wv%2BAPmcMtgNXqhsgDtDieqaxL%2Fgp009t5J9YniY9INR0HTF473VKPspMFhliEOTrvij3V2fXc4zS3J9SUHbIhIHo%2BZaYZ01%2BOy9UGdBZPt%2FBvJZ2lz9l7DR3u1iNp%2FV1M4wppM%2BiACAaxtO%2FfJ5odOuRFHBLVWpzW3RynQ5TI6QOTJL9gp%2FkEom6eMumGCjKVMAyQDjVbj1cIjvqplbrDcv97Fe%2Fr8vNZ7lSzK%2FAjwGDVENDrTxaYdwVy1cCJdu42%2Bw3JpuLSbtVJarvxO5pNiteAZgfVr6%2B8r7tSwxJFBlkkyU8f6aIJONT5zDqsMsnPWZFBtgJ079mleVh5FpIpdAF1wU%2BCvXHS3NPLQdA5SlqKzgz6E8c4RiBPUECnbWCK3BI4F7KV7ADqBgTLUxFuwGX0WJBDuB29RbrDh8oZUS%2Br%2F4CmjPqOsRyldAN903UgDoa7ERjAiErSMAULYKmBK3TW2H3wBmgM52NYI3qTbsGwp3Qg9HO%2B9VrtYHyFb0Fyj9PzH6GUBMpjDAfGCu3iZrzoWQruZCCpb%2FnGrje2jazdeULRDo6XA%2BQ8UB9kIBoNxFxV%2BFDs3g2dBjwFZOe0n3gwBtAKdyT2RXqAl0gnQhG3RxUhG6glroNCunuMHQpFh2vYoEQQGQcQQAyp8BinbeiNCUpYh6YCtVpL0AhowDnFeT7GroKKOlQ3DgFTmyPz7a6De1ZpEyQKLfCKZth94BjNDkWRBtlK4dNAbwAefmftX%2FM6BO0ApSHpA4CmSAbMUA0ECYpKREFKRbkakD9gIpNmDlBAsY4EroBNhFWwKRffO2amMNNBQ%2BhbICxCNFq1JH1rT3oWtAOmUFeBA6N2NtbwM4HgGKdiaY34FUv3YSLSMoD%2BgGP6NAfheadEE5FoPtG%2F0uNQF%2BB64AlaT8MJYLZYB4BcBZoKXppS2BK%2FHkhM0HkENJAOjf4kSruMeCYAv1VAg%2BIwx8BP8Xmhs8JGx4YYu2jL3StIol7s0tFq7OYABwtHE7rf9%2FboKnk3H3U%2F991k4OYNxfmneij6o2RkIZoDcJANFgeRIfsuwga7csncbXi2VzEU4030yVDzDN9gzg%2BJitNn%2FCUnYsmyI2XHrXjBUXpOiraAzQ3T%2BHqmRSTESK%2BIbVNNymUm0kQClwAQ2A6%2FldkXy7j0zQJ10UTl2RpEMnQKQ6L6KFrXX4bQt9uQJgAXAC5MXYtdQPDmb083NAO2NyjN2LjIUywO32B6BdyXwNdkmKrV7A08wBnPiaHIincWtM9BTZic1x%2FhDBwT%2BftBX%2Bf5Wia9gBcorM4YpHYqK5FKSXmr4%2BVf9WDGklb6%2BtSmW5jvUtVt2nvcVyW%2BEbawN7EqemBl7XK0q1miZKHxOlgW9K58jEmNZfZOfqtOArm43qySRlfbeVttJWmi%2F%2FAtEGQW7FhfnYAAAAAElFTkSuQmCC" alt="Appveyor Windows Build Status"></p>
-<p>R package for computing the Mapper construction from Topological Data Analysis</p>
-<p>See the quick vignette <a href="vignettes/UsingMapper.Rmd">on using this package</a></p>
+<a href="#r-implementation-of-mapper" class="anchor"></a>R implementation of Mapper</h1></div>
+
+<p>The <strong>Mapper</strong> package provides a configurable impementation of the <em>mapper</em> framework. The package includes:</p>
+<p><img src="reference/figures/mapper_logo.png" width="150" style="margin-left: 15px;" align="right"></p>
+<ul>
+<li><p>Chainable <a href="https://github.com/r-lib/R6">R6 class generators</a> for efficiently generating <em>mappers</em></p></li>
+<li><p>Easy to use-and-customize default components for people unfamiliar with Mapper</p></li>
+<li><p>Several tools for visualizing the <em>mapper</em> constructions</p></li>
+<li><p>Options to export the <span class="math inline">\(1\)</span>-skeleton to any graph-based representation.</p></li>
+</ul>
+<p>The package was designed to make modifying or extending the <em>mapper</em> construction process simple and efficient, without limiting Mappers generality.</p>
+<div id="getting-started" class="section level3">
+<h3 class="hasAnchor">
+<a href="#getting-started" class="anchor"></a>Getting started</h3>
+<div id="installation" class="section level4">
+<h4 class="hasAnchor">
+<a href="#installation" class="anchor"></a>Installation</h4>
+<p>Install the <strong>Mapper</strong> package from github as follows:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">require</span>(<span class="st">"devtools"</span>)</a>
+<a class="sourceLine" id="cb1-2" data-line-number="2">devtools<span class="op">::</span><span class="kw"><a href="http://www.rdocumentation.org/packages/devtools/topics/install_github">install_github</a></span>(<span class="st">"peekxc/mapper"</span>)</a></code></pre></div>
+<p>A CRAN release is planned for the near future.</p>
+</div>
+<div id="creating-a-complex" class="section level4">
+<h4 class="hasAnchor">
+<a href="#creating-a-complex" class="anchor"></a>Creating a complex</h4>
+<p>Mapper takes as input a point cloud <span class="math inline">\(X\)</span> and a reference map <span class="math inline">\(f : X \to Z\)</span>, and returns a topological summary of <span class="math inline">\(X\)</span> expressed via a cover equipped on the codomain of the map. Here’s an example where points are sampled from an ‘eight-curve’ in <span class="math inline">\(\mathbb{R}^2\)</span>:</p>
+<p><span class="math display">\[g(t) = [\cos(t), \sin(t)\cos(t)],\; t \in \Big(-\frac{1}{2}\pi, \frac{3}{2}\pi\Big)\]</span> In the example below, <span class="math inline">\(X\)</span> is sampled from <span class="math inline">\(g\)</span>, and the map chosen is simply the <span class="math inline">\(x\)</span>-coordinate of the shape, <span class="math inline">\(Z = f(X) = x_1\)</span>.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1">t &lt;-<span class="st"> </span><span class="kw">seq</span>(<span class="op">-</span><span class="fl">0.5</span><span class="op">*</span>pi, (<span class="dv">3</span><span class="op">/</span><span class="dv">2</span>)<span class="op">*</span>pi, <span class="dt">length.out =</span> <span class="dv">100</span>)</a>
+<a class="sourceLine" id="cb2-2" data-line-number="2">eight &lt;-<span class="st"> </span><span class="kw">cbind</span>(<span class="dt">x1=</span><span class="kw">cos</span>(t), <span class="dt">x2=</span><span class="kw">sin</span>(t)<span class="op">*</span><span class="kw">cos</span>(t))</a>
+<a class="sourceLine" id="cb2-3" data-line-number="3">f_x &lt;-<span class="st"> </span><span class="kw">matrix</span>(<span class="kw">cos</span>(t))</a>
+<a class="sourceLine" id="cb2-4" data-line-number="4"></a>
+<a class="sourceLine" id="cb2-5" data-line-number="5"><span class="co">## Use a rainbow palette </span></a>
+<a class="sourceLine" id="cb2-6" data-line-number="6">rbw_col &lt;-<span class="st"> </span><span class="kw">rainbow</span>(<span class="kw">length</span>(f_x), <span class="dt">start =</span> <span class="dv">0</span>, <span class="dt">end =</span> <span class="dv">4</span><span class="op">/</span><span class="dv">6</span>)</a>
+<a class="sourceLine" id="cb2-7" data-line-number="7">col &lt;-<span class="st"> </span>rbw_col[<span class="kw">cut</span>(f_x, <span class="kw">length</span>(f_x), <span class="dt">labels =</span> <span class="ot">FALSE</span>)]</a>
+<a class="sourceLine" id="cb2-8" data-line-number="8"></a>
+<a class="sourceLine" id="cb2-9" data-line-number="9"><span class="co">## View the data along with the mapping </span></a>
+<a class="sourceLine" id="cb2-10" data-line-number="10"><span class="kw">layout</span>(<span class="kw">matrix</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">2</span>, <span class="dt">nrow =</span> <span class="dv">1</span>))</a>
+<a class="sourceLine" id="cb2-11" data-line-number="11"><span class="kw">plot</span>(eight, <span class="dt">pch =</span> <span class="dv">20</span>, <span class="dt">col =</span> col, <span class="dt">main =</span> <span class="kw">expression</span>(X <span class="op">%subset%</span><span class="st"> </span>R<span class="op">^</span><span class="dv">2</span>))</a>
+<a class="sourceLine" id="cb2-12" data-line-number="12"><span class="kw">stripchart</span>(f_x, <span class="dt">pch =</span> <span class="st">"|"</span>, <span class="dt">main =</span> <span class="kw">expression</span>(<span class="kw">f</span>(X) <span class="op">%subset%</span><span class="st"> </span>R)) </a>
+<a class="sourceLine" id="cb2-13" data-line-number="13"><span class="kw">points</span>(<span class="kw">cbind</span>(f_x, <span class="dv">1</span>), <span class="dt">pch =</span> <span class="st">"|"</span>, <span class="dt">col =</span> col, <span class="dt">cex =</span> <span class="dv">2</span>)</a></code></pre></div>
+<p><img src="reference/figures/figure_eight.png" width="100%"></p>
+<p>Below is a possible way to construct a <em>mapper</em> of the data visualized with the <a href="">grapher</a> package.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1">m &lt;-<span class="st"> </span>MapperRef<span class="op">$</span></a>
+<a class="sourceLine" id="cb3-2" data-line-number="2"><span class="st">  </span><span class="kw">new</span>(<span class="dt">X =</span> eight)<span class="op">$</span><span class="st">                                             </span></a>
+<a class="sourceLine" id="cb3-3" data-line-number="3"><span class="st">  </span><span class="kw">use_cover</span>(<span class="dt">filter_values =</span> f_x, </a>
+<a class="sourceLine" id="cb3-4" data-line-number="4">            <span class="dt">type =</span> <span class="st">"restrained rectangular"</span>, </a>
+<a class="sourceLine" id="cb3-5" data-line-number="5">            <span class="dt">number_intervals =</span> <span class="dv">10</span>, <span class="dt">percent_overlap =</span> <span class="fl">0.50</span>)<span class="op">$</span></a>
+<a class="sourceLine" id="cb3-6" data-line-number="6"><span class="st">  </span><span class="kw">use_distance_measure</span>(<span class="dt">measure =</span> <span class="st">"euclidean"</span>)<span class="op">$</span></a>
+<a class="sourceLine" id="cb3-7" data-line-number="7"><span class="st">  </span><span class="kw"><a href="reference/use_clustering_algorithm.html">use_clustering_algorithm</a></span>(<span class="dt">cl =</span> <span class="st">"single"</span>)<span class="op">$</span></a>
+<a class="sourceLine" id="cb3-8" data-line-number="8"><span class="st">  </span><span class="kw">compute_k_skeleton</span>(<span class="dt">k =</span> 1L)</a>
+<a class="sourceLine" id="cb3-9" data-line-number="9"></a>
+<a class="sourceLine" id="cb3-10" data-line-number="10"><span class="co">## Visualize interactively </span></a>
+<a class="sourceLine" id="cb3-11" data-line-number="11">m<span class="op">$</span><span class="kw"><a href="reference/as_grapher.html">as_grapher</a></span>() <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">center</span>()</a></code></pre></div>
+<p><img src="reference/figures/figure_eight_grapher.png" width="100%"></p>
+<!-- ## Sphere example  -->
+<!-- TODO -->
+<!-- Show rgl + grapher shiny example to better demonstrate the concept of the pullback  -->
+<!-- ```{r} -->
+<!-- # xyz <- replicate(3L, rnorm(5000)) -->
+<!-- # sphere <- t(apply(xyz, 1, function(x) x/norm(matrix(x), type="F"))) -->
+<!-- # filter_pts <- sphere[, c(3, 1)] -->
+<!-- #  -->
+<!-- # sphere_mapper <- MapperRef$ -->
+<!-- #   new(sphere)$ -->
+<!-- #   use_cover(filter_pts, "fixed rectangular", number_intervals = 6, percent_overlap = 0.15)$ -->
+<!-- #   use_distance_measure(measure = "euclidean") -->
+<!-- # sphere_mapper$clustering_algorithm <- function(X, idx){ -->
+<!-- #   rep(1L, length(idx)) -->
+<!-- # } -->
+<!-- #  -->
+<!-- # sphere_mapper$compute_k_skeleton(k = 1L) -->
+<!-- ``` -->
+<!-- # ```{r} -->
+<!-- # data("chemdiab", package="locfit") -->
+<!-- # colnames(chemdiab) <- c("RelativeWeight", "FastingPlasmaGlucose", "ToleranceTestAUC",  -->
+<!-- #                         "InsulinCurveAUC", "SteadyStatePlasmaGlucoseResponse",  -->
+<!-- #                         "DiabetesClassification") -->
+<!-- #  -->
+<!-- # chem_ica <- ica::icafast(chemdiab[, 1:5], nc = 3) -->
+<!-- #  -->
+<!-- # m <- MapperRef$ -->
+<!-- #   new(X = as.matrix(chemdiab[, 1:5]))$                                              -->
+<!-- #   use_cover(filter_values = chem_ica$S,  -->
+<!-- #             type = "restrained rectangular",  -->
+<!-- #             number_intervals = 5, percent_overlap = 0.35)$ -->
+<!-- #   use_distance_measure(measure = "euclidean")$ -->
+<!-- #   use_clustering_algorithm(cl = "single", num_bins = 5L)$ -->
+<!-- #   compute_k_skeleton(k = 1L) -->
+<!-- #  -->
+<!-- #  -->
+<!-- #  -->
+<!-- # with(chemdiab, { -->
+<!-- #   matchlevels(DiabetesClassification) -->
+<!-- # }) -->
+<!-- #  -->
+<!-- # m$as_grapher() %>% setNodeColor(color = ) -->
+<!-- # ``` -->
+</div>
+</div>
 </div>
   </div>
 
-  <div class="col-md-3" id="sidebar">
+  <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <div class="links">
 <h2>Links</h2>
 <ul class="list-unstyled">
@@ -107,7 +202,16 @@
 </ul>
 </div>
 
-  </div>
+      <div class="dev-status">
+<h2>Dev status</h2>
+<ul class="list-unstyled">
+<li><a href="https://cran.r-project.org/package=reticulate"><img src="https://www.r-pkg.org/badges/version/reticulate" alt="CRAN_Status_Badge"></a></li>
+<li><a href="https://travis-ci.org/rstudio/reticulate"><img src="https://travis-ci.org/rstudio/reticulate.svg?branch=master" alt="Travis-CI Build Status"></a></li>
+<li><a href="https://ci.appveyor.com/project/rstudio/reticulate"><img src="https://ci.appveyor.com/api/projects/status/github/rstudio/reticulate?svg=true" alt="Appveyor Build Status"></a></li>
+</ul>
+</div>
+</div>
+
 </div>
 
 

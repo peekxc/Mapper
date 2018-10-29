@@ -27,6 +27,7 @@
 #' @encoding UTF-8
 #' @references Singh, Gurjeet, Facundo Memoli, and Gunnar E. Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.
 #' @useDynLib Mapper
+#' @export
 MapperRef <- R6::R6Class("MapperRef", 
   private = list(.X=NA, .cover=NA, .clustering_algorithm=NA, .measure=NA, .simplicial_complex = NA, .vertices=list(), .cl_map=list(), .config=NA),
   lock_class = FALSE,  ## Feel free to add your own members
@@ -114,7 +115,7 @@ MapperRef$set("public", "use_clustering_algorithm",
           }
           dist_x <- dist_f(X[idx,])
           hcl <- fastcluster::hclust(dist_x, method = cl)
-          cutoff_first_bin(hcl, num_bins)
+          cutoff_first_bin(hcl, diam = max(dist_x), num_bins)
         }
       }
       self$clustering_algorithm <- create_cl(cl = cl, num_bins.default = force(num_bins))
@@ -144,19 +145,21 @@ MapperRef$set("public", "use_distance_measure", function(measure){
 })
 
 
-MapperRef$set("public", "use_cover", function(filter_values, type=c("fixed rectangular", "restrained rectangular"), ...){
+MapperRef$set("public", "use_cover", function(filter_values, typename=c("fixed rectangular", "restrained rectangular"), ...){
   stopifnot(is.matrix(filter_values))
   stopifnot(nrow(filter_values) == nrow(private$.X))
-  if (missing(type)){ type <- "fixed rectangular"}
-  self$cover <- switch(type, 
+  if (missing(typename)){ typename <- "fixed rectangular"}
+  self$cover <- switch(typename, 
     "fixed rectangular"=FixedRectangularCover$new(filter_values, ...)$construct_cover(), 
     "restrained rectangular"=RestrainedRectangularCover$new(filter_values, ...)$construct_cover(),
-    stop(sprintf("Unknown cover type: %s", type))
+    "adaptive"=AdaptiveCover$new(filter_values, ...)$construct_cover(),
+    "ball"=BallCover$new(filter_values, ...)$construct_cover(),
+    stop(sprintf("Unknown cover type: %s", typename))
   )
   invisible(self)
 })
 
-#' @name comput_k_skeleton 
+#' @name compute_k_skeleton 
 #' @title Computes the K-skeleton 
 #' @description For the details on how this is computed, see Singh et. al, section 3.2. 
 MapperRef$set("public", "compute_k_skeleton", function(k, ...){
@@ -179,6 +182,7 @@ MapperRef$set("public", "compute_k_skeleton", function(k, ...){
     #   k_simplex[[k_i - 2L]] <- lapply(1:nrow(k_simplex_mat), function(i) k_simplex_mat[i,])
     # }
   }
+  invisible(self)
 })
 
 #' @name compute_vertices 

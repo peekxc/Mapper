@@ -1,11 +1,9 @@
 #' Simplex Tree
 #' @description Simplex tree class exposed as an Rcpp Module. 
-#' @details A simplex tree is a trie specialized for storing simplicial complexes. 
+#' @details A simplex tree is a trie specialized for storing simplicial complexes. The current implementation provides 
+#' a limited API and basic functionality. 
 #' @return A queryable simplex tree. 
 #' @references Boissonnat, Jean-Daniel, and Clement Maria. "The simplex tree: An efficient data structure for general simplicial complexes." Algorithmica 70.3 (2014): 406-427.
-#' @import Rcpp
-#' @importFrom Rcpp evalCpp Module cpp_object_initializer
-#' @importFrom methods new
 #' @export
 simplex_tree <- function(){
   return(new(SimplexTree))

@@ -349,12 +349,13 @@ std::vector<uint> SimplexTree::intersection(std::vector<uint> v1, std::vector<ui
   return(v3);
 }
 
+// Experimental k-expansion algorithm.
 // Performs an expansion of order k, thus reconstructing a k-skeleton from the 1-skeleton alone.
 void SimplexTree::expansion(const uint k){
-  // std::for_each(root->children.begin(), root->children.end(), [&](const std::pair<uint, node_ptr>& c_node){
-  //   uint simplex[k];
-  //   expand(c_node.second->children, k, 0, simplex);
-  // });
+  std::for_each(root->children.begin(), root->children.end(), [&](const std::pair<uint, node_ptr>& c_node){
+    //uint simplex[k];
+    //expand(c_node.second->children, k, 0, simplex);
+  });
 }
   
 // Expand operation compares a given 'head' nodes children to its siblings. 
@@ -385,7 +386,7 @@ void SimplexTree::expand(std::map<uint, node_ptr>& v, const uint k, uint depth, 
     Rcout << sib1 << std::endl; 
     Rcout << sc_int1 << std::endl; 
     if (sc_int.size() > 0){
-      Rcout << "Adding children " << sc_int1 << " to node " << v_it->first << " (son of " << v_it->second->parent->label << ")" << std::endl; 
+      // Rcout << "Adding children " << sc_int1 << " to node " << v_it->first << " (son of " << v_it->second->parent->label << ")" << std::endl; 
       add_children(rel_head, sc_int, depth + 2);
       expand(rel_head->children, k, depth + 1, simplex);
     }
@@ -410,13 +411,13 @@ IntegerMatrix SimplexTree::as_adjacency_matrix(){
 // Exports the 1-skeleton as an adjacency matrix 
 List SimplexTree::as_adjacency_list(){
   const size_t n = root->children.size();
-  std::vector< std::vector<uint> > res(n); // output
+  std::unordered_map< std::string, std::vector<uint> > res(n); // output
   std::for_each(root->children.begin(), root->children.end(), [&](std::pair<uint, node_ptr> v){
     const std::map<uint, node_ptr> vc = v.second->children;
     std::vector<uint> adjacencies = std::vector<uint>();
     std::for_each(vc.begin(), vc.end(), [&](std::pair<uint, node_ptr> child){
-      res.at(v.first).push_back(child.first);
-      res.at(child.first).push_back(v.first);
+      res[std::to_string(v.first)].push_back(child.first);
+      res[std::to_string(child.first)].push_back(v.first);
     });
   });
   return(wrap(res));
@@ -441,58 +442,26 @@ IntegerMatrix SimplexTree::as_edge_list(){
   return(res);
 }
   
-  // IntegerMatrix export_k_simplexes(const int k, Integer){
-  //   
-  // }
-  
-  // Exports the k-skeleton as a list
-  // List as_list(){
-  //   
-  // }
-  // 
-  // void SimplexTree::as_list_helper(List& res, node_ptr c_node, uint depth, uint* simplex, const size_t n_keys){
-  //   
-  //   // Base case
-  //   if (c_node->children.size() == 0){
-  //     IntegerMatrix& simplices = res.at(depth);
-  //     
-  //   }
-  // }
-
-
-// List construct_simplex_tree(const IntegerMatrix& el, const int n_nodes) {
-
-  // uint simplex_edge[2] = { (uint) 1, (uint) 2 };
-  // mapper_tree->insert_simplex(simplex_edge, 2);
-  // 
-  // simplex_edge[0] = 3;
-  // simplex_edge[1] = 4;
-  // mapper_tree->insert_simplex(simplex_edge, 2);
-  // 
-  // uint simplex_tri[3] = { (uint) 1, (uint) 2 , (uint) 3 };
-  // mapper_tree->insert_simplex(simplex_tri, 3);
-  // 
-  // simplex_tri[0] = 7;
-  // simplex_tri[1] = 8;
-  // simplex_tri[2] = 9;
-  // mapper_tree->insert_simplex(simplex_tri, 3);
-  
-  // (uint* labels, const size_t i, const size_t n_keys, node_ptr c_node){
-
-
-  // mapper_tree->insert(simplex_edge, 2);
-  //
-  // uint simplex_edge2[3] = { (uint) 1, (uint) 2, (uint) 3 };
-  // mapper_tree->insert(simplex_edge2, 3);
-  //
-  // uint simplex_edge3[3] = { (uint) 2, (uint) 3, (uint) 4 };
-  // mapper_tree->insert(simplex_edge3, 3);
-
-//   mapper_tree->print_tree();
-// // mapper_tree->toList(mapper_tree->root)
-//   // mapper_tree->debug();
-//   return(List::create());
+// IntegerMatrix export_k_simplexes(const int k, Integer){
+//   
 // }
+
+// Exports the k-skeleton as a list
+// List as_list(){
+//   
+// }
+// 
+// void SimplexTree::as_list_helper(List& res, node_ptr c_node, uint depth, uint* simplex, const size_t n_keys){
+//   
+//   // Base case
+//   if (c_node->children.size() == 0){
+//     IntegerMatrix& simplices = res.at(depth);
+//     
+//   }
+// }
+
+
+
 
 // Exposed Rcpp Module 
 RCPP_MODULE(simplex_tree_module) {
@@ -509,7 +478,7 @@ RCPP_MODULE(simplex_tree_module) {
   .method( "remove_edge", &SimplexTree::remove_edge)
   .method( "print_tree", &SimplexTree::print_tree )
   .method( "print_cofaces", &SimplexTree::print_cofaces )
-  .method( "expansion", &SimplexTree::expansion )
+  // .method( "expansion", &SimplexTree::expansion )
   .method( "as_adjacency_matrix", &SimplexTree::as_adjacency_matrix )
   .method( "as_adjacency_list", &SimplexTree::as_adjacency_list)
   .method( "as_edge_list", &SimplexTree::as_edge_list)

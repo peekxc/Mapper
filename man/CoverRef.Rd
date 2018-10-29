@@ -3,13 +3,19 @@
 \docType{class}
 \name{CoverRef}
 \alias{CoverRef}
-\title{Cover reference class - Reference Class (R6) implementation of a Cover}
-\format{An object of class \code{R6ClassGenerator} of length 24.}
+\title{Cover abstract class}
+\format{An \code{\link{R6Class}} generator object}
 \usage{
 CoverRef
 }
 \description{
-Cover reference class - Reference Class (R6) implementation of a Cover
+Reference Class (R6) implementation of a Cover. This class is meant to act as an abstract class to derive other 
+types of covering generators with. Minimally, a derived covering class must implement the
+'construct_cover' method to populate the 'level_sets' list with point indices, and any parameters 
+that the derived class requires. 
+
+Additional methods may also be added to improve the efficiency of the cover. See the vignette on creating a custom 
+cover for details.
 }
 \section{Fields}{
 
@@ -17,9 +23,26 @@ Cover reference class - Reference Class (R6) implementation of a Cover
 \item{\code{filter_values}}{(n x d) matrix of filter values}
 
 \item{\code{type}}{character string of the type of cover}
+
+\item{\code{index_set}}{character vector used to index the 'level_sets' list}
+
+\item{\code{level_sets}}{list of the}
 }}
 
+\section{Private variables}{
+
+The following is a list of private variables available for derived classes. Each may be accessed 
+by the \code{private$} access method, see \code{?R6} for more details. 
+\itemize{
+ \item{.level_sets}{names list of indices in the original data set to cluster over.}
+ \item{.index_set}{character vector of keys that uniquely index the level sets.}
+ \item{.filter_dim}{constant representing the filter dimension.}
+ \item{.filter_size}{constant representing the number of points in the filter space.}
+ \item{.typename}{string identifier of the covering method.}
+}
+}
+
 \author{
-: Matt Piekenbrock
+Matt Piekenbrock
 }
 \keyword{datasets}
