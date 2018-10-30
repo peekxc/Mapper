@@ -16,7 +16,7 @@ RestrainedRectangularCover <- R6::R6Class("RestrainedRectangularCover",
 
 #' @export
 RestrainedRectangularCover$set("public", "initialize", function(filter_values, ...){
-  super$initialize(filter_values, type="Restrained Rectangular")
+  super$initialize(filter_values, typename="Restrained Rectangular")
   params <- list(...)
   if ("number_intervals" %in% names(params)){ self$number_intervals <- params[["number_intervals"]] }
   if ("percent_overlap" %in% names(params)){ self$percent_overlap <- params[["percent_overlap"]] }
@@ -27,7 +27,7 @@ RestrainedRectangularCover$set("active", "percent_overlap",
   function(value){
     if (missing(value)){ private$.percent_overlap }
     else {
-      if (any(value < 0) || any(value > 1)){ stop("The percent overlap must be a percentage between [0, 1].") }
+      if (any(value < 0) || any(value >= 100)){ stop("The percent overlap must be a percentage between [0, 100).") }
       if (length(value) != private$.filter_dim && length(value) != 1){ stop("The percent overlap must be a single scalar or a vector of scalars with length equal to the dimensionality of the filter space.") }
       if (length(value) == 1 && private$.filter_dim > 1){ value <- rep(value, private$.filter_dim) } ## create a vector
       private$.percent_overlap <- value
@@ -53,9 +53,8 @@ RestrainedRectangularCover$set("active", "number_intervals",
 )
 
 RestrainedRectangularCover$set("public", "format", function(...){
-  type_pretty <- paste0(toupper(substr(self$type, start = 1, stop = 1)), tolower(substr(self$type, start = 2, stop = nchar(self$type))))
-  sprintf("Cover: (type = %s, number intervals = [%s], overlap = [%s])",
-          type_pretty,
+  sprintf("Cover: (typename = %s, number intervals = [%s], overlap = [%s])",
+          self$typename,
           paste0(private$.number_intervals, collapse = ", "),
           paste0(format(private$.percent_overlap, digits = 3), collapse = ", "))
 })
@@ -65,9 +64,8 @@ RestrainedRectangularCover$set("public", "construct_cover", function(){
   stopifnot(!is.na(private$.percent_overlap))
   stopifnot(!is.na(private$.number_intervals))
   
-  ## Setup a valid index set (e.g. cartesian product)
-  indices <- lapply(self$number_intervals, function(k) seq(k)) ## per-dimension possible indexes
-  cart_prod <- as.matrix(do.call(expand.grid, structure(indices, names = paste0("d", 1:private$.filter_dim))))
+  ## LS Multi-indices == Cartesian product of the intervals
+  cart_prod <- arrayInd(seq(prod(self$number_intervals)), .dim = self$number_intervals)
   self$index_set <- apply(cart_prod, 1, function(x){ sprintf("(%s)", paste0(x, collapse = " ")) })
   
   ## Get filter min and max ranges
@@ -77,7 +75,7 @@ RestrainedRectangularCover$set("public", "construct_cover", function(){
   
   ## Construct the level sets
   # browser()
-  { k <- self$number_intervals; g <- self$percent_overlap } 
+  { k <- self$number_intervals; g <- self$percent_overlap/100 } 
   r <- filter_len/(k - g*(k - 1L))
   e <- r * (1 - g)
   ls_bnds <- t(apply(cart_prod, 1, function(idx){

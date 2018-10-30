@@ -52,10 +52,10 @@
   </a>
   <ul class="dropdown-menu" role="menu">
 <li>
-      <a href="articles/UsingMapper.html">Using the Mapper package</a>
+      <a href="articles/UsingCustomCover.html">Using a custom covering method</a>
     </li>
     <li>
-      <a href="articles/xaringan.html">Presentation Ninja</a>
+      <a href="articles/UsingMapper.html">Using the Mapper package</a>
     </li>
   </ul>
 </li>
@@ -69,7 +69,7 @@
 <!--/.navbar -->
 
       
-      </header><div class="row">
+      </header><script src="index_files/htmlwidgets-1.3/htmlwidgets.js"></script><script src="index_files/grapher-1.3.2/grapher.min.js"></script><script src="index_files/grapher-1.3.2/zoom.min.js"></script><script src="index_files/grapher-1.3.2/center.min.js"></script><script src="index_files/grapher-1.3.2/target.min.js"></script><script src="index_files/grapher-1.3.2/grapher_helpers.js"></script><script src="index_files/grapher-1.3.2/lasso.js"></script><script src="index_files/d3-4.9.1/d3.min.js"></script><script src="index_files/d3-4.9.1/d3-timer.min.js"></script><script src="index_files/lodash-4.17.10/lodash.min.js"></script><script src="index_files/jquery-3.3.1/jquery-3.3.1.min.js"></script><script src="index_files/grapher-binding-1.0/grapher.js"></script><div class="row">
   <div class="col-md-9 contents">
     
 
@@ -79,7 +79,7 @@
 <div class="page-header"><h1 class="hasAnchor">
 <a href="#r-implementation-of-mapper" class="anchor"></a>R implementation of Mapper</h1></div>
 
-<p>The <strong>Mapper</strong> package provides a configurable impementation of the <em>mapper</em> framework. The package includes:</p>
+<p>The <strong>Mapper</strong> package provides a configurable implementation of the <em>mapper</em> framework. The package includes:</p>
 <p><img src="reference/figures/mapper_logo.png" width="150" style="margin-left: 15px;" align="right"></p>
 <ul>
 <li><p>Chainable <a href="https://github.com/r-lib/R6">R6 class generators</a> for efficiently generating <em>mappers</em></p></li>
@@ -103,7 +103,7 @@
 <h4 class="hasAnchor">
 <a href="#creating-a-complex" class="anchor"></a>Creating a complex</h4>
 <p>Mapper takes as input a point cloud <span class="math inline">\(X\)</span> and a reference map <span class="math inline">\(f : X \to Z\)</span>, and returns a topological summary of <span class="math inline">\(X\)</span> expressed via a cover equipped on the codomain of the map. Here’s an example where points are sampled from an ‘eight-curve’ in <span class="math inline">\(\mathbb{R}^2\)</span>:</p>
-<p><span class="math display">\[g(t) = [\cos(t), \sin(t)\cos(t)],\; t \in \Big(-\frac{1}{2}\pi, \frac{3}{2}\pi\Big)\]</span> In the example below, <span class="math inline">\(X\)</span> is sampled from <span class="math inline">\(g\)</span>, and the map chosen is simply the <span class="math inline">\(x\)</span>-coordinate of the shape, <span class="math inline">\(Z = f(X) = x_1\)</span>.</p>
+<p><span class="math display">\[g(t) = [\cos(t), \sin(t)\cos(t)],\; t \in \Big(-\frac{1}{2}\pi, \frac{3}{2}\pi\Big)\]</span> In the example below, <span class="math inline">\(X\)</span> is created from equally spaced samples over <span class="math inline">\(t\)</span>, and the map chosen is simply the <span class="math inline">\(x\)</span>-coordinate of the shape, <span class="math inline">\(Z = f(X) = x_1\)</span>.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1">t &lt;-<span class="st"> </span><span class="kw">seq</span>(<span class="op">-</span><span class="fl">0.5</span><span class="op">*</span>pi, (<span class="dv">3</span><span class="op">/</span><span class="dv">2</span>)<span class="op">*</span>pi, <span class="dt">length.out =</span> <span class="dv">100</span>)</a>
 <a class="sourceLine" id="cb2-2" data-line-number="2">eight &lt;-<span class="st"> </span><span class="kw">cbind</span>(<span class="dt">x1=</span><span class="kw">cos</span>(t), <span class="dt">x2=</span><span class="kw">sin</span>(t)<span class="op">*</span><span class="kw">cos</span>(t))</a>
 <a class="sourceLine" id="cb2-3" data-line-number="3">f_x &lt;-<span class="st"> </span><span class="kw">matrix</span>(<span class="kw">cos</span>(t))</a>
@@ -119,62 +119,79 @@
 <a class="sourceLine" id="cb2-13" data-line-number="13"><span class="kw">points</span>(<span class="kw">cbind</span>(f_x, <span class="dv">1</span>), <span class="dt">pch =</span> <span class="st">"|"</span>, <span class="dt">col =</span> col, <span class="dt">cex =</span> <span class="dv">2</span>)</a></code></pre></div>
 <p><img src="reference/figures/figure_eight.png" width="100%"></p>
 <p>Below is a possible way to construct a <em>mapper</em> of the data visualized with the <a href="">grapher</a> package.</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1">m &lt;-<span class="st"> </span>MapperRef<span class="op">$</span></a>
-<a class="sourceLine" id="cb3-2" data-line-number="2"><span class="st">  </span><span class="kw">new</span>(<span class="dt">X =</span> eight)<span class="op">$</span><span class="st">                                             </span></a>
-<a class="sourceLine" id="cb3-3" data-line-number="3"><span class="st">  </span><span class="kw">use_cover</span>(<span class="dt">filter_values =</span> f_x, </a>
-<a class="sourceLine" id="cb3-4" data-line-number="4">            <span class="dt">type =</span> <span class="st">"restrained rectangular"</span>, </a>
-<a class="sourceLine" id="cb3-5" data-line-number="5">            <span class="dt">number_intervals =</span> <span class="dv">10</span>, <span class="dt">percent_overlap =</span> <span class="fl">0.50</span>)<span class="op">$</span></a>
-<a class="sourceLine" id="cb3-6" data-line-number="6"><span class="st">  </span><span class="kw">use_distance_measure</span>(<span class="dt">measure =</span> <span class="st">"euclidean"</span>)<span class="op">$</span></a>
-<a class="sourceLine" id="cb3-7" data-line-number="7"><span class="st">  </span><span class="kw"><a href="reference/use_clustering_algorithm.html">use_clustering_algorithm</a></span>(<span class="dt">cl =</span> <span class="st">"single"</span>)<span class="op">$</span></a>
-<a class="sourceLine" id="cb3-8" data-line-number="8"><span class="st">  </span><span class="kw">compute_k_skeleton</span>(<span class="dt">k =</span> 1L)</a>
-<a class="sourceLine" id="cb3-9" data-line-number="9"></a>
-<a class="sourceLine" id="cb3-10" data-line-number="10"><span class="co">## Visualize interactively </span></a>
-<a class="sourceLine" id="cb3-11" data-line-number="11">m<span class="op">$</span><span class="kw"><a href="reference/as_grapher.html">as_grapher</a></span>() <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">center</span>()</a></code></pre></div>
-<p><img src="reference/figures/figure_eight_grapher.png" width="100%"></p>
-<!-- ## Sphere example  -->
-<!-- TODO -->
-<!-- Show rgl + grapher shiny example to better demonstrate the concept of the pullback  -->
-<!-- ```{r} -->
-<!-- # xyz <- replicate(3L, rnorm(5000)) -->
-<!-- # sphere <- t(apply(xyz, 1, function(x) x/norm(matrix(x), type="F"))) -->
-<!-- # filter_pts <- sphere[, c(3, 1)] -->
-<!-- #  -->
-<!-- # sphere_mapper <- MapperRef$ -->
-<!-- #   new(sphere)$ -->
-<!-- #   use_cover(filter_pts, "fixed rectangular", number_intervals = 6, percent_overlap = 0.15)$ -->
-<!-- #   use_distance_measure(measure = "euclidean") -->
-<!-- # sphere_mapper$clustering_algorithm <- function(X, idx){ -->
-<!-- #   rep(1L, length(idx)) -->
-<!-- # } -->
-<!-- #  -->
-<!-- # sphere_mapper$compute_k_skeleton(k = 1L) -->
-<!-- ``` -->
-<!-- # ```{r} -->
-<!-- # data("chemdiab", package="locfit") -->
-<!-- # colnames(chemdiab) <- c("RelativeWeight", "FastingPlasmaGlucose", "ToleranceTestAUC",  -->
-<!-- #                         "InsulinCurveAUC", "SteadyStatePlasmaGlucoseResponse",  -->
-<!-- #                         "DiabetesClassification") -->
-<!-- #  -->
-<!-- # chem_ica <- ica::icafast(chemdiab[, 1:5], nc = 3) -->
-<!-- #  -->
-<!-- # m <- MapperRef$ -->
-<!-- #   new(X = as.matrix(chemdiab[, 1:5]))$                                              -->
-<!-- #   use_cover(filter_values = chem_ica$S,  -->
-<!-- #             type = "restrained rectangular",  -->
-<!-- #             number_intervals = 5, percent_overlap = 0.35)$ -->
-<!-- #   use_distance_measure(measure = "euclidean")$ -->
-<!-- #   use_clustering_algorithm(cl = "single", num_bins = 5L)$ -->
-<!-- #   compute_k_skeleton(k = 1L) -->
-<!-- #  -->
-<!-- #  -->
-<!-- #  -->
-<!-- # with(chemdiab, { -->
-<!-- #   matchlevels(DiabetesClassification) -->
-<!-- # }) -->
-<!-- #  -->
-<!-- # m$as_grapher() %>% setNodeColor(color = ) -->
-<!-- # ``` -->
+<p><img src="reference/figures/figure_eight_grapher.png" width="100%" height="70%"></p>
 </div>
+<div id="customizing-mapper" class="section level4">
+<h4 class="hasAnchor">
+<a href="#customizing-mapper" class="anchor"></a>Customizing Mapper</h4>
+<p>Almost any component of the Mapper method can be customized.</p>
+<p>Want to change the metric? Pass any measure used in the <a href="https://cran.r-project.org/web/packages/proxy/index.html">proxy</a> package.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="co">## See ?proxy::pr_DB for more details.</span></a>
+<a class="sourceLine" id="cb3-2" data-line-number="2">m<span class="op">$</span><span class="kw">use_distance_measure</span>(<span class="st">"Mahalanobis"</span>)</a></code></pre></div>
+<p>Or just replace the clustering algorithm entirely</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="co">## If using a custom metric, just compute the distance matrix </span></a>
+<a class="sourceLine" id="cb4-2" data-line-number="2">m<span class="op">$</span>clustering_algorithm &lt;-<span class="st"> </span><span class="cf">function</span>(X, idx, <span class="dt">num_bins=</span><span class="dv">10</span>){</a>
+<a class="sourceLine" id="cb4-3" data-line-number="3">  dist_x &lt;-<span class="st"> </span><span class="kw">dist</span>(X[idx,], <span class="dt">method =</span> <span class="st">"manhattan"</span>)</a>
+<a class="sourceLine" id="cb4-4" data-line-number="4">  hc &lt;-<span class="st"> </span><span class="kw">hclust</span>(dist_x, <span class="dt">method =</span> <span class="st">"average"</span>)</a>
+<a class="sourceLine" id="cb4-5" data-line-number="5">  <span class="kw"><a href="reference/cutoff_first_bin.html">cutoff_first_bin</a></span>(hc, <span class="dt">diam =</span> <span class="kw">max</span>(dist_x), num_bins)</a>
+<a class="sourceLine" id="cb4-6" data-line-number="6">}</a></code></pre></div>
+<p>If you prefer a different covering, just assign a valid object inheriting from <code>CoverRef</code>.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="co">## Below is equivalent to m$use_cover(filter_values = f_x, typename="fixed rectangular", &lt;parameters&gt;)</span></a>
+<a class="sourceLine" id="cb5-2" data-line-number="2">f_cover &lt;-<span class="st"> </span>FixedRectangularCover<span class="op">$</span><span class="kw">new</span>(<span class="dt">filter_values =</span> f_x)</a>
+<a class="sourceLine" id="cb5-3" data-line-number="3">f_cover<span class="op">$</span>number_intervals &lt;-<span class="st"> </span><span class="dv">10</span></a>
+<a class="sourceLine" id="cb5-4" data-line-number="4">f_cover<span class="op">$</span>percent_overlap &lt;-<span class="st"> </span><span class="dv">50</span></a>
+<a class="sourceLine" id="cb5-5" data-line-number="5">m<span class="op">$</span>cover &lt;-<span class="st"> </span>f_cover<span class="op">$</span><span class="kw">construct_cover</span>()</a></code></pre></div>
+<p>A list of available covering methods can be printed as follows:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="kw">covers_available</span>()</a></code></pre></div>
+<pre><code>## Typename:                    Generator:                         Parameters:                          
+##  fixed rectangular            FixedRectangularCover              number_intervals, percent_overlap
+##  restrained rectangular       RestrainedRectangularCover         number_intervals, percent_overlap
+##  adaptive                     AdaptiveCover                      number_intervals, percent_overlap, quantile_method
+##  ball                         BallCover                          epsilon</code></pre>
+<p>Alternatively, you can create your own cover. See the article on <a href="articles/UsingCustomCover.html">how to make custom cover</a>.</p>
+<p>Note that their is a natural dependency chain to be cognizant of when swapping in or out parameters. The package does <strong>not</strong> check for reverse dependencies, nor does it invalidate existing structures that follow this chain. For example, when the new cover was substituted in in the above example, it implicitly invalidates the simplicial complex. To correct for this, if swapping covers, make sure to compute the full complex again, i.e.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" data-line-number="1">m<span class="op">$</span><span class="kw"><a href="reference/compute_k_skeleton.html">compute_k_skeleton</a></span>(<span class="dt">k =</span> 1L)</a></code></pre></div>
+<p>If you want to only update specific open sets in the cover for some reason, just pass in whatever subset of the index set to compute.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" data-line-number="1">m<span class="op">$</span><span class="kw"><a href="reference/compute_vertices.html">compute_vertices</a></span>(<span class="dt">which_levels =</span> m<span class="op">$</span>cover<span class="op">$</span>index_set[<span class="dv">1</span><span class="op">:</span><span class="dv">5</span>])</a></code></pre></div>
+<p>The same rule applies to computing the edges.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" data-line-number="1">idx_pairs &lt;-<span class="st"> </span><span class="kw">t</span>(<span class="kw">apply</span>(<span class="kw">combn</span>(<span class="dv">5</span>, <span class="dv">2</span>), <span class="dv">2</span>, <span class="cf">function</span>(ls_idx) { m<span class="op">$</span>cover<span class="op">$</span>index_set[ls_idx] }))</a>
+<a class="sourceLine" id="cb10-2" data-line-number="2">m<span class="op">$</span><span class="kw">compute_edges</span>(<span class="dt">which_level_pairs =</span> idx_pairs)</a></code></pre></div>
+<p>If the construction has too many edges, you could require the intersection size be above a certain threshold (default is 1). This isn’t technically part of Mappers definition, but could be useful empirically.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" data-line-number="1">m<span class="op">$</span><span class="kw">compute_edges</span>(<span class="dt">min_weight =</span> <span class="dv">10</span>)</a></code></pre></div>
+<p>The simplicial complex is available via the <code>$simplicial_complex</code> member, and the points in contained in each vertex is available via the <code>$vertices</code> member.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" data-line-number="1">m<span class="op">$</span>simplicial_complex</a></code></pre></div>
+<pre><code>## Simplex Tree with (22, 18) (0, 1)-simplices</code></pre>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb14-1" data-line-number="1"><span class="kw">head</span>(m<span class="op">$</span>vertices, <span class="dv">2</span>)</a></code></pre></div>
+<pre><code>## $`0`
+##  [1] 63 64 65 66 67 68 69 70 71 72 73 74 75 76
+## attr(,"level_set")
+## [1] 1
+## 
+## $`1`
+##  [1] 59 60 61 62 63 64 65 66 67 68
+## attr(,"level_set")
+## [1] 2</code></pre>
+<p>As shown above, the complex is stored in a <a href="?simplex_tree">Simplex Tree</a>, and the vertices are stored as a list. Each vertex also has an attribute “level_set” denoting the index in the index set of the cover its associated with.</p>
+<p>The <span class="math inline">\(1\)</span>-skeleton can be exported to any of the usual graph-type data structures.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb16-1" data-line-number="1">m<span class="op">$</span>simplicial_complex<span class="op">$</span><span class="kw">as_adjacency_matrix</span>()</a>
+<a class="sourceLine" id="cb16-2" data-line-number="2">m<span class="op">$</span>simplicial_complex<span class="op">$</span><span class="kw">as_adjacency_list</span>()</a>
+<a class="sourceLine" id="cb16-3" data-line-number="3">m<span class="op">$</span>simplicial_complex<span class="op">$</span><span class="kw">as_edge_list</span>()</a></code></pre></div>
+</div>
+</div>
+<div id="visualizing-the-mapper" class="section level3">
+<h3 class="hasAnchor">
+<a href="#visualizing-the-mapper" class="anchor"></a>Visualizing the <strong>mapper</strong>
+</h3>
+<p>TODO</p>
+</div>
+<div id="references" class="section level2">
+<h2 class="hasAnchor">
+<a href="#references" class="anchor"></a>References</h2>
+<ol style="list-style-type: decimal">
+<li>Boissonnat, Jean-Daniel, and Clément Maria. “The simplex tree: An efficient data structure for general simplicial complexes.” Algorithmica 70.3 (2014): 406-427. <!-- ## Sphere example  -->
+</li>
+</ol>
+<!-- TODO --><!-- Show rgl + grapher shiny example to better demonstrate the concept of the pullback  --><!-- ```{r} --><!-- # xyz <- replicate(3L, rnorm(5000)) --><!-- # sphere <- t(apply(xyz, 1, function(x) x/norm(matrix(x), type="F"))) --><!-- # filter_pts <- sphere[, c(3, 1)] --><!-- #  --><!-- # sphere_mapper <- MapperRef$ --><!-- #   new(sphere)$ --><!-- #   use_cover(filter_pts, "fixed rectangular", number_intervals = 6, percent_overlap = 0.15)$ --><!-- #   use_distance_measure(measure = "euclidean") --><!-- # sphere_mapper$clustering_algorithm <- function(X, idx){ --><!-- #   rep(1L, length(idx)) --><!-- # } --><!-- #  --><!-- # sphere_mapper$compute_k_skeleton(k = 1L) --><!-- ``` --><!-- # ```{r} --><!-- # data("chemdiab", package="locfit") --><!-- # colnames(chemdiab) <- c("RelativeWeight", "FastingPlasmaGlucose", "ToleranceTestAUC",  --><!-- #                         "InsulinCurveAUC", "SteadyStatePlasmaGlucoseResponse",  --><!-- #                         "DiabetesClassification") --><!-- #  --><!-- # chem_ica <- ica::icafast(chemdiab[, 1:5], nc = 3) --><!-- #  --><!-- # m <- MapperRef$ --><!-- #   new(X = as.matrix(chemdiab[, 1:5]))$                                              --><!-- #   use_cover(filter_values = chem_ica$S,  --><!-- #             type = "restrained rectangular",  --><!-- #             number_intervals = 5, percent_overlap = 0.35)$ --><!-- #   use_distance_measure(measure = "euclidean")$ --><!-- #   use_clustering_algorithm(cl = "single", num_bins = 5L)$ --><!-- #   compute_k_skeleton(k = 1L) --><!-- #  --><!-- #  --><!-- #  --><!-- # with(chemdiab, { --><!-- #   matchlevels(DiabetesClassification) --><!-- # }) --><!-- #  --><!-- # m$as_grapher() %>% setNodeColor(color = ) --><!-- # ``` -->
 </div>
 </div>
   </div>
@@ -205,9 +222,8 @@
       <div class="dev-status">
 <h2>Dev status</h2>
 <ul class="list-unstyled">
-<li><a href="https://cran.r-project.org/package=reticulate"><img src="https://www.r-pkg.org/badges/version/reticulate" alt="CRAN_Status_Badge"></a></li>
-<li><a href="https://travis-ci.org/rstudio/reticulate"><img src="https://travis-ci.org/rstudio/reticulate.svg?branch=master" alt="Travis-CI Build Status"></a></li>
-<li><a href="https://ci.appveyor.com/project/rstudio/reticulate"><img src="https://ci.appveyor.com/api/projects/status/github/rstudio/reticulate?svg=true" alt="Appveyor Build Status"></a></li>
+<li><a href="https://cran.r-project.org/packge=mapper"><img src="https://www.r-pkg.org/badges/version/mapper" alt="CRAN_Status_Badge"></a></li>
+<li><a href="https://travis-ci.com/peekxc/mapper"><img src="https://travis-ci.com/peekxc/mapper.svg?token=Hx3A92eGgRqqiu1NfKUb&amp;branch=master" alt="Travis-CI Build Status"></a></li>
 </ul>
 </div>
 </div>

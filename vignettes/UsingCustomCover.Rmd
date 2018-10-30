@@ -23,38 +23,72 @@ To use a custom covering strategy, a new `R6` class must be defined satisfying t
 2. The class overrides the `construct_cover` function. 
 3. Upon calling `construct_cover`, the class populates the `level_sets` member with a named list whose names are uniquely indexed by the `index_set` member, and whose values are integer indices that form a valid cover. 
 
-Below is an example of a simplified version of the source code used to create the `AdaptiveCover` generator. First, a generator is defined that satisfies (1). The public fields represent the parameters of the cover.  
+Below is an example of a simplified version of the source code used to create the `BallCover` generator.  
 
 ```{r}
-## Parameters to make the cover
-params <- list(number_intervals=NA, percent_overlap=NA, quantile_method=NA)
-
-## The generator
-# AdaptiveCover_ex <- R6::R6Class(
-#   classname = "AdaptiveCover_ex",
-#   inherit = CoverRef,
-#   public = append(params, 
-#     list(initialize = function(filter_values, number_intervals, percent_overlap, quantile_method){
-#         super$initialize(filter_values, typename="adaptive cover example")
-#         self$number_intervals <- number_intervals
-#         self$percent_overlap <- percent_overlap 
-#         self$quantile_method <- quantile_method
-#     })
-#   )
-# )
+BallCoverEx <- R6::R6Class(
+  classname = "BallCoverEx",
+  inherit = CoverRef,
+  public = list(
+    epsilon=NA,   ## cover parameter    
+    initialize = function(filter_values, epsilon){
+      super$initialize(filter_values, typename="ball")
+      self$epsilon <- epsilon
+    }
+  )
+)
 ```
+First, a generator is defined that satisfies (1). The public fields represent the parameters of the cover. Note that the initializer must be overridden so that the filter values along with the unique 'typename' of the cover are first passed to the parent `CoverRef` initializer. When that happens, a few checks are performed, and the following private fields become available to the derived class via the `private` namespace.  
 
-In the example above, 
+__private`$`__
+- `.level_sets` := list of data indices that intersect the open sets
+- `.index_set` := character vector of keys that uniquely index the level sets
+- `.filter_dim` := constant representing the filter dimension
+- `.filter_size` := constant representing the number of points in the filter space
+- `.typename` := string identifier of the covering method
 
+Additional information can be found in the documentation of the base class, see `?CoverRef` for more details. 
+
+The only other required function to override is the `construct_cover` method. Below is an example that uses the `RANN` package to construct a cover. 
 ```{r}
-CoverRef
+BallCoverEx$set("public", "construct_cover", function(){
+  ## Construct the balls
+  ball_cover  <- RANN::nn2(self$filter_values, searchtype = "radius", radius = self$epsilon)
+  
+  ## Union them together 
+  ds <- union_find(private$.filter_size)
+  apply(ball_cover$nn.idx, 1, function(idx){
+    connected_idx <- idx[idx != 0] - 1L
+    if (length(connected_idx) > 0){
+      ds$union_all(connected_idx)
+    }
+  })
+  
+  ## Construct the intersections between the open sets and the data
+  cc <- ds$connected_components()
+  self$index_set <- as.character(unique(cc))
+  ls <- lapply(self$index_set, function(idx){
+    which(cc == as.integer(idx))
+  })
+  self$level_sets <- structure(ls, names=self$index_set)
+  
+  ## Always return self 
+  invisible(self)
+})
 ```
 
+A [disjoint-set data structure](https://en.wikipedia.org/wiki/Disjoint-set_data_structure) is used to track the intersections between each ball (see `?union_find` for usage details). 
+Note how the index set uniquely indexes the open sets. Although in this case the balls don't necessarily represent the classical notion of a "level set", the member is named that way due to their relaxed interpretation as such in the other covers. 
 
-#' \itemize{
-#'  \item{.level_sets}{names list of indices in the original data set to cluster over.}
-#'  \item{.index_set}{character vector of keys that uniquely index the level sets.}
-#'  \item{.filter_dim}{constant representing the filter dimension.}
-#'  \item{.filter_size}{constant representing the number of points in the filter space.}
-#'  \item{.typename}{string identifier of the covering method.}
-#' }
+## Making a better custom cover
+
+The above example is all one needs to add use a cover not included in the package. However, there are other methods or extensions that may be worth implementing. For example, the above example cover isn't type-safe. A better example would use [active bindings](https://adv-r.hadley.nz/r6.html#active-fields) to make fields which can be assigned to like regular member fields, but also type-check on assignment. 
+
+Another important method that can be overridden is the `$level_sets_to_compare` member, which is inherited by the base class. This method controls which of the open sets to compare (pairwise) in computing the $1$-skeleton. By default, it returns all pairwise combinations of indices, which can obviously be greatly improved depending on how the cover is parameterized!  
+
+Once you have a cover generator, you can check if its compatible with the package using the `$validate` function. If it does, it should silently return. 
+
+## Contributing
+
+If you do design a new covering method not used in the package, consider submitting a [pull request](https://github.com/peekxc/mapper/pulls) incase others might find it useful! 
+

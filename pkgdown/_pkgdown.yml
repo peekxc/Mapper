@@ -4,21 +4,35 @@ template:
 development:
   mode: unreleased
 reference:
-- title: All functions
-  desc: ~
+- title: Cover generators 
+  desc: >
+    R6 generators which can be used to construct covers over the filter space.  
   contents:
   - '`CoverRef`'
   - '`FixedRectangularCover`'
-  - '`MapperRef`'
   - '`RestrainedRectangularCover`'
+- title: MapperRef methods
+  desc: >
+    R6 generators which can be used to construct covers over the filter space.  
+  contents: 
+  - '`MapperRef`'
   - '`as_grapher`'
-  - '`comput_k_skeleton`'
+  - '`compute_k_skeleton`'
   - '`compute_vertices`'
+  - '`use_clustering_algorithm`'
+- title: General package functions
+  desc: >
+    R6 generators which can be used to construct covers over the filter space.  
+  contents:
   - '`cutoff_first_bin`'
   - '`dashboard`'
-  - '`segment_tree`'
+- title: Data structures 
+  desc: > 
+    Utility data structures exported as Rcpp modules. 
+  contents: 
   - '`simplex_tree`'
-  - '`use_clustering_algorithm`'
+  - '`union_find`'
+  - '`segment_tree`'
 navbar:
   structure:
     left:

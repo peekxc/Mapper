@@ -42,7 +42,7 @@ test_that("Can add and remove edges", {
 
 test_that("Export types work", {
   stree <- Mapper::simplex_tree()
-  n_vertices <- sample(1:25, size = 1)
+  n_vertices <- sample(2:25, size = 1)
   stree$add_vertices(n_vertices)
   edges <- t(combn(n_vertices, 2L))
   invisible(apply(edges, 1, function(e){

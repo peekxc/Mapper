@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Fixed Rectangular Cover — FixedRectangularCover • Mapper</title>
+<title>Union Find — union_find • Mapper</title>
 
 <!-- jquery -->
 <script src="https://code.jquery.com/jquery-3.1.0.min.js" integrity="sha384-nrOSfDHtoPMzJHjVTdCopGqIqeYETSXhZDFyniQ8ZHcVy08QesyHcnOUpMpqnmWq" crossorigin="anonymous"></script>
@@ -30,11 +30,9 @@
 
 
 
-<meta property="og:title" content="Fixed Rectangular Cover — FixedRectangularCover" />
+<meta property="og:title" content="Union Find — union_find" />
 
-<meta property="og:description" content="The rectangular cover is multidimensional, two-parameter family of covers. Given the number of
-intervals and the overlap percentage between these intervals, this class constructs hyper-rectangular cover of the
-given filter space, where individual level sets are distributed uniformly along a rectangular grid." />
+<meta property="og:description" content="Exports a UnionFind data structure exposed as an Rcpp Module." />
 <meta name="twitter:card" content="summary" />
 
 
@@ -109,32 +107,44 @@ given filter space, where individual level sets are distributed uniformly along 
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Fixed Rectangular Cover</h1>
+    <h1>Union Find</h1>
     
-    <div class="hidden name"><code>FixedRectangularCover.Rd</code></div>
+    <div class="hidden name"><code>union_find.Rd</code></div>
     </div>
 
     <div class="ref-description">
     
-    <p>The rectangular cover is multidimensional, two-parameter family of covers. Given the number of
-intervals and the overlap percentage between these intervals, this class constructs hyper-rectangular cover of the
-given filter space, where individual level sets are distributed uniformly along a rectangular grid.</p>
+    <p>Exports a UnionFind data structure exposed as an Rcpp Module.</p>
     
     </div>
 
-    <pre class="usage"><span class='no'>FixedRectangularCover</span></pre>
+    <pre class="usage"><span class='fu'>union_find</span>(<span class='no'>size</span>)</pre>
         
-    <h2 class="hasAnchor" id="format"><a class="anchor" href="#format"></a>Format</h2>
+    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>An object of class <code>R6ClassGenerator</code> of length 24.</p>
+    <p>A queryable disjoint-set structure.</p>
     
-    <h2 class="hasAnchor" id="fields"><a class="anchor" href="#fields"></a>Fields</h2>
+    <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
+
+    <p>UnionFind, also called a disjoint-set, is a data structure that allows efficient tracking and unioning of 
+elements in terms of connected components. To use the structure, instantiate it with a given (fixed) size of components, and then 
+union or find as needed. This implementation uses path compression to speed up successive find operations.</p>
+    
+    <h2 class="hasAnchor" id="methods"><a class="anchor" href="#methods"></a>Methods</h2>
 
     
-    <dl class='dl-horizontal'>
-<dt><code>number_intervals</code></dt><dd><p>:= vector of number of bins to cover the Z with (per dimension)</p></dd>
-    <dt><code>percent_overlap</code></dt><dd><p>:= vector of overlap percentages</p></dd>
-</dl>
+    <ul>
+<li><p>union Unions two elements together.</p></li>
+<li><p>union_all Unions all the elements in a given vector together.</p></li>
+<li><p>find Find which components a given element is associated with. If the elements given doesn't exist, -1 is returned.</p></li>
+<li><p>find_all Finds which component each element in a given vector is associated with. If the elements given doesn't exist, -1 is returned.</p></li>
+<li><p>print Prints the connected components.</p></li>
+<li><p>connected_components Retrieves the connected components as a integer vector.</p></li>
+</ul>
+    
+    <h2 class="hasAnchor" id="references"><a class="anchor" href="#references"></a>References</h2>
+
+    <p>Tarjan, Robert Endre. "Efficiency of a good but not linear set union algorithm." Journal of the ACM (JACM) 22.2 (1975): 215-225.</p>
     
 
   </div>
@@ -142,14 +152,14 @@ given filter space, where individual level sets are distributed uniformly along 
     <h2>Contents</h2>
     <ul class="nav nav-pills nav-stacked">
       
-      <li><a href="#format">Format</a></li>
+      <li><a href="#value">Value</a></li>
 
-      <li><a href="#fields">Fields</a></li>
+      <li><a href="#details">Details</a></li>
+
+      <li><a href="#methods">Methods</a></li>
+
+      <li><a href="#references">References</a></li>
           </ul>
-
-    <h2>Author</h2>
-    
-Matt Piekenbrock
 
   </div>
 </div>

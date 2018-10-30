@@ -144,12 +144,14 @@ List build_0_skeleton(const IntegerVector which_levels, const NumericMatrix& X, 
 // Builds the 1-skeleton by inserting 1-simplexes for each pair of vertices whose points have non-empty 
 // intersections. Will only compare vertices given by the 'ls_pairs' matrix.
 //  ls_pairs := (n x 2) Integer Matrix of n level set index pairs (by flat index) to consider (0-based)
+//  min_weight := integer representing the minimum intersection size to make an edge.
 //  vertices := List of nodes (each element of which is a vector containing the point indices contained in the node)
 //  ls_vertex_map := List where each index corresponds to the ordered level set flat indices, and each element the indices of the nodes in that level set
 //  stree := SimplexTree object
 // [[Rcpp::export]]
-void build_1_skeleton(const IntegerMatrix& ls_pairs, const List& vertices, const List& ls_vertex_map, SEXP stree){
+void build_1_skeleton(const IntegerMatrix& ls_pairs, const int min_sz, const List& vertices, const List& ls_vertex_map, SEXP stree){
   Rcpp::XPtr<SimplexTree> stree_ptr(stree); // Collect the simplex tree
+  const bool check_sz = min_sz > 1;
   for (int i = 0; i < ls_pairs.nrow(); ++i){
     
     // Get the current pair of level sets to compare; skip if either are empty
@@ -167,16 +169,24 @@ void build_1_skeleton(const IntegerMatrix& ls_pairs, const List& vertices, const
         const IntegerVector& n1_idx = vertices[ std::to_string(*n1) ]; // access by vertex id
         const IntegerVector& n2_idx = vertices[ std::to_string(*n2) ]; // access by vertex id
         
-        // Add edge between the two if they share a data point. This also retrieves the size of the intersection.
-        // int intersect_size = std::count_if(n1_idx.begin(), n1_idx.end(), [&](int k) { 
-        //   return(std::find(n2_idx.begin(), n2_idx.end(), k) != n2_idx.end());
-        // });
-        bool intersect_check = std::any_of(n1_idx.begin(), n1_idx.end(), [&](int k){
-          return(std::find(n2_idx.begin(), n2_idx.end(), k) != n2_idx.end());
-        });
-        if (intersect_check){
-          std::vector<uint> simplex = { uint(*n1), uint(*n2) };
-          stree_ptr->insert_simplex(simplex);
+        if (check_sz){
+          // Add edge between the two if they share a data point. This also retrieves the size of the intersection.
+          int intersect_size = std::count_if(n1_idx.begin(), n1_idx.end(), [&](int k) {
+            return(std::find(n2_idx.begin(), n2_idx.end(), k) != n2_idx.end());
+          });
+          if (intersect_size >= min_sz){
+            std::vector<uint> simplex = { uint(*n1), uint(*n2) };
+            stree_ptr->insert_simplex(simplex);
+          }
+        } else {
+          // Add edge between the two if they have a non-empty intersection.
+          bool intersect_check = std::any_of(n1_idx.begin(), n1_idx.end(), [&](int k){
+            return(std::find(n2_idx.begin(), n2_idx.end(), k) != n2_idx.end());
+          });
+          if (intersect_check){
+            std::vector<uint> simplex = { uint(*n1), uint(*n2) };
+            stree_ptr->insert_simplex(simplex);
+          }
         }
       }
     }

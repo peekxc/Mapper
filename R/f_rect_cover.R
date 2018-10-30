@@ -132,6 +132,7 @@ FixedRectangularCover$set("public", "level_sets_to_compare", function(){
   })
   
   ## Return the bounded pairs to compute
-  return(all_pairs[which_pairs,])
+  res <- apply(all_pairs[which_pairs,], 2, function(x) { self$index_set[x] })
+  return(res)
 })
 

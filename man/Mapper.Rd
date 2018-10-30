@@ -6,7 +6,8 @@
 \alias{Mapper-package}
 \title{Mapper Package}
 \description{
-Provides an R/Rcpp implementation of Mapper and its related tools.
+Provides an R/Rcpp implementation of Mapper and its related tools. 
+The main documentation for the package can be found here: \url{https://peekxc.github.io/mapper/}.
 }
 \author{
 Matt Piekenbrock

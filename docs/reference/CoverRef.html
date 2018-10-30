@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Cover reference class - Reference Class (R6) implementation of a Cover — CoverRef • Mapper</title>
+<title>Cover abstract class — CoverRef • Mapper</title>
 
 <!-- jquery -->
 <script src="https://code.jquery.com/jquery-3.1.0.min.js" integrity="sha384-nrOSfDHtoPMzJHjVTdCopGqIqeYETSXhZDFyniQ8ZHcVy08QesyHcnOUpMpqnmWq" crossorigin="anonymous"></script>
@@ -30,9 +30,14 @@
 
 
 
-<meta property="og:title" content="Cover reference class - Reference Class (R6) implementation of a Cover — CoverRef" />
+<meta property="og:title" content="Cover abstract class — CoverRef" />
 
-<meta property="og:description" content="Cover reference class - Reference Class (R6) implementation of a Cover" />
+<meta property="og:description" content="Reference Class (R6) implementation of a Cover. This class is meant to act as an abstract class to derive other 
+types of covering generators with. Minimally, a derived covering class must implement the
+'construct_cover' method to populate the 'level_sets' list with point indices, and any parameters 
+that the derived class requires.
+Additional methods may also be added to improve the efficiency of the cover. See the vignette on creating a custom 
+cover for details." />
 <meta name="twitter:card" content="summary" />
 
 
@@ -84,6 +89,9 @@
   </a>
   <ul class="dropdown-menu" role="menu">
     <li>
+      <a href="../articles/UsingCustomCover.html">Using a custom covering method</a>
+    </li>
+    <li>
       <a href="../articles/UsingMapper.html">Using the Mapper package</a>
     </li>
   </ul>
@@ -104,14 +112,19 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Cover reference class - Reference Class (R6) implementation of a Cover</h1>
+    <h1>Cover abstract class</h1>
     
     <div class="hidden name"><code>CoverRef.Rd</code></div>
     </div>
 
     <div class="ref-description">
     
-    <p>Cover reference class - Reference Class (R6) implementation of a Cover</p>
+    <p>Reference Class (R6) implementation of a Cover. This class is meant to act as an abstract class to derive other 
+types of covering generators with. Minimally, a derived covering class must implement the
+'construct_cover' method to populate the 'level_sets' list with point indices, and any parameters 
+that the derived class requires.</p>
+<p>Additional methods may also be added to improve the efficiency of the cover. See the vignette on creating a custom 
+cover for details.</p>
     
     </div>
 
@@ -119,7 +132,7 @@
         
     <h2 class="hasAnchor" id="format"><a class="anchor" href="#format"></a>Format</h2>
 
-    <p>An object of class <code>R6ClassGenerator</code> of length 24.</p>
+    <p>An <code>R6Class</code> generator object</p>
     
     <h2 class="hasAnchor" id="fields"><a class="anchor" href="#fields"></a>Fields</h2>
 
@@ -127,7 +140,21 @@
     <dl class='dl-horizontal'>
 <dt><code>filter_values</code></dt><dd><p>(n x d) matrix of filter values</p></dd>
     <dt><code>type</code></dt><dd><p>character string of the type of cover</p></dd>
+    <dt><code>index_set</code></dt><dd><p>character vector used to index the 'level_sets' list</p></dd>
+    <dt><code>level_sets</code></dt><dd><p>list of the</p></dd>
 </dl>
+    
+    <h2 class="hasAnchor" id="private-variables"><a class="anchor" href="#private-variables"></a>Private variables</h2>
+
+    
+    <p>The following is a list of private variables available for derived classes. Each may be accessed 
+by the <code>private$</code> access method, see <code>?R6</code> for more details.</p><ul>
+<li><p>.level_setsnames list of indices in the original data set to cluster over.</p></li>
+<li><p>.index_setcharacter vector of keys that uniquely index the level sets.</p></li>
+<li><p>.filter_dimconstant representing the filter dimension.</p></li>
+<li><p>.filter_sizeconstant representing the number of points in the filter space.</p></li>
+<li><p>.typenamestring identifier of the covering method.</p></li>
+</ul>
     
 
   </div>
@@ -138,11 +165,13 @@
       <li><a href="#format">Format</a></li>
 
       <li><a href="#fields">Fields</a></li>
+
+      <li><a href="#private-variables">Private variables</a></li>
           </ul>
 
     <h2>Author</h2>
     
-: Matt Piekenbrock
+Matt Piekenbrock
 
   </div>
 </div>

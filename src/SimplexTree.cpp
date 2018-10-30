@@ -16,6 +16,7 @@ SimplexTree::~SimplexTree() {
   // delete_tree(root);
 }
 
+
 SEXP SimplexTree::as_XPtr(){
   Rcpp::XPtr< SimplexTree> p(this, false);
   return(p);

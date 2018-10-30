@@ -54,7 +54,7 @@ function applySimSettings(force_sim){
 
 // Applies the forces in the forces parameter list to a given force simulation
 function applyForces(force_sim){
-  console.log("Applying forces")
+  // console.log("Applying forces")
   _.forOwn(simParams.force, function(value, key){
     var settings = simParams.force[key];
     if (settings.enabled){
@@ -72,7 +72,7 @@ function defaultForce(nodes, links, width, height){
   var unit_dist = 0.01 * Math.sqrt((width*width) + (height*height));
   
   // Add width/height dependent parameters to defaults 
-  console.log(simParams);
+  // console.log(simParams);
   simParams.force.charge.params.distanceMax = unit_dist*50;
   simParams.force.x.params.x = width/2;
   simParams.force.y.params.y = height/2;
@@ -100,7 +100,7 @@ var applyToSubset = function(network, node_idx, f){
 }
 
 // Helper function for offsets.
-var getOffset = function (e) {
+function getOffset(e) {
 	if (e.offsetX) return {x: e.offsetX, y: e.offsetY};
 	var rect = e.target.getBoundingClientRect();
 	var x = e.clientX - rect.left,
@@ -149,6 +149,29 @@ function getEventHandler(event_name){
   }
 }
 
+// use triangles with border
+function customNodeRender(obj) {
+  obj.context.beginPath();
+  obj.context.moveTo(obj.cx, obj.cy - obj.r);
+  obj.context.lineTo(obj.cx - obj.r, obj.cy + obj.r);
+  obj.context.lineTo(obj.cx + obj.r, obj.cy + obj.r);
+  obj.context.closePath();
+  obj.context.strokeStyle = 'black';
+  obj.context.fillStyle = 'rgba(' + obj.color.join(',') + ')';
+  obj.context.lineWidth = 10;
+  obj.context.stroke();
+  obj.context.fill();
+}
+// use thick curved lines
+function customLinkRender(obj) {
+  obj.context.beginPath();
+  obj.context.moveTo(obj.x1, obj.y1);
+  obj.context.quadraticCurveTo(obj.x1 + 150, obj.y1 + 150, obj.x2, obj.y2);
+  obj.context.lineWidth = obj.lineWidth * 3;
+  obj.context.strokeStyle = 'black';
+  obj.context.stroke();
+}
+
 // Given a set of nodes and their corresponding network their attached to, adjusts the nodes 
 // coordinates to reflect the mean coordinates of its 1st-degree neighbors its connected too. 
 function guess_node_position(nodes, network){
@@ -180,18 +203,28 @@ HTMLWidgets.widget({
 		// var vertex_shader_str = 'uniform vec2 u_resolution; attribute vec2 a_position; attribute vec4 a_rgba; attribute vec2 a_center; attribute float a_radius; varying vec4 rgba; varying vec2 center; varying vec2 resolution; varying float radius; void main() { vec2 clipspace = a_position / u_resolution * 2.0 - 1.0; gl_Position = vec4(clipspace * vec2(1, -1), 0, 1); rgba = a_rgba / 255.0; rgba.a = 0.7; radius = a_radius; center = a_center; resolution = u_resolution; }';
 		//nodeShaders: { vertexCode: vertex_shader_str }
 
+    // Globals to track
     var elementId = el.id;
 		var initialized = false;
 		var network = { nodes: [], links: [] };
-		var grapher = new Grapher({ 
-		  data: network, 
-		  canvas: document.getElementById(elementId), 
-		  width: el.offsetWidth, height: el.offsetHeight, 
-		  resolution: 1.5 
-		})
+		var grapher = null;
 		var force_sim = null;
 		var current_transform = null;
 		var zoomRatio = null;
+
+    // Timers to pause the grapher. In static layouts, this is called appropriately on mouseUp events, thus pausing 
+    // the renderAnimationFrame loop so as to not expend extra cycles when idling. If force is enabled, pausing the 
+    // grapher is instead taken care of in the tick function. 
+    var start_countdown = function(target_alpha=0){
+      d3.timeout(function(elapsed) {
+        if (!force_sim){ 
+          console.log("Pausing grapher due to elapsed timer");
+          grapher.pause(); 
+        } else{
+          force_sim.alpha(target_alpha).restart();
+        }
+      }, 1000);
+    }
 
 		// Variable to keep track of the node (id) we're dragging and the current offset (xy coordinate)
 		var dragging = null, offset = null, startPoint = undefined;
@@ -202,8 +235,7 @@ HTMLWidgets.widget({
 				dragging.node.x = offset.x; // Math.min(offset.x, width - offset.x);
 				dragging.node.y = offset.y; // Math.min(offset.y, height - offset.y);
 			}
-			// if (useLabelCenters){ _(network.nodes).forEach(moveTowardLabelCenter(force_sim.alpha())); }
-			if (force_sim && force_sim.alpha() < 0.005){ force_sim.stop(); }
+			// if (useLabelCenters){ _(network.nodes).forEach(moveTowardLabelCenter(force_sim.alpha())); 
 			
 			// It is important to call update first to update the sprites, then render to render them
 			grapher.update(); 
@@ -212,14 +244,36 @@ HTMLWidgets.widget({
 		// Factory function
 		return {
 			renderValue: function (x) {
-	  		console.log("Rendering widget id: "+elementId);
+	  		// console.log("Rendering widget id: "+elementId);
 
 				// BEGIN INITIALIZATION ===========================
 				if (!initialized) {
-				  console.log("Running initialization...");
+				  // console.log("Running initialization...");
 					initialized = true;
 					document.getElementById(elementId).widget = this; // attach widget to container
 					this.resize(el.offsetWidth, el.offsetHeight); // resize
+					
+					if (x.use_webgl){
+					  console.log("Using webgl renderer");
+					  grapher = new Grapher({ 
+        		  data: network, 
+        		  canvas: document.getElementById(elementId), 
+        		  width: el.offsetWidth, height: el.offsetHeight, 
+        		  resolution: 1.5 
+        		})
+					} else {
+					  console.log("Using canvas renderer");
+					  grapher = new Grapher({ 
+		          data: network, 
+		          canvas: document.getElementById(elementId), 
+		          width: el.offsetWidth, height: el.offsetHeight, 
+		          resolution: 1.5,
+		          alwaysUse2dCanvas: true,
+              custom2dNodeRenderFunction: customNodeRender,
+              custom2dLinkRenderFunction: customLinkRender,
+		        });
+					}
+					
 					
           // Create the network 
 					network = x.net; 
@@ -234,7 +288,7 @@ HTMLWidgets.widget({
 					}
 					
           // Render the network with grapher
-					grapher.data(network).update().render(); 
+					grapher.data(network).render(); 
 
 					// ====== BEGIN MOUSE HANDLING FUNCTIONS ======
 
@@ -252,7 +306,7 @@ HTMLWidgets.widget({
 
 					// Functon to handle when the mouse is moving
 					function onMouseMove(e) {
-					  console.log("Mouse moving: dragging="+dragging+", startPoint="+startPoint);
+					  // console.log("Mouse moving: dragging="+dragging+", startPoint="+startPoint);
 						if (dragging) { // then transform the graph with according to the dragging motion
 						  var point = grapher.getDataPosition(getOffset(e));
 						  
@@ -262,7 +316,6 @@ HTMLWidgets.widget({
 							startPoint = undefined;
 							offset = point;
 							if (force_sim){ force_sim.alpha(1).restart(); } // restart the force
-							// grapher.update();
 							grapher.updateNode(dragging.id, true); // update the individual node
 						} else {
 							// Adjust the translate based on the change in mouse location.
@@ -283,16 +336,18 @@ HTMLWidgets.widget({
 						startPoint = undefined;
 						grapher.off('mousemove');
 						grapher.off('mouseup');
+						start_countdown(); // waits a second before pausing the grapher 
 					};
 
 
 					// On mousedown, grab the node that was clicked.
 					function onMouseDown(e) {
+					  grapher.play();
 						var eOffset = getOffset(e);
 						var point = grapher.getDataPosition(eOffset.x, eOffset.y);
 						var nodeId = getNodeIdAt(eOffset);
-						console.log(nodeId);
-						console.log(network.nodes[nodeId]);
+						// console.log(nodeId);
+						//console.log(network.nodes[nodeId]);
 						if (HTMLWidgets.shinyMode) { 
 						  Shiny.onInputChange("node_selected", nodeId); // Send which node was selected to shiny
 						} 
@@ -322,6 +377,7 @@ HTMLWidgets.widget({
 					
 					// start grapher.animate in infinite renderAnimationFrame loop
 					grapher.play(); 
+					// restart_timer();
 					
 					// Attach grapher for use later
 					document.getElementById(el.id).grapher = grapher;
@@ -350,7 +406,7 @@ HTMLWidgets.widget({
 
 
 			resize: function (width, height) {
-			  console.log("Resizing: width = "+width+" (vs. "+el.offsetWidth+"), height = "+height+" (vs. "+el.offsetHeight+")")
+			  // console.log("Resizing: width = "+width+" (vs. "+el.offsetWidth+"), height = "+height+" (vs. "+el.offsetHeight+")")
 				if (grapher !== null) {
 					grapher.resize(el.offsetWidth, el.offsetHeight); // grapher.scale(computeScale());
 					grapher.center();
@@ -385,7 +441,10 @@ HTMLWidgets.widget({
         grapher.data(network).update('nodes').render();
         
         // Restart the force
-        if (force_sim){ force_sim.nodes(network.nodes).alpha(1).restart(); } 
+        if (force_sim){
+          grapher.play();
+          force_sim.nodes(network.nodes).alpha(0.5).restart(); 
+        } 
       },
 		  removeNodes: function(params){
 		    console.log("Removing nodes");
@@ -408,10 +467,13 @@ HTMLWidgets.widget({
         });
         
         // Update the data in the grapher
-        grapher.data(network).update().render();
+        grapher.data(network).render();
         
         // Update the force simulation
-        if (force_sim){ force_sim.nodes(network.nodes); }
+        if (force_sim){ 
+          grapher.play();
+          force_sim.nodes(network.nodes).alpha(0.5).restart();
+        }
 		  },
       setNodeColor: function(params){
         console.log("Updating node color attempt")
@@ -480,7 +542,11 @@ HTMLWidgets.widget({
         grapher.data(network).update('links');
 		    // grapher.update('links');
 		    // Update the force simulation
-		    if (force_sim){ force_sim.force('link')["links"](network.links); }
+		    if (force_sim){ 
+		      grapher.play();
+		      force_sim.force('link')["links"](network.links); 
+		      force_sim.alpha(0.5).restart();
+		    }
 		  },
 		  removeLinks: function(params){
 		    console.log("Removing links");
@@ -491,6 +557,11 @@ HTMLWidgets.widget({
 		    grapher.data(network).update('links').render();
 		    // _.forEach(network.links, function(link, index){ link.index = index; });
 		    // grapher.update('links');
+		    if (force_sim){ 
+		      grapher.play();
+		      force_sim.force('link')["links"](network.links);
+		      force_sim.alpha(0.5).restart();
+		    }
 		  },
       setLinkColor: function(params){
         console.log("Updating edge color");
@@ -513,7 +584,7 @@ HTMLWidgets.widget({
       center: function(params){
         console.log("Centering network");
         grapher.center();
-        grapher.zoom(1.5);
+        grapher.zoom(0.5);
       },
       setForce: function(params){
         console.log("Updating force options");
@@ -591,16 +662,17 @@ HTMLWidgets.widget({
 		    force_sim = defaultForce(network.nodes, network.links, el.offsetWidth, el.offsetHeight); 
 				force_sim.stop();
 				force_sim.on("tick", onTick);
-				force_sim.alpha(1).restart();
-				
-				// Shiny API for sending other events from R
-				if (HTMLWidgets.shinyMode) {
-				  force_sim.on("end", function(){
-				    Shiny.onInputChange("updated_network", network);
-				  });
-				}
-				
+				force_sim.alphaMin(0.005);
+				force_sim.on("end", function(){
+				  // console.log("At end of simulation");
+				  grapher.pause();
+				  force_sim.stop();
+				  if (HTMLWidgets.shinyMode) {
+				    Shiny.onInputChange("forces_settled", force_sim.alpha());
+				  }
+				})
 				grapher.play();
+				force_sim.alpha(1).restart();
 			},
 		  addLasso: function(params){
 		    var lasso_svg = document.getElementById("lasso_svg");
@@ -675,10 +747,11 @@ HTMLWidgets.widget({
 		      else if (lasso_svg.css("visibility") == "visible"){ lasso_svg.css("visibility", "hidden"); }
 		    }
 		  }, 
+		  // Shiny-only
 		  getNetwork: function(params){
   		  if (HTMLWidgets.shinyMode) { 
   		    console.log("Sending back the network...")
-				  // Shiny.onInputChange("network", network); // Send the network back was selected to shiny
+				  Shiny.onInputChange("network", network); // Send the network back was selected to shiny
 				} 
 		  }
 		}

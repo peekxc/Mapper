@@ -52,6 +52,9 @@
   </a>
   <ul class="dropdown-menu" role="menu">
 <li>
+      <a href="../articles/UsingCustomCover.html">Using a custom covering method</a>
+    </li>
+    <li>
       <a href="../articles/UsingMapper.html">Using the Mapper package</a>
     </li>
   </ul>
@@ -66,7 +69,7 @@
 <!--/.navbar -->
 
       
-      </header><script src="UsingMapper_files/htmlwidgets-1.3/htmlwidgets.js"></script><script src="UsingMapper_files/grapher-1.3.2/grapher.min.js"></script><script src="UsingMapper_files/grapher-1.3.2/zoom.min.js"></script><script src="UsingMapper_files/grapher-1.3.2/center.min.js"></script><script src="UsingMapper_files/grapher-1.3.2/target.min.js"></script><script src="UsingMapper_files/grapher-1.3.2/grapher_helpers.js"></script><script src="UsingMapper_files/grapher-1.3.2/lasso.js"></script><script src="UsingMapper_files/d3-4.9.1/d3.min.js"></script><script src="UsingMapper_files/lodash-4.17.10/lodash.min.js"></script><script src="UsingMapper_files/jquery-3.3.1/jquery-3.3.1.min.js"></script><script src="UsingMapper_files/grapher-binding-1.0/grapher.js"></script><div class="row">
+      </header><script src="UsingMapper_files/htmlwidgets-1.3/htmlwidgets.js"></script><script src="UsingMapper_files/grapher-1.3.2/grapher.min.js"></script><script src="UsingMapper_files/grapher-1.3.2/zoom.min.js"></script><script src="UsingMapper_files/grapher-1.3.2/center.min.js"></script><script src="UsingMapper_files/grapher-1.3.2/target.min.js"></script><script src="UsingMapper_files/grapher-1.3.2/grapher_helpers.js"></script><script src="UsingMapper_files/grapher-1.3.2/lasso.js"></script><script src="UsingMapper_files/d3-4.9.1/d3.min.js"></script><script src="UsingMapper_files/d3-4.9.1/d3-timer.min.js"></script><script src="UsingMapper_files/lodash-4.17.10/lodash.min.js"></script><script src="UsingMapper_files/jquery-3.3.1/jquery-3.3.1.min.js"></script><script src="UsingMapper_files/grapher-binding-1.0/grapher.js"></script><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1>Using the Mapper package</h1>
@@ -129,7 +132,7 @@
 <a class="sourceLine" id="cb5-2" data-line-number="2">rec_cover<span class="op">$</span>percent_overlap &lt;-<span class="st"> </span><span class="fl">0.20</span></a></code></pre></div>
 <p>If you supply a single value when the filter dimensionality <span class="math inline">\(&gt; 1\)</span>, the argument is recycled. The cover summary can be printed as follows:</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="kw">print</span>(rec_cover)</a></code></pre></div>
-<pre><code>## Cover: (type = Fixed rectangular, number intervals = [5], overlap = [0.2])</code></pre>
+<pre><code>## Cover: (typename = Fixed Rectangular, number intervals = [5], percent overlap = [0.2]%)</code></pre>
 <p>Once parameterized, the cover may be explicitly constructed via the <code>construct_cover</code> member function before sending to Mapper. The <code>construct_cover</code> function uses the given set of parameters to populate the intersection between the open sets in the cover and the given filter data. If not explicity called, the cover will be constructed when the Mapper reference is made. <code>Mapper</code> accepts any cover that is a valid <code>CoverRef</code> R6 class. If you want to use a cover outside of the ones offers by the package, feel free to derive a new type cover class (and consider submitting a pull request!).</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" data-line-number="1"><span class="co">## 3.  Apply a partial clustering to the data subsets indexed by the cover </span></a>
 <a class="sourceLine" id="cb8-2" data-line-number="2">m &lt;-<span class="st"> </span>Mapper<span class="op">::</span>MapperRef<span class="op">$</span><span class="kw">new</span>(noisy_circle)</a>
@@ -162,7 +165,7 @@
 <p>The <span class="math inline">\(1\)</span>-skeleton is computed analogously.</p>
 <div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb14-1" data-line-number="1">m<span class="op">$</span><span class="kw">compute_edges</span>()</a></code></pre></div>
 <p>Generally, this is sufficient. However, if the user wishes too, the <span class="math inline">\(k\)</span>-skeleton for any <span class="math inline">\(k &gt; 1\)</span> can also be computed.</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb15-1" data-line-number="1">m<span class="op">$</span><span class="kw">compute_k_skeleton</span>(<span class="dt">k =</span> 1L)</a></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb15-1" data-line-number="1">m<span class="op">$</span><span class="kw"><a href="../reference/compute_k_skeleton.html">compute_k_skeleton</a></span>(<span class="dt">k =</span> 1L)</a></code></pre></div>
 <p>All the methods can chained.</p>
 <div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb16-1" data-line-number="1">m &lt;-<span class="st"> </span>MapperRef<span class="op">$</span><span class="kw">new</span>(noisy_circle)<span class="op">$</span></a>
 <a class="sourceLine" id="cb16-2" data-line-number="2"><span class="st">  </span><span class="kw">use_cover</span>(<span class="dt">filter_values =</span> <span class="kw">matrix</span>(f_x), <span class="dt">type =</span> <span class="st">"fixed rectangular"</span>, </a>
@@ -173,15 +176,15 @@
 <a class="sourceLine" id="cb16-7" data-line-number="7"><span class="st">  </span><span class="kw">compute_edges</span>()</a></code></pre></div>
 <p>The output of Mapper is a simplicial complex, or in the simplest case (when <span class="math inline">\(k = 1\)</span>), a topological graph. Internally, the complex is stored in a <a href="https://hal.inria.fr/hal-00707901v1/document">Simplex Tree</a>. The underlying simplex tree is exported as an <a href="https://cran.r-project.org/web/packages/Rcpp/vignettes/Rcpp-modules.pdf">Rcpp Module</a>, and is accessible via the <code>$simplicial_complex</code> member.</p>
 <div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb17-1" data-line-number="1">m<span class="op">$</span>simplicial_complex</a></code></pre></div>
-<pre><code>## Simplex Tree with (8, 8) (0, 1)-simplices</code></pre>
+<pre><code>## Simplex Tree with (8, 1) (0, 1)-simplices</code></pre>
 <div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb19-1" data-line-number="1">m<span class="op">$</span>simplicial_complex<span class="op">$</span><span class="kw">print_tree</span>()</a></code></pre></div>
-<pre><code>## 0 (h = 1): .( 1 2 )
-## 1 (h = 1): .( 4 )
-## 2 (h = 1): .( 3 )
+<pre><code>## 0 (h = 0): 
+## 1 (h = 0): 
+## 2 (h = 0): 
 ## 3 (h = 1): .( 6 )
-## 4 (h = 1): .( 5 )
-## 5 (h = 1): .( 7 )
-## 6 (h = 1): .( 7 )
+## 4 (h = 0): 
+## 5 (h = 0): 
+## 6 (h = 0): 
 ## 7 (h = 0):</code></pre>
 </div>
 <div id="visualizing-the-mapper" class="section level3">
@@ -190,7 +193,7 @@
 <p>The <code>grapher</code> package provides a <a href="https://www.htmlwidgets.org/">htmlwidget</a> implementation of Ayasdi’s Apache-licensed <a href="https://github.com/ayasdi/grapher">grapher</a> library, which can be used to visualize the Mapper network, with options to support nice things like <a href="https://github.com/d3/d3-force">D3 force</a>. The <code>$as_grapher</code> function provides a few default coloring and sizing options.</p>
 <div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb21-1" data-line-number="1"><span class="kw">library</span>(<span class="st">"grapher"</span>)</a>
 <a class="sourceLine" id="cb21-2" data-line-number="2">m<span class="op">$</span><span class="kw"><a href="../reference/as_grapher.html">as_grapher</a></span>()</a></code></pre></div>
-<canvas id="htmlwidget-4f26eefa72a7f0d30d01" class="grapher html-widget" style="width:700px;height:432.632880098888px;"></canvas><script type="application/json" data-for="htmlwidget-4f26eefa72a7f0d30d01">{"x":{"net":{"nodes":[{"id":0,"x":0.1514,"y":0.8591,"r":15,"color":"rgba(0,0,255,255.00)"},{"id":1,"x":0,"y":0.5068,"r":10.8013,"color":"rgba(0,247,255,255.00)"},{"id":2,"x":0.5067,"y":1,"r":10.8769,"color":"rgba(0,255,252,255.00)"},{"id":3,"x":0.8581,"y":0.8516,"r":10.6978,"color":"rgba(0,255,15,255.00)"},{"id":4,"x":0.1397,"y":0.1501,"r":10,"color":"rgba(5,255,0,255.00)"},{"id":5,"x":0.4911,"y":0,"r":10.7757,"color":"rgba(252,255,0,255.00)"},{"id":6,"x":1,"y":0.4948,"r":10.618,"color":"rgba(242,255,0,255.00)"},{"id":7,"x":0.8453,"y":0.1414,"r":14.9778,"color":"rgba(255,0,0,255.00)"}],"links":[{"from":0,"to":1,"color":"#007CFF"},{"from":0,"to":2,"color":"#007CFF"},{"from":1,"to":4,"color":"#00FF81"},{"from":2,"to":3,"color":"#00FF8B"},{"from":3,"to":6,"color":"#6CFF00"},{"from":4,"to":5,"color":"#81FF00"},{"from":5,"to":7,"color":"#FF8600"},{"from":6,"to":7,"color":"#FF8600"}]},"api":[]},"evals":[],"jsHooks":[]}</script><p>To customize the visualization, refer to graphers <a href="">documentation</a>.</p>
+<canvas id="htmlwidget-4f26eefa72a7f0d30d01" class="grapher html-widget" style="width:700px;height:432.632880098888px;"></canvas><script type="application/json" data-for="htmlwidget-4f26eefa72a7f0d30d01">{"x":{"net":{"nodes":[{"id":0,"x":0.7271,"y":0,"r":15,"color":"rgba(0,0,255,255.00)"},{"id":1,"x":0,"y":0.7014,"r":10.7277,"color":"rgba(0,255,252,255.00)"},{"id":2,"x":0.5477,"y":0.531,"r":10.7558,"color":"rgba(0,255,252,255.00)"},{"id":3,"x":0.2436,"y":0.0452,"r":10.6708,"color":"rgba(0,255,15,255.00)"},{"id":4,"x":0.833,"y":0.8846,"r":10,"color":"rgba(5,255,0,255.00)"},{"id":5,"x":0.3531,"y":1,"r":10.7277,"color":"rgba(242,255,0,255.00)"},{"id":6,"x":0.0698,"y":0.2148,"r":10.6128,"color":"rgba(232,255,0,255.00)"},{"id":7,"x":1,"y":0.3956,"r":14.9786,"color":"rgba(255,0,0,255.00)"}],"links":[{"from":3,"to":6,"color":"#6CFF00"}]},"api":[],"use_webgl":true},"evals":[],"jsHooks":[]}</script><p>To customize the visualization, refer to graphers <a href="">documentation</a>.</p>
 </div>
 <div id="accessing-other-members" class="section level3">
 <h3 class="hasAnchor">
@@ -203,16 +206,16 @@
 <pre><code>##  chr [1:5] "(1)" "(2)" "(3)" "(4)" "(5)"</code></pre>
 <div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb26-1" data-line-number="1"><span class="kw">str</span>(m<span class="op">$</span>cover<span class="op">$</span>level_sets)             <span class="co">## level set point memberships</span></a></code></pre></div>
 <pre><code>## List of 5
-##  $ (1): int [1:459] 2 3 4 6 10 12 27 31 34 41 ...
-##   ..- attr(*, "bounds")= num [1:2] -0.105 0.944
-##  $ (2): int [1:269] 6 9 11 13 15 17 21 22 33 42 ...
-##   ..- attr(*, "bounds")= num [1:2] 0.734 1.782
-##  $ (3): int [1:234] 8 13 17 18 20 25 32 36 38 49 ...
-##   ..- attr(*, "bounds")= num [1:2] 1.57 2.62
-##  $ (4): int [1:258] 5 16 19 23 25 26 29 35 37 40 ...
-##   ..- attr(*, "bounds")= num [1:2] 2.41 3.46
-##  $ (5): int [1:456] 1 5 7 14 24 28 30 39 51 55 ...
-##   ..- attr(*, "bounds")= num [1:2] 3.25 4.3</code></pre>
+##  $ (1): int [1:436] 2 3 4 6 10 12 27 31 34 41 ...
+##   ..- attr(*, "bounds")= num [1:2] -0.000841 0.839663
+##  $ (2): int [1:221] 9 11 15 17 21 22 33 42 43 45 ...
+##   ..- attr(*, "bounds")= num [1:2] 0.838 1.678
+##  $ (3): int [1:195] 8 13 18 20 25 32 36 38 49 50 ...
+##   ..- attr(*, "bounds")= num [1:2] 1.68 2.52
+##  $ (4): int [1:216] 16 19 23 26 29 35 37 40 55 59 ...
+##   ..- attr(*, "bounds")= num [1:2] 2.52 3.36
+##  $ (5): int [1:433] 1 5 7 14 24 28 30 39 51 61 ...
+##   ..- attr(*, "bounds")= num [1:2] 3.35 4.19</code></pre>
 <div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb28-1" data-line-number="1"><span class="kw">str</span>(<span class="kw">args</span>(m<span class="op">$</span>clustering_algorithm))   <span class="co">## function used to perform the partial clustering </span></a></code></pre></div>
 <pre><code>## function (X, idx, num_bins = num_bins.default)</code></pre>
 </div>

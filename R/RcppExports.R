@@ -77,8 +77,8 @@ build_0_skeleton <- function(which_levels, X, f, level_sets, vertices, ls_vertex
     .Call('_Mapper_build_0_skeleton', PACKAGE = 'Mapper', which_levels, X, f, level_sets, vertices, ls_vertex_map, stree)
 }
 
-build_1_skeleton <- function(ls_pairs, vertices, ls_vertex_map, stree) {
-    invisible(.Call('_Mapper_build_1_skeleton', PACKAGE = 'Mapper', ls_pairs, vertices, ls_vertex_map, stree))
+build_1_skeleton <- function(ls_pairs, min_sz, vertices, ls_vertex_map, stree) {
+    invisible(.Call('_Mapper_build_1_skeleton', PACKAGE = 'Mapper', ls_pairs, min_sz, vertices, ls_vertex_map, stree))
 }
 
 intersectNodes <- function(nodes1, nodes2, node_ids1, node_ids2) {

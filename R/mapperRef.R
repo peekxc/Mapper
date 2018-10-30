@@ -227,20 +227,19 @@ MapperRef$set("public", "compute_vertices", function(which_levels=NULL, ...){
 ## Computes the edges composing the topological graph (1-skeleton). 
 ## Assumes the nodes have been computed. 
 ## TODO: use weight of intersection to augment distance between edges in visualization
-MapperRef$set("public", "compute_edges", function(which_level_pairs = NULL){
+MapperRef$set("public", "compute_edges", function(which_level_pairs = NULL, min_weight=1L){
   stopifnot(!is.na(self$cover$level_sets))
   if (!missing(which_level_pairs) && !is.null(which_level_pairs)){
     stopifnot(is.matrix(which_level_pairs))
     stopifnot(dim(which_level_pairs)[[2]] == 2)
-    if (!all(apply(which_level_pairs, 2, function(x) x >= 1 && x <= length(self$cover$index_set)))){
-      stop("If specified, 'which_level_pairs' must be an (n x 2) matrix of integers representing which level sets to compare.")
-    }
+    stopifnot(all(unlist(which_level_pairs) %in% self$cover$index_set))
   } else { which_level_pairs <- self$cover$level_sets_to_compare() }
   
   ## Retrieve the valid level set index pairs to compare. In the worst case, with no cover-specific optimization, 
   ## this may just be all pairwise combinations of LSFI's for the full simplicial complex.
   stree_ptr <- private$.simplicial_complex$as_XPtr()
-  build_1_skeleton(ls_pairs = which_level_pairs-1L, vertices = private$.vertices, ls_vertex_map = private$.cl_map, stree = stree_ptr)
+  ls_pairs <- apply(which_level_pairs, 2, function(x){ match(x, self$cover$index_set)-1L }) # 0-based
+  build_1_skeleton(ls_pairs = ls_pairs, min_sz = min_weight, vertices = private$.vertices, ls_vertex_map = private$.cl_map, stree = stree_ptr)
 
   ## Return self
   invisible(self)

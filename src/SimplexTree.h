@@ -13,6 +13,7 @@ typedef unsigned int uint;
 #include <unordered_map>
 #include <queue>
 #include <vector>
+#include <memory>
 
 // Node structure stored by the simplex tree. Contains the following fields:
 //  label := unsigned integer representing the id of simplex it represents

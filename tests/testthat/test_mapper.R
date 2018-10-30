@@ -25,7 +25,7 @@ test_that("Can construct MapperRef object", {
 m <- MapperRef$new(noisy_circle)
 
 test_that("Can construct CoverRef object", {
-  cover_params <- list(filter_values = matrix(f_x, ncol = 1), type="fixed rectangular", number_intervals=5L, percent_overlap=0.20)
+  cover_params <- list(filter_values = matrix(f_x, ncol = 1), type="fixed rectangular", number_intervals=5L, percent_overlap=20)
   expect_silent(do.call(m$use_cover, cover_params))
   expect_is(m$cover, "CoverRef")
 })

@@ -249,15 +249,16 @@ BEGIN_RCPP
 END_RCPP
 }
 // build_1_skeleton
-void build_1_skeleton(const IntegerMatrix& ls_pairs, const List& vertices, const List& ls_vertex_map, SEXP stree);
-RcppExport SEXP _Mapper_build_1_skeleton(SEXP ls_pairsSEXP, SEXP verticesSEXP, SEXP ls_vertex_mapSEXP, SEXP streeSEXP) {
+void build_1_skeleton(const IntegerMatrix& ls_pairs, const int min_sz, const List& vertices, const List& ls_vertex_map, SEXP stree);
+RcppExport SEXP _Mapper_build_1_skeleton(SEXP ls_pairsSEXP, SEXP min_szSEXP, SEXP verticesSEXP, SEXP ls_vertex_mapSEXP, SEXP streeSEXP) {
 BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const IntegerMatrix& >::type ls_pairs(ls_pairsSEXP);
+    Rcpp::traits::input_parameter< const int >::type min_sz(min_szSEXP);
     Rcpp::traits::input_parameter< const List& >::type vertices(verticesSEXP);
     Rcpp::traits::input_parameter< const List& >::type ls_vertex_map(ls_vertex_mapSEXP);
     Rcpp::traits::input_parameter< SEXP >::type stree(streeSEXP);
-    build_1_skeleton(ls_pairs, vertices, ls_vertex_map, stree);
+    build_1_skeleton(ls_pairs, min_sz, vertices, ls_vertex_map, stree);
     return R_NilValue;
 END_RCPP
 }
@@ -318,7 +319,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Mapper_test_merge2", (DL_FUNC) &_Mapper_test_merge2, 1},
     {"_Mapper_check_connected", (DL_FUNC) &_Mapper_check_connected, 4},
     {"_Mapper_build_0_skeleton", (DL_FUNC) &_Mapper_build_0_skeleton, 7},
-    {"_Mapper_build_1_skeleton", (DL_FUNC) &_Mapper_build_1_skeleton, 4},
+    {"_Mapper_build_1_skeleton", (DL_FUNC) &_Mapper_build_1_skeleton, 5},
     {"_Mapper_intersectNodes", (DL_FUNC) &_Mapper_intersectNodes, 4},
     {"_Mapper_update_level_sets", (DL_FUNC) &_Mapper_update_level_sets, 7},
     {"_rcpp_module_boot_multiscale_module", (DL_FUNC) &_rcpp_module_boot_multiscale_module, 0},

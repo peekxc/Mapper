@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Fixed Rectangular Cover — FixedRectangularCover • Mapper</title>
+<title>Ball Cover — BallCover • Mapper</title>
 
 <!-- jquery -->
 <script src="https://code.jquery.com/jquery-3.1.0.min.js" integrity="sha384-nrOSfDHtoPMzJHjVTdCopGqIqeYETSXhZDFyniQ8ZHcVy08QesyHcnOUpMpqnmWq" crossorigin="anonymous"></script>
@@ -30,11 +30,11 @@
 
 
 
-<meta property="og:title" content="Fixed Rectangular Cover — FixedRectangularCover" />
+<meta property="og:title" content="Ball Cover — BallCover" />
 
-<meta property="og:description" content="The rectangular cover is multidimensional, two-parameter family of covers. Given the number of
-intervals and the overlap percentage between these intervals, this class constructs hyper-rectangular cover of the
-given filter space, where individual level sets are distributed uniformly along a rectangular grid." />
+<meta property="og:description" content="This class provides a cover whose open sets are formed by the union of $$\epsilon$$-balls centered 
+about each point. Using this class requires the RANN package to be installed, and thus explicitly assumes
+the filter space endowed with the euclidean metric." />
 <meta name="twitter:card" content="summary" />
 
 
@@ -109,20 +109,20 @@ given filter space, where individual level sets are distributed uniformly along 
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Fixed Rectangular Cover</h1>
+    <h1>Ball Cover</h1>
     
-    <div class="hidden name"><code>FixedRectangularCover.Rd</code></div>
+    <div class="hidden name"><code>BallCover.Rd</code></div>
     </div>
 
     <div class="ref-description">
     
-    <p>The rectangular cover is multidimensional, two-parameter family of covers. Given the number of
-intervals and the overlap percentage between these intervals, this class constructs hyper-rectangular cover of the
-given filter space, where individual level sets are distributed uniformly along a rectangular grid.</p>
+    <p>This class provides a cover whose open sets are formed by the union of $$\epsilon$$-balls centered 
+about each point. Using this class requires the <code>RANN</code> package to be installed, and thus explicitly assumes
+the filter space endowed with the euclidean metric.</p>
     
     </div>
 
-    <pre class="usage"><span class='no'>FixedRectangularCover</span></pre>
+    <pre class="usage"><span class='no'>BallCover</span></pre>
         
     <h2 class="hasAnchor" id="format"><a class="anchor" href="#format"></a>Format</h2>
 
@@ -132,8 +132,7 @@ given filter space, where individual level sets are distributed uniformly along 
 
     
     <dl class='dl-horizontal'>
-<dt><code>number_intervals</code></dt><dd><p>:= vector of number of bins to cover the Z with (per dimension)</p></dd>
-    <dt><code>percent_overlap</code></dt><dd><p>:= vector of overlap percentages</p></dd>
+<dt><code>epsilon</code></dt><dd><p>:= radius of the ball to form around each point</p></dd>
 </dl>
     
 

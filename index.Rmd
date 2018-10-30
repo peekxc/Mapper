@@ -1,12 +1,16 @@
 ---
 output: html_document
 ---
-
 # R implementation of Mapper 
-[![CRAN\_Status\_Badge](https://www.r-pkg.org/badges/version/reticulate)](https://cran.r-project.org/package=reticulate)
-[![Travis-CI Build Status](https://travis-ci.org/rstudio/reticulate.svg?branch=master)](https://travis-ci.org/rstudio/reticulate) [![Appveyor Build Status](https://ci.appveyor.com/api/projects/status/github/rstudio/reticulate?svg=true)](https://ci.appveyor.com/project/rstudio/reticulate)  
+[![CRAN\_Status\_Badge](https://www.r-pkg.org/badges/version/mapper)](https://cran.r-project.org/packge=mapper)
+[![Travis-CI Build Status](https://travis-ci.com/peekxc/mapper.svg?token=Hx3A92eGgRqqiu1NfKUb&branch=master)](https://travis-ci.com/peekxc/mapper) 
+<!-- [![Appveyor Build Status](https://ci.appveyor.com/api/projects/status/github/rstudio/reticulate?svg=true)](https://ci.appveyor.com/project/rstudio/reticulate)   -->
 
-The **Mapper** package provides a configurable impementation of the _mapper_ framework. The package includes: 
+```{r setup, eval=TRUE, include=FALSE}
+library("Mapper")
+```
+
+The **Mapper** package provides a configurable implementation of the _mapper_ framework. The package includes: 
 
 <img src="man/figures/mapper_logo.png" width=150 style="margin-left: 15px;" align="right" />
 
@@ -59,17 +63,18 @@ points(cbind(f_x, 1), pch = "|", col = col, cex = 2)
 <img src="man/figures/figure_eight.png" width=100% />
 
 Below is a possible way to construct a _mapper_ of the data visualized with the [grapher]() package. 
-```{r, echo=TRUE, eval=FALSE}
+```{r, echo=TRUE, eval=TRUE, include=FALSE}
 m <- MapperRef$
   new(X = eight)$                                             
   use_cover(filter_values = f_x, 
-            type = "restrained rectangular", 
-            number_intervals = 10, percent_overlap = 0.50)$
+            typename = "restrained rectangular", 
+            number_intervals = 10, percent_overlap = 50)$
   use_distance_measure(measure = "euclidean")$
   use_clustering_algorithm(cl = "single")$
   compute_k_skeleton(k = 1L)
 
-## Visualize interactively 
+## Visualize interactively w/ grapher
+library("grapher")
 m$as_grapher() %>% center()
 ```
 
@@ -88,20 +93,74 @@ m$use_distance_measure("Mahalanobis")
 
 Or just replace the clustering algorithm entirely
 ```{r}
-m$clustering_algorithm <- function(X, idx){
-  kmeans(X[idx,], k = 2)$cluster
+## If using a custom metric, just compute the distance matrix 
+m$clustering_algorithm <- function(X, idx, num_bins=10){
+  dist_x <- dist(X[idx,], method = "manhattan")
+  hc <- hclust(dist_x, method = "average")
+  cutoff_first_bin(hc, diam = max(dist_x), num_bins)
 }
 ```
 
-If you prefer a different cover, 
-
-Want to only update specific open sets in the cover?
+If you prefer a different covering, just assign a valid object inheriting from `CoverRef`. 
 ```{r}
-m$compute_vertices(which_levels = )
+## Below is equivalent to m$use_cover(filter_values = f_x, typename="fixed rectangular", <parameters>)
+f_cover <- FixedRectangularCover$new(filter_values = f_x)
+f_cover$number_intervals <- 10
+f_cover$percent_overlap <- 50
+m$cover <- f_cover$construct_cover()
 ```
 
+A list of available covering methods can be printed as follows: 
+```{r}
+covers_available()
+```
+Alternatively, you can create your own cover. See the article on [how to make custom cover](articles/UsingCustomCover.html). 
 
+Note that their is a natural dependency chain to be cognizant of when swapping in or out parameters. The package does __not__ check for reverse dependencies, nor does it invalidate existing structures that follow this chain. For example, when the new cover was substituted in in the above example, it implicitly invalidates the simplicial complex. To correct for this, if swapping covers, make sure to compute the full complex again, i.e. 
 
+```{r}
+m$compute_k_skeleton(k = 1L)
+```
+
+If you want to only update specific open sets in the cover for some reason, just pass in whatever subset of the index set to compute.
+```{r}
+m$compute_vertices(which_levels = m$cover$index_set[1:5])
+```
+
+The same rule applies to computing the edges. 
+```{r}
+idx_pairs <- t(apply(combn(5, 2), 2, function(ls_idx) { m$cover$index_set[ls_idx] }))
+m$compute_edges(which_level_pairs = idx_pairs)
+```
+
+If the construction has too many edges, you could require the intersection size be above a certain threshold (default is 1). This isn't technically part of Mappers definition, but could be useful empirically. 
+
+```{r}
+m$compute_edges(min_weight = 10)
+```
+
+The simplicial complex is available via the `$simplicial_complex` member, and the points in contained in each vertex is available via the `$vertices` member.
+
+```{r}
+m$simplicial_complex
+head(m$vertices, 2)
+```
+
+As shown above, the complex is stored in a [Simplex Tree](?simplex_tree), and the vertices are stored as a list. Each vertex also has an attribute "level_set" denoting the index in the index set of the cover its associated with.  
+
+The $1$-skeleton can be exported to any of the usual graph-type data structures.
+```{r, eval=FALSE}
+m$simplicial_complex$as_adjacency_matrix()
+m$simplicial_complex$as_adjacency_list()
+m$simplicial_complex$as_edge_list()
+```
+
+### Visualizing the __mapper__
+
+TODO
+
+## References 
+1. Boissonnat, Jean-Daniel, and Clément Maria. "The simplex tree: An efficient data structure for general simplicial complexes." Algorithmica 70.3 (2014): 406-427.
 <!-- ## Sphere example  -->
 
 <!-- TODO -->
