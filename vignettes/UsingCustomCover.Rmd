@@ -1,6 +1,10 @@
 ---
+author: "Matt Piekenbrock"
 title: "Using a custom covering method"
-output: html_notebook
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
 ## Introduction
@@ -19,8 +23,11 @@ Mapper::covers_available()
 ## Making a custom cover 
 
 To use a custom covering strategy, a new `R6` class must be defined satisfying the following requirements:
+
 1. The class inherits from the `CoverRef` class. 
+
 2. The class overrides the `construct_cover` function. 
+
 3. Upon calling `construct_cover`, the class populates the `level_sets` member with a named list whose names are uniquely indexed by the `index_set` member, and whose values are integer indices that form a valid cover. 
 
 Below is an example of a simplified version of the source code used to create the `BallCover` generator.  
@@ -41,11 +48,16 @@ BallCoverEx <- R6::R6Class(
 First, a generator is defined that satisfies (1). The public fields represent the parameters of the cover. Note that the initializer must be overridden so that the filter values along with the unique 'typename' of the cover are first passed to the parent `CoverRef` initializer. When that happens, a few checks are performed, and the following private fields become available to the derived class via the `private` namespace.  
 
 __private`$`__
-- `.level_sets` := list of data indices that intersect the open sets
-- `.index_set` := character vector of keys that uniquely index the level sets
-- `.filter_dim` := constant representing the filter dimension
-- `.filter_size` := constant representing the number of points in the filter space
-- `.typename` := string identifier of the covering method
+
+- `__.level_sets:__` list of data indices that intersect the open sets
+
+- `__.index_set:__` character vector of keys that uniquely index the level sets
+
+- `__.filter_dim:__` constant representing the filter dimension
+
+- `__.filter_size:__` constant representing the number of points in the filter space
+
+- `__.typename:__` string identifier of the covering method
 
 Additional information can be found in the documentation of the base class, see `?CoverRef` for more details. 
 

@@ -1,11 +1,10 @@
 ---
-title: "Using the Mapper package"
 author: "Matt Piekenbrock"
-output:
-  html_notebook: default
-  html_document:
-    df_print: paged
-  pdf_document: default
+title: "Using the Mapper Package"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
 
@@ -44,12 +43,14 @@ plot(noisy_circle, pch = 20, asp = 1, xlab = "X", ylab = "Y", main = "Circle")
 <!-- For most use-cases, the static method above is sufficient for getting a compact Mapper construction back. However, building the 'right' Mapper may be an interactive process, requiring parameter tuning, exploring alternative filter functions, tweaking clustering algorithms, etc. For large data sets, this iterative fitting process can be prohibitively expensive.  -->
 
 Internally, Mapper uses `R6` classes to efficiently compute the simplicial complex. One of the nice benefits of R6 is that it allows [method chaining](https://adv-r.hadley.nz/R6.html#method-chaining). 
-To demonstrate this, consider a very simplified interpretation of the Mapper pipeline: 
-  1. "Filter" the data via a reference map
-  2. Equip the filter space with a cover
-  3. Construct the _k_-skeleton
-<!-- If more information is required beyond the static construction, the `return_reference` parameter may be set to `TRUE` to access the underlying `MapperRef` object. This is useful in situations where each step of the mapper framework needs fine-tuned, e.g. where the construction is requested under multiple parameter settings.   -->
+To demonstrate this, consider a very simplified interpretation of the Mapper pipeline:
 
+  1. "Filter" the data via a reference map
+  
+  2. Equip the filter space with a cover
+  
+  3. Construct the _k_-skeleton
+  
 These steps are demonstrated below using the `noisy_circle` data set above with the `Mapper` package.
 
 The first step is to create a _filter_ of the data. Below is an example of a very simple filter mentioned in the original paper that builds the mapper by looking at the distance from every point $x$ to the point with left-most coordinate, $p$, i.e.  

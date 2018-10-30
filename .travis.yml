@@ -11,6 +11,11 @@ addons:
     packages:
       - libxml2-dev
       - gfortran
+  homebrew:
+    packages:
+      - libxml2
+      - gcc
+    update: true
 
 # Run on both linux and OS X
 os:
