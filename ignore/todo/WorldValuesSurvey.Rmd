@@ -51,13 +51,24 @@ lines(g, log(cumsum(perf_stats[, 5])), lwd = 2, col = "green")
 load("~/mapper/ignore/todo/wvs_tsne.rdata")
 
 library("Mapper")
-m <- Mapper:::MapperRef$new(wv_us_uniq)
-m$
-  use_cover(filter_values=wv_filter, type="fixed rectangular", number_intervals=10L, percent_overlap=0.20)$
-  use_distance_measure(measure = "euclidean")
-m$use_clustering_algorithm(cl = "single", num_bins = 10L)
+WV_US_nice <- WV_US_subset
+colnames(WV_US_nice) <- key_vals
+
+wv_ica <- fastICA::fastICA(as.matrix(WV_US_nice), n.comp = 2, method = "C", alg.typ = "deflation", row.norm = TRUE)
+m <- Mapper:::MapperRef$new(as.matrix(WV_US_nice))
+m$use_cover(filter_values=wv_ica$S, type="fixed rectangular", number_intervals=15L, percent_overlap=15)$
+  use_distance_measure(measure = "euclidean")$
+  use_clustering_algorithm(cl = "single", num_bins = 10L)$
+  compute_vertices()$
+  compute_edges(min_weight = 15L)
+
+
+Mapper::dashboard(m, WV_US_nice)
+
+
 # m$clustering_algorithm <- function(X, idx){ rep(1L, length(idx)) }
-m$compute_k_skeleton(1L)
+
+plot(wv_ica$S, col = bin_color(WV_US_nice$FamilyImportance))
 
 m$enable_multiscale()
 
@@ -84,6 +95,18 @@ m2$use_clustering_algorithm(cl = "single", num_bins = 10L)
 # m2$clustering_algorithm <- function(X, idx){ rep(1L, length(idx)) }
 m2$compute_k_skeleton(1L)
 ```
+
+```{r}
+d <- 3L
+test_cover <- Mapper::FixedRectangularCover$new(filter_values = replicate(d, rnorm(10)))
+test_cover$percent_overlap <- 25
+sapply(2:5, function(k) {
+  test_cover$number_intervals <- k 
+  test_cover$construct_cover() 
+  nrow(test_cover$level_sets_to_compare())
+}) #13 x3 + 12 x2 + 3 x 
+```
+
 
 ```{r}
 bounded_cover <- FixedRectangularCover$new(filter_values = wv_filter)

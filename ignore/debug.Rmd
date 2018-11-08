@@ -26,7 +26,7 @@ f_x <- noisy_circle
   
 debug_mapper <- function(){
   m <- MapperRef$new(noisy_circle)$
-    use_cover(filter_values = matrix(f_x, ncol = 2), type="fixed rectangular", number_intervals=3L, percent_overlap=0)
+    use_cover(filter_values = matrix(f_x, ncol = 2), typename="fixed rectangular", number_intervals=3L, percent_overlap=0)
   # m$use_clustering_algorithm(cl = "single", num_bins = 10)
   m$clustering_algorithm <- function(X, idx){ rep(1L, length(idx)) }
   m$use_distance_measure(measure = "euclidean")$
@@ -126,6 +126,8 @@ g <- local({
 })
 
 ## Ensure computed interval sizes match the recorded ones 
+d <- ncol(m1$cover$filter_values)
+base_interval_length <- apply(apply(m1$cover$filter_values, 2, range), 2, diff)/m1$cover$number_intervals
 for (d_i in 1:d){
   local({
     r_ref <- environment(m1$update_mapper)[["interval_sizes"]][[d_i]]
@@ -133,6 +135,8 @@ for (d_i in 1:d){
     print(all(abs(r_ref - r_com) < sqrt(.Machine$double.eps)))
   })
 }
+
+m1$update_mapper(c(0.5, 0.5))
 
 ## Randomized approach 
 # all_possible_mappers <- as.matrix(expand.grid(g))

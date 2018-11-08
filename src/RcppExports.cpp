@@ -5,17 +5,6 @@
 
 using namespace Rcpp;
 
-// make_cartesian_product
-IntegerMatrix make_cartesian_product(const List& vecs);
-RcppExport SEXP _Mapper_make_cartesian_product(SEXP vecsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const List& >::type vecs(vecsSEXP);
-    rcpp_result_gen = Rcpp::wrap(make_cartesian_product(vecs));
-    return rcpp_result_gen;
-END_RCPP
-}
 // valid_pairs
 IntegerMatrix valid_pairs(const IntegerMatrix& level_set_pairs);
 RcppExport SEXP _Mapper_valid_pairs(SEXP level_set_pairsSEXP) {
@@ -300,7 +289,6 @@ RcppExport SEXP _rcpp_module_boot_simplex_tree_module();
 RcppExport SEXP _rcpp_module_boot_union_find_module();
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_Mapper_make_cartesian_product", (DL_FUNC) &_Mapper_make_cartesian_product, 1},
     {"_Mapper_valid_pairs", (DL_FUNC) &_Mapper_valid_pairs, 1},
     {"_Mapper_constructLevelSetIndex", (DL_FUNC) &_Mapper_constructLevelSetIndex, 2},
     {"_Mapper_constructIsoAlignedLevelSets", (DL_FUNC) &_Mapper_constructIsoAlignedLevelSets, 3},

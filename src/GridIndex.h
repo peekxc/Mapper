@@ -1,11 +1,10 @@
-#include <Rcpp.h>
-using namespace Rcpp;
-
-#include "cartesian_product.h"
+#include "utility_rcpp.h"
 
 // = GridIndex = 
 // GridIndex is a simple, integral-templated indexing structure that allows a quick mapping between array multi-indexes to their flat equivalents, 
-// and vice-versa. The grid is built using a fast stack-based iterative cartesian product to populate the array structure.
+// and vice-versa. The grid is built using a fast cartesian product to populate the array structure. This structure should only be used 
+// in cases where the indexes from a cartesian product of integral types is needed to be stored; otherwise, dynamically generating the indexes 
+// iont he fly is typically much faster. 
 template<typename T>
 struct GridIndex {
   static_assert(std::is_integral<T>::value, "Integral-type required as an index.");

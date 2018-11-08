@@ -6,14 +6,12 @@
 using namespace Rcpp;
 // [[Rcpp::plugins(cpp11)]]
 
-#define sptr std::shared_ptr // Shared pointer
-
-typedef unsigned int uint;
 #include <map>
 #include <unordered_map>
 #include <queue>
 #include <vector>
 #include <memory>
+#include "utility_rcpp.h"
 
 // Node structure stored by the simplex tree. Contains the following fields:
 //  label := unsigned integer representing the id of simplex it represents
@@ -21,13 +19,13 @@ typedef unsigned int uint;
 //  children := connected simplexes whose labels > the current simplex's label
 struct node {
   uint label;
-  std::shared_ptr<node> parent;
-  std::map< uint, std::shared_ptr<node> > children;
-  node(uint id, std::shared_ptr<node> c_parent) : label(id), parent(c_parent){ 
-    children = std::map< uint, std::shared_ptr<node> >(); 
+  s_ptr< node > parent;
+  std::map< uint, s_ptr< node > > children;
+  node(uint id, s_ptr<node> c_parent) : label(id), parent(c_parent){ 
+    children = std::map< uint, s_ptr< node > >(); 
   }
 };
-typedef std::shared_ptr<node> node_ptr; 
+typedef s_ptr<node> node_ptr; 
 
 
 // Simplex tree data structure. 
@@ -58,7 +56,6 @@ struct SimplexTree {
   void print_tree();
   void print_cofaces(int depth);
 
-  
   // Export utilities
   IntegerMatrix as_adjacency_matrix(); // Exports the 1-skeleton as an adjacency matrix 
   List as_adjacency_list(); // Exports the 1-skeleton as an adjacency matrix 

@@ -1,3 +1,4 @@
+// SimplexTree.cpp
 // Simple but limited implementation of the Simplex tree data structure using Rcpp + STL
 // Original Reference: Boissonnat, Jean-Daniel, and Clement Maria. "The simplex tree: 
 // An efficient data structure for general simplicial complexes." Algorithmica 70.3 (2014): 406-427.
@@ -97,7 +98,7 @@ void SimplexTree::add_vertices(const uint v_i){
 // Removes a vertex from the simplex tree, including all edges connected to it.
 void SimplexTree::remove_vertices(IntegerVector vertex_ids){
   if (vertex_ids.size() == 0){ return; }
-  std::map< uint, std::shared_ptr<node> > top_vertices = root->children;
+  std::map< uint, s_ptr<node> > top_vertices = root->children;
   IntegerVector edge_to_remove = IntegerVector::create(0, 0);
   for (IntegerVector::const_iterator vid = vertex_ids.begin(); vid != vertex_ids.end(); ++vid){
     
@@ -129,7 +130,7 @@ void SimplexTree::remove_vertices(IntegerVector vertex_ids){
 
 // Removes all cofaces containing vertex v
 void SimplexTree::remove_vertex_cofaces(const int v){
-  using simplices = std::map< uint, std::shared_ptr<node> >;
+  using simplices = std::map< uint, s_ptr<node> >;
   simplices top_nodes = root->children;
   simplices::iterator it = top_nodes.find(v);
   if (it != top_nodes.end()){
@@ -162,7 +163,7 @@ void SimplexTree::remove_edge(IntegerVector edge){
   bool edge_exists = find_simplex(edge);
   if (!edge_exists){ return; }
   else {
-    std::shared_ptr<node> v_ptr = root->children.at(edge[0]);
+    s_ptr<node> v_ptr = root->children.at(edge[0]);
     remove_child(v_ptr, edge[1], 1);
   }
 }
@@ -485,60 +486,3 @@ RCPP_MODULE(simplex_tree_module) {
   .method( "as_edge_list", &SimplexTree::as_edge_list)
   ;
 }
-
-/*** R
-library("Mapper")
-n_vertices <- 5L
-stree <- Mapper::simplex_tree()
-stree$add_vertices(n_vertices)
-rm(stree)
-gc()
-
-stree <- Mapper::simplex_tree()
-# stree_ptr <- stree$as_XPtr()
-stree$insert_simplex(as.integer(c(1, 2)))
-stree$insert_simplex(as.integer(c(1, 3)))
-stree$insert_simplex(as.integer(c(2, 3)))
-stree$insert_simplex(as.integer(c(2, 4)))
-stree$insert_simplex(as.integer(c(2, 5)))
-stree$insert_simplex(as.integer(c(3, 4)))
-stree$insert_simplex(as.integer(c(3, 5)))
-stree$insert_simplex(as.integer(c(4, 5)))
-
-stree$print_tree()
-
-stree$remove_vertices(4)
-
-stree$expansion(2)
-
-stree$insert_simplex(as.integer(c(1, 2, 3)))
-stree$insert_simplex(as.integer(c(2, 3, 4)))
-stree$insert_simplex(as.integer(c(2, 4, 5)))
-stree$insert_simplex(as.integer(c(3, 4, 5)))
-stree$print_tree()
-
-stree$insert_simplex(as.integer(c(1, 2, 3, 4, 5)))
-stree$print_tree()
-
-# ## Generate noisy points around the perimeter of a circle 
-# n <- 150
-# t <- 2*pi*runif(n)
-# r <- runif(n, min = 2, max = 2.1)
-# circ <- cbind(r*cos(t), r*sin(t))
-# 
-# ## Define filter values equal to the distance from each point to the left-most point in the circle 
-# left_pt <- circ[which.min(circ[, 1]),]
-# f_x <- sqrt(colSums(apply(circ, 1, function(pt) (pt - left_pt)^2)))
-# 
-# # g <- matrix(c(0, 1, 1, 0), nrow = 2, ncol = 2)
-# m_ref <- Mapper::mapper(X = circ, filter_values = f_x, number_intervals = 5, overlap = 0.20, return_reference = TRUE)
-# ls_pairs <- t(combn(length(m_ref$cover$level_sets), 2))
-# node_lsfi <- sapply(m_ref$G$nodes, function(node) attr(node, "level_set"))
-# ls_node_map <- lapply(seq(length(m_ref$cover$level_sets)), function(lvl_set_idx) {
-#   node_indices <- which(node_lsfi == lvl_set_idx)
-#   if (length(node_indices) == 0){ return(NULL) } else { return(node_indices) }
-# })
-# el <- Mapper:::edgeList_int(ls_pairs = ls_pairs, nodes = m_ref$G$nodes, ls_node_map = ls_node_map)
-# sorted_el <- t(apply(el, 1, sort))
-# wut <- Mapper:::construct_simplex_tree(sorted_el, length(m_ref$G$nodes))
-*/

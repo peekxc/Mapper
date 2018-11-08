@@ -51,7 +51,7 @@ void update_level_set(const int ls_flat_index, const IntegerVector level_set, co
     
     // Update the simplex tree by inserting the 0-simplices
     std::for_each(new_0_simplexes.begin(), new_0_simplexes.end(), [&stree_ptr](const int v_i){
-      std::vector<unsigned int> v = { static_cast<unsigned int>(v_i) };
+      std::vector<uint> v = { static_cast<uint>(v_i) };
       stree_ptr->insert_simplex(v);
     });
     
@@ -136,10 +136,7 @@ List build_0_skeleton(const IntegerVector which_levels, const NumericMatrix& X, 
   
   // Return result wrapped as a List
   return(wrap(v_map));
-  // return(List::create());
 }
-
-
 
 // Builds the 1-skeleton by inserting 1-simplexes for each pair of vertices whose points have non-empty 
 // intersections. Will only compare vertices given by the 'ls_pairs' matrix.

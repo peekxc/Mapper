@@ -90,7 +90,7 @@ List index_test(IntegerVector sizes) {
   
   // Test the two main functions
   IntegerMatrix multi_indices = multi_index_struct.multi_matrix();
-  const int n = multi_indices.nrow();
+  const std::size_t n = multi_indices.nrow();
   IntegerVector flat_indices = IntegerVector(n);
   for (std::size_t i = 0; i < n; ++i){
     IntegerVector tmp = multi_indices(i, _);
@@ -105,7 +105,7 @@ List index_test(IntegerVector sizes) {
   return(res);
 }
 
-template struct GridIndex<uint_fast8_t>; 
+template struct GridIndex< uint_fast8_t >; 
 
 /*** R
 # x <- sample(1L:5L, size = 15, replace = TRUE)

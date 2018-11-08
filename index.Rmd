@@ -62,7 +62,7 @@ points(cbind(f_x, 1), pch = "|", col = col, cex = 2)
 
 <img src="man/figures/figure_eight.png" width=100% />
 
-Below is a possible way to construct a _mapper_ of the data visualized with the [grapher]() package. 
+Below is a possible way to construct a _mapper_. 
 ```{r, echo=TRUE, eval=TRUE, include=FALSE}
 m <- MapperRef$
   new(X = eight)$                                             
@@ -72,14 +72,21 @@ m <- MapperRef$
   use_distance_measure(measure = "euclidean")$
   use_clustering_algorithm(cl = "single")$
   compute_k_skeleton(k = 1L)
-
-## Visualize interactively w/ grapher
-library("grapher")
-m$as_grapher() %>% center()
 ```
 
-<img src="man/figures/figure_eight_grapher.png" width=100% height=70% />
+```R
+Mapper construction for 100 objects
+Cover: (typename = Restrained Rectangular, number intervals = [10], overlap = [50])
+```
 
+There are multiple options one may use to visualize __mapper__. The easiest is to export the $1$-skeleton to a mature graph plotting library, such as `igraph`:
+```{r, eval=FALSE}
+am <- m$simplicial_complex$as_adjacency_matrix()
+g <- igraph::graph_from_adjacency_matrix(am, mode = "undirected", add.colnames = NA)
+plot(g, vertex.size = 8L, vertex.color = bin_color(), label.cex = 0.3)
+```
+
+For more interactive options, see the section below. 
 
 #### Customizing Mapper
 
@@ -155,9 +162,16 @@ m$simplicial_complex$as_adjacency_list()
 m$simplicial_complex$as_edge_list()
 ```
 
-### Visualizing the __mapper__
+### Interacting with the __mapper__
 
-TODO
+The __mapper__ be interactively plotted with [grapher]() package. 
+```{r}
+## Visualize interactively w/ grapher
+library("grapher")
+m$as_grapher() %>% center()
+```
+<img src="man/figures/figure_eight_grapher.png" width=100% height=70% />
+
 
 ## References 
 1. Boissonnat, Jean-Daniel, and Clément Maria. "The simplex tree: An efficient data structure for general simplicial complexes." Algorithmica 70.3 (2014): 406-427.

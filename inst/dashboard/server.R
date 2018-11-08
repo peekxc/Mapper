@@ -5,14 +5,14 @@ if (!exists("M")){ stop("Error creating server; there was no 'MapperRef' object 
 if (!exists("G")){ stop("Error creating server; there was no 'grapher' object associated with the name 'G'.") }
 if (!exists("X")){ stop("Error creating server; there was no 'data.frame' object associated with the name 'X'.") }
 if (!exists("color_funcs")){ stop("Error creating server; there was no 'color_funcs' object.") }
-if (!all.equal(G$mapper_obj, M)){ stop("grapher instance not synchronized") }
 
 # Define server logic
 server <- function(input, output, session) {
 
-  ## Reactive to get a updated mapper; only needed when conductive/reactive-based dependencies need to be explicitly constructed
-  # getMapper <- reactive({ M })
-
+  rv <- reactiveValues(grapher_widget = G)
+  output$mapper_network_ui <- renderUI({ grapher::grapherOutput(outputId = "grapher") })
+  output$grapher <- grapher::renderGrapher({ rv$grapher_widget })
+  
   ## ========== Sources ==========
   source(system.file(file.path("dashboard", "reactivity", "sources.R"), package = "Mapper"), local = TRUE)
 
@@ -24,53 +24,54 @@ server <- function(input, output, session) {
   # Observer to center the mapper
   observeEvent(input$recenter, {
     print("Centering grapher")
-    G$center(id = "grapher_canvas")
+    grapher::center(id = "grapher")
   })
 
   # Mapper cover parameter observer
   observeEvent({ input$num_intervals; input$overlap }, {
-    M$cover$setResolution(input$num_intervals)
-    M$cover$setOverlap(input$overlap)
-    M$update()
-    G$setDefaultJsonConfig() # update json configuration with new mapper
-    cat(sprintf("Num edges: %d\n", sum(M$G$adjacency == 1)/2))
-    G$updateNetwork("grapher_canvas", net = G$exportJSON())
-    updateFilterPlot(M)
+    # browser()
+    req(input$num_intervals, input$overlap)
+    M$cover$number_intervals <- input$num_intervals
+    M$cover$percent_overlap <- input$overlap
+    M$cover$construct_cover()
+    M$compute_k_skeleton(1L)
+    rv$grapher_widget <- M$as_grapher(construct_widget = TRUE)
+    output$grapher <- grapher::renderGrapher({ rv$grapher_widget })
   })
 
   # Node min/max size observer
-  observeEvent({ input$node_min; input$node_max }, {
-    req(input$scale, input$colorFunc)
+  observeEvent({ input$node_min; input$node_max; input$scale }, {
+    req(input$scale)
+    # browser()
+    if (toupper(input$scale) == "LINEAR"){
+      scale_f <- function(x){ return(x) }
+    } else if (toupper(input$scale) == "LOGARITHMIC"){
+      scale_f <- function(x){ return(log(x)) }
+    }
     print(sprintf("Adjusting node scale: min = %d, max = %d", input$node_min, input$node_max))
-    G$updateNodeSize(id = "grapher_canvas", node_min = input$node_min, node_max = input$node_max)
+    if (length(M$vertices) > 0){
+      vertex_sizes <- sapply(M$vertices, length)
+      vertex_radii <- (input$node_max - input$node_min)*normalize(scale_f(vertex_sizes)) + input$node_min
+      setNodeSize(id = "grapher", r = as.integer(vertex_radii))
+    }
   })
 
   # Node color observer
   observeEvent(input$colorFunc, {
+    #browser()
     f <- color_funcs[[input$colorFunc]]
-    color_res <- f(M, X)
-    rbw_pal <- rev(rainbow(100, start = 0, end = 4/6))
-    binned_idx <- cut(color_res, breaks = 100, labels = F)
-    binned_color <- substr(rbw_pal[binned_idx], start = 0, stop = 7)
-    G$updateNodeColor(id = "grapher_canvas", color = binned_color)
-  })
-
-  # Node scaling observer
-  observeEvent(input$scale, {
-    if (toupper(input$scale) == "LINEAR"){
-      G$json_config$node_scale <- function(x){ return(x) }
-    } else if (toupper(input$scale) == "LOGARITHMIC"){
-      G$json_config$node_scale <- function(x){ return(log(x)) }
-    }
-    G$updateNodeSize(id = "grapher_canvas", node_min = input$node_min, node_max = input$node_max)
+    res <- f(M, X)
+    binned_color <- bin_color(res, output_format = 'hex9')
+    setNodeColor(id = "grapher", color = binned_color)
   })
 
   # Force input change
   observeEvent({ input$charge; input$gravity; input$link_strength; input$link_distance }, {
-    G$updateForce(id = "grapher_canvas",
-                  charge = list(strength=input$charge),
-                  gravity = list(strength=input$gravity),
-                  link = list(strength=input$link_strength, distance=input$link_distance))
+    grapher::enableForce(id = "grapher")
+    # G$updateForce(id = "grapher_canvas",
+    #               charge = list(strength=input$charge),
+    #               gravity = list(strength=input$gravity),
+    #               link = list(strength=input$link_strength, distance=input$link_distance))
   })
 
   # Simple row selecter for when nodes are selected
@@ -79,9 +80,9 @@ server <- function(input, output, session) {
     req({ input$node_selected; input$selection_mode })
     print(sprintf("Node selected: %d (mode = %s)", input$node_selected, input$selection_mode))
     if (!is.null(input$node_selected) && input$selection_mode == "TRUE"){
-      if (input$node_selected != -1 && input$node_selected < length(M$G$nodes)){
+      if (input$node_selected != -1 && input$node_selected < length(M$vertices)){
         # DT::selectRows(proxy, M$G$nodes[[input$node_selected]])
-        DT::replaceData(proxy, X[M$G$nodes[[input$node_selected+1]],])
+        DT::replaceData(proxy, X[M$vertices[[input$node_selected+1]],])
       } else {
         DT::replaceData(proxy, X)
         # DT::reloadData(proxy, clearSelection = "row")

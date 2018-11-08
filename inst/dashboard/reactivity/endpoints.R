@@ -4,24 +4,24 @@
 
 ## Number of intervals
 output$num_intervals <- renderUI({
-  numericInput(inputId = "num_intervals", label = "Number of Intervals", value = M$cover$number_intervals, min = 1, step = 1, width = '100%')
+  numericInput(inputId = "num_intervals", label = "Number of Intervals", value = head(M$cover$number_intervals, 1), min = 1, step = 1, width = '100%')
 })
 
 ## Output parameter slider
 output$overlap <- renderUI({
   sliderInput(inputId = "overlap",
               label = "Overlap Percentage",
-              min = 0, max = 1, value = M$cover$overlap, round = -2, width = '100%')
+              min = 0, max = 100, value = head(M$cover$percent_overlap, 1), round = -2, width = '100%')
 })
 
 ## Generate node min input
 output$node_min <- renderUI({
-  numericInput(inputId = "node_min", label = "Node min", value = G$json_config$node_min, min = 1, width = '100%', step = 1L)
+  numericInput(inputId = "node_min", label = "Node min", value = dash_config$node_min, min = 1, width = '100%', step = 1L)
 })
 
 ## Generate node max input
 output$node_max <- renderUI({
-  numericInput(inputId = "node_max", label = "Node max", value = G$json_config$node_max, min = 1, width = '100%', step = 1L)
+  numericInput(inputId = "node_max", label = "Node max", value = dash_config$node_max, min = 1, width = '100%', step = 1L)
 })
 
 ## Recenter network
@@ -47,25 +47,25 @@ output$selection_mode <- renderUI({
 })
 
 
-## Mapper reactive network panel; should only run once
-output$mapper_network_ui <- renderUI({ Mapper::grapherOutput(outputId = "grapher_canvas") })
-output$grapher_canvas <- Mapper::renderGrapher({ G$widget })
+## Mapper reactive network panel
+# output$mapper_network_ui <- renderUI({ grapher::grapherOutput(outputId = "grapher") })
+# output$grapher <- grapher::renderGrapher({ G })
 
 ## Panel 1 - Interactive Table
-output$panel1 <- renderUI({ DT::DTOutput(outputId = "mytable") })
-output$mytable <- DT::renderDT({
+output$panel1 <- renderUI({ DT::DTOutput(outputId = "mdatatable") })
+output$mdatatable <- DT::renderDT({
   DT::datatable(X, fillContainer = TRUE,
                 extensions = c("Scroller", "Buttons", "ColReorder", "FixedColumns", "Scroller"),
                 options = list(dom = 'Bfrtip', buttons = I('colvis'), scrollX = TRUE, colReorder = TRUE, fixedColumns = TRUE, deferRender = TRUE, scrollY = 200, scroller = TRUE))
 })
 ## Panel 2 - Filter plot
-updateFilterPlot <- function(M){
-  output$panel2 <- renderPlot({ M$cover$plotFilterSpace(show_ls_bounds = TRUE, show_lsfi = TRUE) },
-                              height = function() { session$clientData[["output_panel2_height"]] },
-                              width = function(){ session$clientData[["output_panel2_width"]] }
-  )
-}
-updateFilterPlot(M)
+# updateFilterPlot <- function(M){
+#   output$panel2 <- renderPlot({ M$cover$plotFilterSpace(show_ls_bounds = TRUE, show_lsfi = TRUE) },
+#                               height = function() { session$clientData[["output_panel2_height"]] },
+#                               width = function(){ session$clientData[["output_panel2_width"]] }
+#   )
+# }
+# updateFilterPlot(M)
 
 ## Network force options
 

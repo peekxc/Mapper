@@ -62,6 +62,7 @@ MapperRef$set("active", "cover",
   }
 )
 
+## Mapper stores the vertices as a list
 MapperRef$set("active", "vertices", 
   function(value){
     if(missing(value)){
@@ -93,6 +94,29 @@ MapperRef$set("active", "clustering_algorithm",
   }
 )
 
+## The data should be held fixed
+MapperRef$set("active", "X", 
+  function(value){
+    if (missing(value)){ return(private$.X) }
+    else {
+      stop("`$X` is read-only. The data points 'X' are specific to a MapperRef object.")
+    }
+  }
+)
+
+## Active binding for the distance measure
+MapperRef$set("active", "measure",
+    function(value){
+      if (missing(value)){ private$.measure }
+      else {
+        available_measures <- toupper(proxy::pr_DB$get_entry_names())
+        stopifnot(is.character(value))
+        stopifnot(toupper(value) %in% available_measures)
+        private$.measure <- value
+      }
+    }
+)
+
 #' @name use_clustering_algorithm 
 #' @title Sets the clustering algorithm 
 #' @description Sets a default hierarchical clustering algorithm.
@@ -108,13 +132,18 @@ MapperRef$set("public", "use_clustering_algorithm",
       create_cl <- function(cl, num_bins.default){
         function(X, idx, num_bins = num_bins.default){
           if (length(idx) <= 1){ return(1L); }
-          if (requireNamespace("parallelDist", quietly = TRUE)) {
-            dist_f <- function(x) { parallelDist::parallelDist(x, method = self$measure) }
-          } else {
-            dist_f <- function(x) { stats::dist(x = x, method = self$measure) } 
-          }
-          dist_x <- dist_f(X[idx,])
-          hcl <- fastcluster::hclust(dist_x, method = cl)
+          
+          ## Use parallelDist package if available
+          has_pd <- requireNamespace("parallelDist", quietly = TRUE)
+          dist_f <- ifelse(has_pd, parallelDist::parallelDist, stats::dist)
+          dist_x <- do.call(dist_f, list(x=X[idx,], method=self$measure))
+          
+          ## Use fastcluster if available 
+          has_fc <- requireNamespace("fastcluster", quietly = TRUE)
+          cl_f <- ifelse(has_fc, fastcluster::hclust, stats::hclust)
+          hcl <- do.call(cl_f, list(d=dist_x, method=cl))
+        
+          ## Use the histogram binning heuristic to produce the partitioning
           cutoff_first_bin(hcl, diam = max(dist_x), num_bins)
         }
       }
@@ -124,18 +153,7 @@ MapperRef$set("public", "use_clustering_algorithm",
   }
 )
 
-## Active binding for the distance measure
-MapperRef$set("active", "measure",
-  function(value){
-    if (missing(value)){ private$.measure }
-    else {
-      available_measures <- toupper(proxy::pr_DB$get_entry_names())
-      stopifnot(is.character(value))
-      stopifnot(toupper(value) %in% available_measures)
-      private$.measure <- value
-    }
-  }
-)
+
 
 ## Sets the distance measure to use
 ## Supports any measure in proxy::pr_DB$get_entry_names()
@@ -144,8 +162,16 @@ MapperRef$set("public", "use_distance_measure", function(measure){
   invisible(self)
 })
 
-
-MapperRef$set("public", "use_cover", function(filter_values, typename=c("fixed rectangular", "restrained rectangular"), ...){
+#' @name use_cover 
+#' @title Selects one of the available covering methods to use.  
+#' @description 
+#' Convenience method to select, parameterize, and construct a cover and associate it with the calling objects \code{cover} field.   
+#' @param filter_values (n x d) numeric matrix of values giving the results of the map.  
+#' @param typename The name of the cover to use. Accepts any one of the typenames printed in the \code{available_covers}.  
+#' @param ... Additional parameter values to pass to the covering generators initialize method. 
+#' @details The cover is automatically constructed before being assigned to the calling Mappers \code{$cover} field.  
+#' If this is undesirable, create the cover using the appropriate R6 class generators and assign to \code{$cover} field directly. 
+MapperRef$set("public", "use_cover", function(filter_values, typename="fixed rectangular", ...){
   stopifnot(is.matrix(filter_values))
   stopifnot(nrow(filter_values) == nrow(private$.X))
   if (missing(typename)){ typename <- "fixed rectangular"}
@@ -224,9 +250,11 @@ MapperRef$set("public", "compute_vertices", function(which_levels=NULL, ...){
   invisible(self)
 })
 
-## Computes the edges composing the topological graph (1-skeleton). 
-## Assumes the nodes have been computed. 
-## TODO: use weight of intersection to augment distance between edges in visualization
+#' @name compute_edges 
+#' @title Computes the edges of the mapper. 
+#' @description Computes the edges composing the topological graph (1-skeleton). 
+#' @param which_level_pairs something
+#' @param min_weight something2
 MapperRef$set("public", "compute_edges", function(which_level_pairs = NULL, min_weight=1L){
   stopifnot(!is.na(self$cover$level_sets))
   if (!missing(which_level_pairs) && !is.null(which_level_pairs)){
@@ -256,7 +284,7 @@ MapperRef$set("public", "format", function(...){
 #' @name as_grapher
 #' @title Exports the 1-skeleton as a grapher object.
 #' @description Uses the grapher library. 
-MapperRef$set("public", "as_grapher", function(...){
+MapperRef$set("public", "as_grapher", function(construct_widget=FALSE, ...){
   require("grapher")
   
   ## Make the igraph 
@@ -304,8 +332,12 @@ MapperRef$set("public", "as_grapher", function(...){
     json_config$links <- integer(length = 0L)
   }
     
-  ## Return the grapher instance
-  grapher::grapher(json_config)
+  ## Return the grapher instance or just the json config if requested 
+  if (construct_widget){
+    grapher::grapher(json_config) 
+  } else {
+    return(json_config)
+  }
 })
 
 

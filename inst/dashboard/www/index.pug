@@ -20,6 +20,7 @@ body.mh-100(style="overflow: hidden;")
         .card
           .card-header Network Options
           .card-body.p-2
+            #show_network.shiny-html-output
             #recenter.shiny-html-output
             #overlap.shiny-html-output
             #num_intervals.shiny-html-output
@@ -29,8 +30,8 @@ body.mh-100(style="overflow: hidden;")
             #scale.shiny-html-output
             #selection_mode.shiny-html-output
       .col.col-md-9.p-0
-        #mapper_window.m-0(style="height: 60vh !important; width: 100% !important;")
-          #mapper_network_ui.shiny-html-output.h-100.border
+        #mapper_window.m-0(style="height: 60vh !important; width: 100% !important; visibility: visible !important;")
+          #mapper_network_ui.shiny-html-output.h-100.border.visible
         .h-40.m-0.pb-2(style="height: 30vh !important; width: 100% !important;")
           .row.m-0.h-100.w-100
             #panel1.col.p-0.w-50.h-100.border.shiny-html-output
@@ -48,4 +49,5 @@ body.mh-100(style="overflow: hidden;")
     $(document).on("shiny:connected", function (e) {
       var plot_width = $('#filter_plot').innerWidth;
       Shiny.onInputChange("GetPlotWidth", plot_width);
+      $("#grapher").css("visibility", "visible");
     });

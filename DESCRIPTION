@@ -8,10 +8,10 @@ Authors@R: c(person("Matt", "Piekenbrock", email = "matt.piekenbrock@gmail.com",
 Author: Matt Piekenbrock [aut, cre, ctb],
         Gurjeet Singh [ctb, cph]
 Maintainer: Matt Piekenbrock <matt.piekenbrock@gmail.com>
-Description: This package provides an efficient open source implementation of the Mapper algorithm, and other related algorithms used in Topological Data Analysis. 
+Description: An efficient implementation of the Mapper algorithm, and other related algorithms and tools used in Topological Data Analysis. 
 Imports: R6, Rcpp, stats, methods 
 LinkingTo: Rcpp
-RcppModules: segment_tree_module, simplex_tree_module
+RcppModules: segment_tree_module, simplex_tree_module, union_find_module
 License: file LICENSE
 BugReports: https://github.com/peekxc/mapper
 Suggests: 
@@ -19,7 +19,7 @@ Suggests:
     htmlwidgets, shiny, DT,
     proxy, parallelDist, fastcluster, RANN,
     testthat, knitr
-Copyright: The Mapper construction was originally developed by Gurjeet Singh, Facundo Mémoli, and Gunnar Carlsson. Copyright by Matt Piekenbrock.
+Copyright: The Mapper method was originally developed by Gurjeet Singh, Facundo Mémoli, and Gunnar Carlsson. The software is Copyright by Matt Piekenbrock.
 Encoding: UTF-8
 LazyData: true
 VignetteBuilder: knitr

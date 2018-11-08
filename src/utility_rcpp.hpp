@@ -1,11 +1,23 @@
-#include <Rcpp.h>
-using namespace Rcpp;
-// [[Rcpp::plugins(cpp11)]]
+// utility_rcpp.hpp
+// Contains pure-template implementations suitable for being inlined.  
 
-#include <cstdlib> // alloca
+// Applies the function Func to all pairwise combinations in the range [first, last)
+template<typename Iter, typename Func>
+inline void combine_pairwise(Iter first, Iter last, Func func)
+{
+  for(; first != last; ++first){
+    for(Iter next = std::next(first); next != last; ++next){
+      func(*first, *next);
+    }
+  }
+}
 
+// Implements a generic n-vector cartesian product for a vector of vectors using an iterative design pattern. 
+// Individual items are put into a fixed-sized vector and given to a passed in Lambda function. Limited to products 
+// of vectors having the same type. Original design based on: 
+// https://stackoverflow.com/questions/18732974/c-dynamic-number-of-nested-for-loops-without-recursion/30808351
 template <typename T, typename Func> 
-inline void CartesianProduct(const std::vector< std::vector<T> >& elems, Func f) {
+inline void CartesianProduct(const std::vector< std::vector<T> >& elems, Func&& f) {
   
   // Initialize the slots to hold the current iteration value for each depth
   const std::size_t depth = elems.size();
@@ -17,7 +29,7 @@ inline void CartesianProduct(const std::vector< std::vector<T> >& elems, Func f)
   std::transform(elems.begin(), elems.end(), max.begin(), [](const std::vector<T>& lst){ return(lst.size()); });
   std::vector<T> current_element(depth);
   
-  int index = 0, i = 0;
+  std::size_t index = 0, i = 0;
   while (true) {
     
     // Fill the element and apply the lambda 
@@ -39,6 +51,3 @@ inline void CartesianProduct(const std::vector< std::vector<T> >& elems, Func f)
     index = 0;
   }
 }
-
-IntegerMatrix make_cartesian_product(const List& vecs);
-
