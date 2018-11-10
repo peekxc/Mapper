@@ -66,10 +66,7 @@ IntegerVector MultiScale::extract_level_set(const uidx_t lsfi){
     // Rcout << "d_i: " << int(d_i) << ", LS Segment idx: " << to_ivec<uint8_t>(c_ls_idx) << std::endl;
     uint8_t begin_segment = c_ls_idx.at(lsmi.at(d_i)*2);
     uint8_t end_segment = c_ls_idx.at(lsmi.at(d_i)*2 + 1) - 1; // exclusive outer segment 
-    v_uint8_t segment_expansion = seq_ij< uint8_t >(
-      static_cast<sidx_t>(begin_segment), 
-      static_cast<sidx_t>(end_segment)
-    );
+    v_uint8_t segment_expansion = seq_ij< uint8_t >(begin_segment, end_segment);
     // Rcout << "segments: " << to_ivec< uint8_t >(segment_expansion) << std::endl; 
     seg_expansions.at(d_i) = segment_expansion;
     cc += seg_expansions.size();

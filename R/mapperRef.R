@@ -267,6 +267,7 @@ MapperRef$set("public", "compute_edges", function(which_level_pairs = NULL, min_
   ## this may just be all pairwise combinations of LSFI's for the full simplicial complex.
   stree_ptr <- private$.simplicial_complex$as_XPtr()
   ls_pairs <- apply(which_level_pairs, 2, function(x){ match(x, self$cover$index_set)-1L }) # 0-based
+  ls_pairs <- matrix(ls_pairs, ncol = 2)
   build_1_skeleton(ls_pairs = ls_pairs, min_sz = min_weight, vertices = private$.vertices, ls_vertex_map = private$.cl_map, stree = stree_ptr)
 
   ## Return self

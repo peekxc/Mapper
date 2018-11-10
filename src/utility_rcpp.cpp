@@ -30,7 +30,10 @@
     std::for_each(vec.begin(), vec.end(), [&](const std::vector<T>* v){ total_vec_size += v->size(); });
     std::vector< T > final_res = std::vector< T >();
     final_res.reserve(total_vec_size);
-    std::for_each(vec.begin(), vec.end(), [&](const std::vector<T>* v){ std::copy(v->begin(), v->end(), std::back_inserter(final_res)); });
+    // std::for_each(vec.begin(), vec.end(), [&](const std::vector<T>* v){ std::copy(v->begin(), v->end(), std::back_inserter(final_res)); });
+    std::for_each(vec.begin(), vec.end(), [&](const std::vector<T>* v){
+      final_res.insert(final_res.end(), v->begin(), v->end());
+    });
     return(final_res);
   }
 

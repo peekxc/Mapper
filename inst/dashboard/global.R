@@ -1,3 +1,68 @@
+## global.R
+## Attaches the default sources to the Mapper dashboard app.
+## Author: Matt Piekenbrock
+
+## Normalize between 0-1, unless all the same
+normalize <- function(x) { 
+  if (all(x == x[1])){ return(rep(1, length(x))) }
+  else {  (x - min(x))/(max(x) - min(x)) }
+}
+
+mapper_graph <- reactive({
+  am <- M$.simplicial_complex$as_adjacency_matrix()
+  igraph::graph_from_adjacency_matrix(am, mode = "undirected", add.colnames = NA) 
+})
+
+## Makes the default configuration depend on M
+json_config <- reactive({
+  MG <- mapper_graph()
+  grapher::getDefaultJsonConfig(network=MG)
+})
+
+local({
+  ## The current environment passed in
+  c_env <- environment()
+  
+  ## Computes the mean filter value for each node
+  c_env[["Mean filter value"]] <- function(M, ...){
+    agg_pt_fv <- sapply(M$vertices, function(n_idx){ apply(as.matrix(M$cover$filter_values[n_idx,]), 1, mean)})
+    agg_node_val <- sapply(agg_pt_fv, mean)
+    return(agg_node_val)
+  }
+  
+  ## Computes the mean data value for each node
+  c_env[["Mean data value"]] <- function(M, ...){
+    agg_pt_x <- sapply(M$vertices, function(n_idx){ apply(as.matrix(M$X[n_idx,]), 1, mean) })
+    agg_node_x <- sapply(agg_pt_x, mean)
+    return(agg_node_x)
+  }
+  
+  ## Density of nodes
+  c_env[["Density"]] <- function(M, ...){
+    return(sapply(M$vertices, length))
+  }
+  rm(c_env)
+})
+
+# Call this function with an input (such as `textInput("text", NULL, "Search")`) if you
+# want to add an input to the navbar
+dropDownItems <- function(inputs) {
+  for(i in 1:length(inputs)){
+    input_el <- inputs[[i]]
+    input_el$attribs$class <- paste(input_el$attribs$class, "dropdown_item")
+    inputs[[i]] <- input_el
+  }
+  inputs
+}
+
+## Utility function to make a fancy datatables object with all the cool extensions
+fancytable <- function(dt){
+  DT::datatable(dt, fillContainer = TRUE,
+                extensions = c("Scroller", "Buttons", "ColReorder", "FixedColumns", "Scroller"),
+                options = list(dom = 'Bfrtip', buttons = I('colvis'), scrollX = TRUE, colReorder = TRUE, fixedColumns = TRUE, deferRender = TRUE, scrollY = 200, scroller = TRUE)
+  )
+}
+
 ## endpoints.R
 ## Attaches the default endpoints to the Mapper dashboard app.
 ## Author: Matt Piekenbrock
@@ -46,7 +111,6 @@ output$selection_mode <- renderUI({
   shiny::radioButtons(inputId = "selection_mode", label = "Filter on Selection", choices = c("TRUE", "FALSE"), selected = "TRUE", width = "100%")
 })
 
-
 ## Mapper reactive network panel
 # output$mapper_network_ui <- renderUI({ grapher::grapherOutput(outputId = "grapher") })
 # output$grapher <- grapher::renderGrapher({ G })
@@ -58,16 +122,6 @@ output$mdatatable <- DT::renderDT({
                 extensions = c("Scroller", "Buttons", "ColReorder", "FixedColumns", "Scroller"),
                 options = list(dom = 'Bfrtip', buttons = I('colvis'), scrollX = TRUE, colReorder = TRUE, fixedColumns = TRUE, deferRender = TRUE, scrollY = 200, scroller = TRUE))
 })
-## Panel 2 - Filter plot
-# updateFilterPlot <- function(M){
-#   output$panel2 <- renderPlot({ M$cover$plotFilterSpace(show_ls_bounds = TRUE, show_lsfi = TRUE) },
-#                               height = function() { session$clientData[["output_panel2_height"]] },
-#                               width = function(){ session$clientData[["output_panel2_width"]] }
-#   )
-# }
-# updateFilterPlot(M)
-
-## Network force options
 
 # Call this function with an input (such as `textInput("text", NULL, "Search")`) if you
 # want to add an input to the navbar
@@ -88,3 +142,6 @@ output$force_opts <- renderUI({
     shiny::numericInput(inputId = "link_distance", label = "Link Distance", value = 60, step = 25)
   ))
 })
+
+
+

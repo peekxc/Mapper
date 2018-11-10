@@ -90,7 +90,7 @@ MapperRef$set("public", "enable_multiscale",
     ## If stats=TRUE, returns information related to how the Mapper changes w.r.t the previous Mapper
     ## TODO: Move this out of the current environment
     self$update_mapper <- function(percent_overlap, stats=FALSE){
-      stopifnot(all(percent_overlap >= 0 && percent_overlap < 1))
+      stopifnot(all(percent_overlap >= 0 && percent_overlap < 100))
       stopifnot(length(percent_overlap) == ncol(self$cover$filter_values))
       
       ## If not populated yet, create a default mapping from the covers index set to the vertex ids
@@ -101,13 +101,14 @@ MapperRef$set("public", "enable_multiscale",
       
       # browser()
       ## TODO generalize this
-      R <- base_interval_length + (base_interval_length*percent_overlap)/(1.0 - percent_overlap)
+      prop_overlap <- percent_overlap/100
+      R <- base_interval_length + (base_interval_length*prop_overlap)/(1.0 - prop_overlap)
       idx <- private$.multiscale$get_nearest_filtration_index(R)
       
       ## Update the segments 
       res <- private$.multiscale$update_segments(idx)
       
-      ## Etxract the simplex tree 
+      ## Extract the simplex tree 
       stree_ptr <- private$.simplicial_complex$as_XPtr()
       
       ## Detect the edges between level sets affected by the change
@@ -147,8 +148,12 @@ MapperRef$set("public", "enable_multiscale",
         ls_pair_idx <- apply(ls_pairs_to_update, 2, function(idx){
           self$cover$index_set[idx+1]
         })
+        ls_pair_idx <- matrix(ls_pair_idx, ncol = 2)
         self$compute_edges(ls_pair_idx)
       }
+      
+      ## Update the percent overlap of the cover
+      self$cover$percent_overlap <- percent_overlap
       
       ## Returns statistics about how the Mapper changed if requested, self o.w.
       if (stats){ 

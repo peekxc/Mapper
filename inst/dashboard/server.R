@@ -14,10 +14,9 @@ server <- function(input, output, session) {
   output$grapher <- grapher::renderGrapher({ rv$grapher_widget })
   
   ## ========== Sources ==========
-  source(system.file(file.path("dashboard", "reactivity", "sources.R"), package = "Mapper"), local = TRUE)
+  
 
   ## ========= Endpoints =========
-  source(system.file(file.path("dashboard", "reactivity", "endpoints.R"), package = "Mapper"), local = TRUE)
 
   ## ========= Observers =========
 
