@@ -16,7 +16,7 @@ License: file LICENSE
 BugReports: https://github.com/peekxc/mapper
 Suggests: 
     igraph,
-    htmlwidgets, shiny, DT, grapher,
+    htmlwidgets, shiny, DT,
     proxy, parallelDist, fastcluster, RANN,
     testthat, knitr, rmarkdown
 Copyright: The Mapper method was originally developed by Gurjeet Singh, Facundo Mémoli, and Gunnar Carlsson. The software is Copyright by Matt Piekenbrock.

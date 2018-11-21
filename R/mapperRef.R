@@ -291,9 +291,10 @@ MapperRef$set("public", "format", function(...){
 
 #' @name as_grapher
 #' @title Exports the 1-skeleton as a grapher object.
+#' @param construct_widget whether to construct the htmlwidget or just the grapher configuration.
 #' @description Uses the grapher library. 
-MapperRef$set("public", "as_grapher", function(construct_widget=FALSE, ...){
-  require("grapher")
+MapperRef$set("public", "as_grapher", function(construct_widget=TRUE, ...){
+  requireNamespace("grapher", quietly = TRUE)
   
   ## Make the igraph 
   am <- private$.simplicial_complex$as_adjacency_matrix()

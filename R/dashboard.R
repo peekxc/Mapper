@@ -17,6 +17,7 @@
 #' @export
 dashboard <- function(M, X, node_color_f = "default", dash_config=list(node_min=5L, node_max=10L)){
   requireNamespace("shiny", quietly = TRUE)
+  requireNamespace("grapher", quietly = TRUE)
   
   ## Make sure shorthand 'M' is defined
   if (!"MapperRef" %in% class(M)){ stop("'dashboard' must take as input a MapperRef instance.") }

@@ -161,7 +161,7 @@ m$simplicial_complex$print_tree()
 ### Visualizing the Mapper 
 
 The `grapher` package provides a [htmlwidget](https://www.htmlwidgets.org/) implementation of Ayasdi's Apache-licensed [grapher](https://github.com/ayasdi/grapher) library, which can be used to visualize the Mapper network, with options to support nice things like [D3 force](https://github.com/d3/d3-force). The `$as_grapher` function provides a few default coloring and sizing options.
-```{r}
+```{r, eval=FALSE, echo=TRUE}
 library("grapher")
 m$as_grapher()
 ```

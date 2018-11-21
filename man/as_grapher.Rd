@@ -3,6 +3,9 @@
 \name{as_grapher}
 \alias{as_grapher}
 \title{Exports the 1-skeleton as a grapher object.}
+\arguments{
+\item{construct_widget}{whether to construct the htmlwidget or just the grapher configuration.}
+}
 \description{
 Uses the grapher library.
 }
