@@ -3,6 +3,7 @@ author: "Matt Piekenbrock"
 title: "Using a custom covering method"
 output: rmarkdown::html_vignette
 vignette: >
+  %\VignetteIndexEntry{custom_cover}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

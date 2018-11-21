@@ -1,23 +1,31 @@
 // skeleton.h
 // Primary functions for building the k-skeletons
 // Includes exported functions for building the skeletons both with and without the simplex tree. 
+#ifndef SKELETON_H
+#define SKELETON_H
+
 #include <Rcpp.h>
 using namespace Rcpp;
 #include <unordered_map>
 
 #include "SimplexTree.h"
-#include "MultiScale.h"
 
 // Updates a single level set, whose flat index is given. This updates all of the corresponding vertices. 
 void update_level_set(
-    const int ls_flat_index,                 // The level set flat index. 
-    const IntegerVector level_set,           // The level set. 
-    const NumericMatrix& X,                  // The data 
-    const Function f,                        // The clustering function 
-    std::vector< IntegerVector >& vertices,  // Vertices of the Mapper. Updated by this method. 
-    List& ls_vertex_map,                     // Level-set-index-to-vertex-id map. Updated by this method. 
-    SEXP stree                               // Simplex tree external pointer. Updated by this method. 
+    const int ls_flat_index,                    // The level set flat index. 
+    const IntegerVector level_set,              // The level set. 
+    const NumericMatrix& X,                     // The data 
+    const Function f,                           // The clustering function 
+    std::map< int, IntegerVector >& vertices,   // Vertices of the Mapper. Updated by this method. 
+    List& ls_vertex_map,                        // Level-set-index-to-vertex-id map. Updated by this method. 
+    SEXP stree                                  // Simplex tree external pointer. Updated by this method. 
 ); 
+
+// Converts a given list of vertices (integer vectors) to a C++ mapping to integer vectors. 
+std::map< int, IntegerVector > vertices_to_map(
+    List& ls_vertex_map,                        // Mapping between level set index --> vertex ids 
+    List& vertices                              // Mapping between vertex ids --> points 
+);
 
 // Updates the vertices for the specified level sets. If all of the level sets are to be updated, this is
 // equivalent to building the full 0-skeleton. 
@@ -40,13 +48,4 @@ void build_1_skeleton(
     SEXP stree                              // Simplex tree external pointer. Updated by this method.
 );
   
-// Multscale version
-List update_level_sets(
-    const IntegerVector which_levels, 
-    SEXP ms, 
-    const NumericMatrix& X, 
-    const Function f, 
-    List& vertices, 
-    List& ls_vertex_map, 
-    SEXP stree
-);
+#endif

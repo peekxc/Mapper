@@ -4,10 +4,10 @@
 \alias{compute_edges}
 \title{Computes the edges of the mapper.}
 \arguments{
-\item{which_level_pairs}{something}
+\item{which_level_pairs}{(n x 2) matrix of indices of the covers index set to check.}
 
-\item{min_weight}{something2}
+\item{min_weight}{minimum intersection size to consider as an edge. Defaults to 1.}
 }
 \description{
-Computes the edges composing the topological graph (1-skeleton).
+Computes (or updates) the edges composing the topological graph (1-skeleton).
 }

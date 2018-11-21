@@ -184,6 +184,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// nondecreasing_matrix
+NumericMatrix nondecreasing_matrix(const NumericMatrix& mat);
+RcppExport SEXP _Mapper_nondecreasing_matrix(SEXP matSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type mat(matSEXP);
+    rcpp_result_gen = Rcpp::wrap(nondecreasing_matrix(mat));
+    return rcpp_result_gen;
+END_RCPP
+}
 // test_merge
 IntegerVector test_merge(const List& data);
 RcppExport SEXP _Mapper_test_merge(SEXP dataSEXP) {
@@ -265,23 +276,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// update_level_sets
-List update_level_sets(const IntegerVector which_levels, SEXP ms, const NumericMatrix& X, const Function f, List& vertices, List& ls_vertex_map, SEXP stree);
-RcppExport SEXP _Mapper_update_level_sets(SEXP which_levelsSEXP, SEXP msSEXP, SEXP XSEXP, SEXP fSEXP, SEXP verticesSEXP, SEXP ls_vertex_mapSEXP, SEXP streeSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const IntegerVector >::type which_levels(which_levelsSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type ms(msSEXP);
-    Rcpp::traits::input_parameter< const NumericMatrix& >::type X(XSEXP);
-    Rcpp::traits::input_parameter< const Function >::type f(fSEXP);
-    Rcpp::traits::input_parameter< List& >::type vertices(verticesSEXP);
-    Rcpp::traits::input_parameter< List& >::type ls_vertex_map(ls_vertex_mapSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type stree(streeSEXP);
-    rcpp_result_gen = Rcpp::wrap(update_level_sets(which_levels, ms, X, f, vertices, ls_vertex_map, stree));
-    return rcpp_result_gen;
-END_RCPP
-}
 
 RcppExport SEXP _rcpp_module_boot_multiscale_module();
 RcppExport SEXP _rcpp_module_boot_segment_tree_module();
@@ -303,13 +297,13 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Mapper_concatDist", (DL_FUNC) &_Mapper_concatDist, 3},
     {"_Mapper_dist_from_to", (DL_FUNC) &_Mapper_dist_from_to, 2},
     {"_Mapper_index_test", (DL_FUNC) &_Mapper_index_test, 1},
+    {"_Mapper_nondecreasing_matrix", (DL_FUNC) &_Mapper_nondecreasing_matrix, 1},
     {"_Mapper_test_merge", (DL_FUNC) &_Mapper_test_merge, 1},
     {"_Mapper_test_merge2", (DL_FUNC) &_Mapper_test_merge2, 1},
     {"_Mapper_check_connected", (DL_FUNC) &_Mapper_check_connected, 4},
     {"_Mapper_build_0_skeleton", (DL_FUNC) &_Mapper_build_0_skeleton, 7},
     {"_Mapper_build_1_skeleton", (DL_FUNC) &_Mapper_build_1_skeleton, 5},
     {"_Mapper_intersectNodes", (DL_FUNC) &_Mapper_intersectNodes, 4},
-    {"_Mapper_update_level_sets", (DL_FUNC) &_Mapper_update_level_sets, 7},
     {"_rcpp_module_boot_multiscale_module", (DL_FUNC) &_rcpp_module_boot_multiscale_module, 0},
     {"_rcpp_module_boot_segment_tree_module", (DL_FUNC) &_rcpp_module_boot_segment_tree_module, 0},
     {"_rcpp_module_boot_simplex_tree_module", (DL_FUNC) &_rcpp_module_boot_simplex_tree_module, 0},

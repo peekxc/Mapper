@@ -2,28 +2,25 @@
 #' @description Starts an interactive dashboard for analyzing Mapper constructions using Shiny.
 #' @param M MapperRef object.
 #' @param X data.frame to display in an interactive table. See details. 
-#' @param node_color_f List of color functions. See details.
+#' @param node_color_f Named list of color functions. See details.
 #' @param dash_config Dashboard configuration. See details. 
 #'
-#' @details The data.frame supplied by the \code{X} argument is displayed in an interactive table in the dashboard.
+#' @details 
+#' \strong{WARNING: THIS APP IS EXPERIMENTAL} \cr
+#' \cr  
+#' The data.frame supplied by the \code{X} argument is displayed in an interactive table in the dashboard.
 #' Supplying the original data as a data.frame with named columns may be helpful in situations where the actual \code{X} mapper was constructed with required 
 #' preprocessing (such as feature scaling), whereas the original, unprocessed data.frame is better suited for direct analysis.
 #'
 #' If supplied, \code{node_color_f} must be a named list of functions which accepts as input a MapperRef object as the \code{M} argument and returns as output a vector of numerical values, one per vertex.
 #' These values are automatically converted to color hex codes based on the current palette. If \code{node_color_f} isn't supplied, a few default color functions are supplied.
-#' 
-#' @import shiny
 #' @export
 dashboard <- function(M, X, node_color_f = "default", dash_config=list(node_min=5L, node_max=10L)){
-  library("shiny")
+  requireNamespace("shiny", quietly = TRUE)
   
   ## Make sure shorthand 'M' is defined
   if (!"MapperRef" %in% class(M)){ stop("'dashboard' must take as input a MapperRef instance.") }
-  G <- (M$as_grapher(construct_widget = TRUE) %>% grapher::enableForce())
-
-  ## Get the UI components
-  ui_file <- system.file(file.path("dashboard", "ui.R"), package = "Mapper")
-  source(file = ui_file, local = TRUE)
+  G <- grapher::enableForce(M$as_grapher(construct_widget = TRUE))
 
   ## Node color functions
   if (missing(node_color_f) || node_color_f == "default"){
@@ -37,13 +34,9 @@ dashboard <- function(M, X, node_color_f = "default", dash_config=list(node_min=
     color_funcs <- node_color_f
   }
 
-  ## Get the server components
-  server_file <- system.file(file.path("dashboard", "server.R"), package = "Mapper")
-  source(file = server_file, local = TRUE)
-
   ## Return the shiny app
   # shiny::shinyApp(ui = ui, server = server)
-  shiny::runApp(list(ui=ui, server=server))
+  shiny::runApp(system.file("dashboard", package = "Mapper"))
 }
 
 ## Auxillary function to make a closure for each dimension of X

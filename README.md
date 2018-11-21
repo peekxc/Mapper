@@ -50,7 +50,7 @@ Mapper construction for 1500 objects
 Cover: (typename = Fixed Rectangular, number intervals = [5], percent overlap = [20]%)
 ```
 
-The _mapper_ is stored in a [simplex tree](https://hal.inria.fr/hal-00707901v1/document). You can get a quick overview of what the complex looks like 
+The _mapper_ is stored in a [simplex tree](https://hal.inria.fr/hal-00707901v1/document). To get a quick overview of what the complex looks like use
 ```R
 print(m$simplicial_complex) 
 ```
@@ -86,7 +86,7 @@ The vertices of the _mapper_ are stored as a simple list
 View(m$vertices)
 ```
 
-To view the graph interactively, consider the [grapher](https://github.com/peekxc/grapher) library. 
+To interactive with the graph, consider the [grapher](https://github.com/peekxc/grapher) library, ported from Ayasdis [grapher.js](https://github.com/ayasdi/grapher) library. 
 ```R
 library("grapher")
 m$as_grapher() 

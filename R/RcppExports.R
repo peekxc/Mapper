@@ -57,6 +57,10 @@ index_test <- function(sizes) {
     .Call(`_Mapper_index_test`, sizes)
 }
 
+nondecreasing_matrix <- function(mat) {
+    .Call(`_Mapper_nondecreasing_matrix`, mat)
+}
+
 test_merge <- function(data) {
     .Call(`_Mapper_test_merge`, data)
 }
@@ -79,9 +83,5 @@ build_1_skeleton <- function(ls_pairs, min_sz, vertices, ls_vertex_map, stree) {
 
 intersectNodes <- function(nodes1, nodes2, node_ids1, node_ids2) {
     .Call(`_Mapper_intersectNodes`, nodes1, nodes2, node_ids1, node_ids2)
-}
-
-update_level_sets <- function(which_levels, ms, X, f, vertices, ls_vertex_map, stree) {
-    .Call(`_Mapper_update_level_sets`, which_levels, ms, X, f, vertices, ls_vertex_map, stree)
 }
 

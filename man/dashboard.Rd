@@ -4,26 +4,28 @@
 \alias{dashboard}
 \title{Mapper dashboard}
 \usage{
-dashboard(mapper_obj, X = mapper_obj$X, node_color_f = "default")
+dashboard(M, X, node_color_f = "default", dash_config = list(node_min =
+  5L, node_max = 10L))
 }
 \arguments{
-\item{mapper_obj}{MapperRef object.}
+\item{M}{MapperRef object.}
 
-\item{X}{data.frame to display in lower table and subset on node selection.}
+\item{X}{data.frame to display in an interactive table. See details.}
 
-\item{node_color_f}{List of color functions. See details.}
+\item{node_color_f}{Named list of color functions. See details.}
+
+\item{dash_config}{Dashboard configuration. See details.}
 }
 \description{
 Starts an interactive dashboard for analyzing Mapper constructions using Shiny.
 }
 \details{
+\strong{WARNING: THIS APP IS EXPERIMENTAL} \cr
+\cr  
 The data.frame supplied by the \code{X} argument is displayed in an interactive table in the dashboard.
-By default, if \code{X} is not supplied it is assigned the original data the Mapper object was constructed with.
-Supplying a data.frame with named columns may be helpful in situations where the point cloud data the mapper was constructed with required 
+Supplying the original data as a data.frame with named columns may be helpful in situations where the actual \code{X} mapper was constructed with required 
 preprocessing (such as feature scaling), whereas the original, unprocessed data.frame is better suited for direct analysis.
 
-If supplied, \code{node_color_f} must be a named list of functions which accepts as input a MapperRef object and returns as output a vector of numerical values, one per node.
-These values are automatically converted to color hex codes based on the current palette. 
-
-If this isn't supplied, a few default color functions are supplied.
+If supplied, \code{node_color_f} must be a named list of functions which accepts as input a MapperRef object as the \code{M} argument and returns as output a vector of numerical values, one per vertex.
+These values are automatically converted to color hex codes based on the current palette. If \code{node_color_f} isn't supplied, a few default color functions are supplied.
 }

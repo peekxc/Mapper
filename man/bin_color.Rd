@@ -4,8 +4,7 @@
 \alias{bin_color}
 \title{bin_color}
 \usage{
-bin_color(x, col_pal = rev(rainbow(100L, start = 0, end = 4/6)),
-  output_format = c("hex9", "hex7"))
+bin_color(x, col_pal = "rainbow", output_format = c("hex9", "hex7"))
 }
 \arguments{
 \item{x}{A numeric vector whose magnitudes should be binned onto the color palette.}

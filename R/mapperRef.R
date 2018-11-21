@@ -42,6 +42,13 @@ MapperRef$set("public", "initialize", function(X){
   return(self)
 })
 
+## To add a public memebr function 
+MapperRef$set("public", "add_function", function(name, FUN) {
+  self[[name]] <- FUN
+  environment(self[[name]]) <- environment(self$add_function)
+})
+
+
 ## The level_set -> vertex mapping is available to view, but read-only
 MapperRef$set("active", "ls_vertex_map", 
   function(value){ 
@@ -252,9 +259,9 @@ MapperRef$set("public", "compute_vertices", function(which_levels=NULL, ...){
 
 #' @name compute_edges 
 #' @title Computes the edges of the mapper. 
-#' @description Computes the edges composing the topological graph (1-skeleton). 
-#' @param which_level_pairs something
-#' @param min_weight something2
+#' @description Computes (or updates) the edges composing the topological graph (1-skeleton). 
+#' @param which_level_pairs (n x 2) matrix of indices of the covers index set to check.
+#' @param min_weight minimum intersection size to consider as an edge. Defaults to 1.
 MapperRef$set("public", "compute_edges", function(which_level_pairs = NULL, min_weight=1L){
   stopifnot(!is.na(self$cover$level_sets))
   if (!missing(which_level_pairs) && !is.null(which_level_pairs)){
@@ -268,7 +275,7 @@ MapperRef$set("public", "compute_edges", function(which_level_pairs = NULL, min_
   stree_ptr <- private$.simplicial_complex$as_XPtr()
   ls_pairs <- apply(which_level_pairs, 2, function(x){ match(x, self$cover$index_set)-1L }) # 0-based
   ls_pairs <- matrix(ls_pairs, ncol = 2)
-  build_1_skeleton(ls_pairs = ls_pairs, min_sz = min_weight, vertices = private$.vertices, ls_vertex_map = private$.cl_map, stree = stree_ptr)
+  build_1_skeleton(ls_pairs = ls_pairs, min_sz = min_weight, vertices = self$vertices, ls_vertex_map = private$.cl_map, stree = stree_ptr)
 
   ## Return self
   invisible(self)
@@ -278,7 +285,7 @@ MapperRef$set("public", "compute_edges", function(which_level_pairs = NULL, min_
 MapperRef$set("public", "format", function(...){
   if ("dist" %in% class(private$.X)){ n <- attr(private$.X, "Size") } else { n <- nrow(private$.X) }
   message <- sprintf("Mapper construction for %d objects", n)
-  if (is(m$cover, "CoverRef")){ message <- append(message, format(self$cover)) }
+  if (is(self$cover, "CoverRef")){ message <- append(message, format(self$cover)) }
   return(message)
 })
 

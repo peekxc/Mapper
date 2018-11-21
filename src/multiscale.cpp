@@ -399,12 +399,27 @@ List MultiScale::update_segments(const IntegerVector target_idx){
   return(List::create(_["ls_to_update"] = ls_res, _["ls_pairs_to_update"] = ls_pairs)); 
 } // update_segments
 
+// Updates the simplex tree, and the corresponding vertices
+void MultiScale::update_vertices(const IntegerVector which_levels, const NumericMatrix& X, const Function f, List& ls_vertex_map, SEXP stree){
+  // Update the vertices in the level sets dynamically
+  for (const int index: which_levels){
+    const IntegerVector level_set = this->extract_level_set(index) + 1; // convert to 1-based for R
+    update_level_set(index, level_set, X, f, vertices, ls_vertex_map, stree);
+  }
+}
+
+// Converts a given list of vertices to a map and assigns to the structure
+void MultiScale::initialize_vertices(List& ls_vertex_map, List& vertices){
+  this->vertices = vertices_to_map(ls_vertex_map, vertices);
+}
+
 
 RCPP_MODULE(multiscale_module) {
   Rcpp::class_<MultiScale>("MultiScale")
   .constructor<const int, IntegerVector>()
   .field_readonly( "filt_dist", &MultiScale::filt_dist )
   .field_readonly( "filt_idx", &MultiScale::filt_idx )
+  .field_readonly( "vertices", &MultiScale::vertices )
   .method( "as_XPtr", &MultiScale::as_XPtr ) 
   .method( "point_info", &MultiScale::point_info ) 
   .method( "uniq_paths", &MultiScale::uniq_paths ) 
@@ -417,5 +432,7 @@ RCPP_MODULE(multiscale_module) {
   .method( "get_segment_map", &MultiScale::get_segment_map )
   .method( "get_nearest_filtration_index", &MultiScale::get_nearest_filtration_index )
   .method( "extract_level_set", &MultiScale::extract_level_set )
+  .method( "update_vertices", &MultiScale::update_vertices )
+  .method( "initialize_vertices", &MultiScale::initialize_vertices )
   ;
 }

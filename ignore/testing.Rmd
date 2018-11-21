@@ -5,6 +5,31 @@ output: html_notebook
 
 
 ```{r}
+library(Mapper)
+X <- replicate(n = 3, expr = rnorm(1000))
+f_x <- apply(X, 1, function(x){
+   max(abs(x - X[which.min(X[,1]),]))
+})
+
+m <- MapperRef$new(as.matrix(X))$
+ use_cover(filter_values=matrix(f_x), type="fixed rectangular", number_intervals=20L, percent_overlap=0)$
+ use_distance_measure(measure = "euclidean")
+m$clustering_algorithm <- function(X, idx){ rep(1L, length(idx)) }
+m$compute_k_skeleton(k = 1L)$
+  enable_multiscale()
+
+
+## Basic profiling
+profvis::profvis({
+  invisible(sapply(seq(0.005, 50, by = 0.005), function(g_i){
+      m$update_mapper(percent_overlap = c(g_i))
+   })) 
+})
+
+```
+
+
+```{r}
 library("Mapper")
 ls_pairs <- t(combn(4, 2))
 nodes <- list(1:5, 2:6, 3:7, 4:8)

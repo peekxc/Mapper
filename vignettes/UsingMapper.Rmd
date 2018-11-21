@@ -3,6 +3,7 @@ author: "Matt Piekenbrock"
 title: "Using the Mapper Package"
 output: rmarkdown::html_vignette
 vignette: >
+  %\VignetteIndexEntry{using_mapper}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

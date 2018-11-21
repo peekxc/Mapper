@@ -1,12 +1,16 @@
 // MultiScale.h 
 // Header file for the multiscale indexing structure. 
+#ifndef MULTISCALE_H
+#define MULTISCALE_H
 
 #include <Rcpp.h>
 using namespace Rcpp;
 
 #include "utility_rcpp.h"
-#include "GridIndex.h" 
+#include "GridIndex.h" // faster grid indexing structure
+#include "skeleton.h" // skeleton update functions, simplex tree, etc.
 #include <memory> // smart pointers
+
 
 // Shortcut typenames
 using v_uint8_t = std::vector< uint8_t >;       // vector for compact unsigned int storage
@@ -48,13 +52,14 @@ struct MultiScale {
   const v_uint8_t num_intervals;                          // The number of intervals to distribute per dimension
   
   // Needed to know what state the Mapper is in.
+  // TODO: replace below w/ O(2nd) version when overlap < 50%
   v_sidx_t filt_idx;                                      // The current index into the filtration [ O(d) ]
   std::vector< v_sidx_t > filt_index_set;                 // The filtration index set [ O(nkd) ]
-  std::vector< NumericVector > filt_dist;                 // The distances corresponding to each filtration index [ O(nkd) ]  TODO: replace w/ O(2nd) version
+  std::vector< NumericVector > filt_dist;                 // The distances corresponding to each filtration index [ O(nkd) ]  
 
   // Needed to map level sets --> segments 
   v_uint8_t c_ls_segment_idx;                             // Tracks the index into the level set segment map [ O(d) ] 
-  std::vector< v_uint8_t > ls_segment_idx;                // Vector giving the segment indices spanned by each level set [ O(2kd) ]
+  std::vector< v_uint8_t > ls_segment_idx;                // Vector giving the segment indices spanned by each level set [ O(3kd) ]
   std::vector< v_sidx_t >  ls_change_idx;                 // Tracks when the level set segment indices change (cumulative run-length encoding) [ O(kd) ]
   
   // Needed to track paths followed by points
@@ -65,6 +70,9 @@ struct MultiScale {
   GridIndex< uint8_t > ls_grid;                           // Provides mappings from LSMI --> LSFI and vice versa. [ O(k^d) ]
   std::map< v_uint8_t, v_sidx_t > segment_map;            // Mapping from segment index --> pt ids [ O(k^d + n) ]
   v_uint8_t d_range;                                      // Stores the sequence of dimension indices [ O(d) ]
+  
+  // Vertices to update. Only kept in the struct for efficiency. 
+  std::map< int, IntegerVector > vertices;                // Stores the points associated with each vertex. [ O(nk^d) ]
   
   // Member functions
   MultiScale(const uidx_t n_pts, IntegerVector resolution);
@@ -82,6 +90,8 @@ struct MultiScale {
   void update_ls_segment_idx(const sidx_t i, const uidx_t d_i);
   v_uint8_t compute_ls_segment_idx(sidx_t i, uidx_t d_i);
   List update_segments(const IntegerVector target_idx);
+  void initialize_vertices(List& ls_vertex_map, List& vertices);
+  void update_vertices(const IntegerVector, const NumericMatrix&, const Function, List&, SEXP);
 };
 
-
+#endif

@@ -6,6 +6,9 @@
 \usage{
 segment_tree(intervals)
 }
+\arguments{
+\item{intervals}{an (n x 2) matrix of intervals.}
+}
 \value{
 A queryable segment tree.
 }
@@ -17,12 +20,6 @@ A segment tree is rooted-augment binary search tree useful for querying informat
 This segment tree class is specialized to handle interval queries which return indices of points that intersect the given query interval.
 The query interval must be composed using endpoints which were used to construct the tree.
 }
-\section{Fields}{
-
-\describe{
-\item{\code{intervals}}{an (n x 2) matrix of intervals.}
-}}
-
 \references{
 Mehta, Dinesh P., and Sartaj Sahni. "Chapter 18: Interval, Segment, Range, and Priority Search Trees." Handbook of data structures and applications. Chapman and Hall/CRC, 2004.
 }

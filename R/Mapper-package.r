@@ -19,8 +19,9 @@ NULL
 #' @details Given a numeric vector \code{x}, bins the values from low to high on a given color gradient. 
 #' Defaults to the reversed rainbow gradient, where blue == low, red == high.
 #' @export
-bin_color <- function(x, col_pal = rev(rainbow(100L, start = 0, end = 4/6)), 
+bin_color <- function(x, col_pal = "rainbow", 
                      output_format = c("hex9", "hex7")){
+  if (missing(col_pal) || col_pal == "rainbow"){ col_pal <- rev(grDevices::rainbow(100L, start = 0, end = 4/6)) }
   col_res <- length(col_pal)
   binned_idx <- cut(x, breaks = col_res, labels = FALSE)
   binned_colors <- col_pal[binned_idx]

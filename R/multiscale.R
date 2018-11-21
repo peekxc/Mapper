@@ -1,7 +1,9 @@
-
+## multiscale.R
+## This file encompasses a set of member functions which enable the MapperRef instance to be 
+## updated in-place across multiple scales.
 MapperRef$set("public", "enable_multiscale", 
   function(){
-    # if (self$cover$type != "rectangular"){ stop("'multiscale' is only compatible with rectangular covers.") }
+    if (toupper(self$cover$typename) != "FIXED RECTANGULAR"){ stop("'multiscale' is only compatible with fixed rectangular covers for now.") }
     n <- ifelse("dist" %in% class(private$.X), attr(private$.X, "Size"), nrow(private$.X))
     d <- ncol(self$cover$filter_values)
     
@@ -28,7 +30,7 @@ MapperRef$set("public", "enable_multiscale",
     ## Use the encoding to translate or 'stack' each point onto a single level set 
     A_tmp <- apply(A, 1, function(a) as.vector(as.integer(a) - 1L) * as.vector(base_interval_length))
     Z_tmp <- apply(self$cover$filter_values, 1, function(z_i) as.numeric(z_i) - filter_min)
-    Z_tilde <- matrix(Z_tmp - A_tmp, nrow = d)
+    Z_tilde <- matrix(abs(Z_tmp - A_tmp), nrow = d)
     
     ## Compute the distances to the lower and upper level sets
     ## This is equivalent to detecting which halfspace each point z_i lies in, and getting the distance to the boundary
@@ -86,93 +88,129 @@ MapperRef$set("public", "enable_multiscale",
       private$.multiscale$create_ls_paths(uniq_ls_paths[[d_i]]-1L, d_i-1)
     }
     
-    ## Add the ability to 'update' the Mapper by changing its overlap.
-    ## If stats=TRUE, returns information related to how the Mapper changes w.r.t the previous Mapper
-    ## TODO: Move this out of the current environment
-    self$update_mapper <- function(percent_overlap, stats=FALSE){
-      stopifnot(all(percent_overlap >= 0 && percent_overlap < 100))
-      stopifnot(length(percent_overlap) == ncol(self$cover$filter_values))
-      
-      ## If not populated yet, create a default mapping from the covers index set to the vertex ids
-      if (length(private$.cl_map) == 0){
-        private$.cl_map <- lapply(self$cover$index_set, function(x) integer(0L))
-        names(private$.cl_map) <- self$cover$index_set
-      }
-      
-      # browser()
-      ## TODO generalize this
-      prop_overlap <- percent_overlap/100
-      R <- base_interval_length + (base_interval_length*prop_overlap)/(1.0 - prop_overlap)
-      idx <- private$.multiscale$get_nearest_filtration_index(R)
-      
-      ## Update the segments 
-      res <- private$.multiscale$update_segments(idx)
-      
-      ## Extract the simplex tree 
-      stree_ptr <- private$.simplicial_complex$as_XPtr()
-      
-      ## Detect the edges between level sets affected by the change
-      connected_ls <- lapply(res$ls_to_update, function(ls){
-        # browser()
-        adj_lsfis <- check_connected(ls, private$.cl_map, self$vertices, stree_ptr)
-        if (length(adj_lsfis) > 0){
-          cbind(pmin(ls, adj_lsfis-1L), pmax(ls, adj_lsfis-1L))
-        } else { NULL }
-      })
-      
-      ## Collect statistics if requested 
-      if (stats){
-        old_vertices <- self$ls_vertex_map[(res$ls_to_update+1L)]
-        old_ls_map <- self$ls_vertex_map
-      }
-      
-      ## Update the vertices directly, without storing the level sets explicitly. 
-      if (length(res$ls_to_update) > 0){
-        ms_ptr <- private$.multiscale$as_XPtr()
-        private$.vertices <- update_level_sets(
-          which_levels = res$ls_to_update,
-          ms = ms_ptr, 
-          X = private$.X, 
-          f = self$clustering_algorithm, 
-          vertices = private$.vertices, 
-          ls_vertex_map = private$.cl_map, 
-          stree = stree_ptr
-        )
-      }
-      
-      ## The pairs to update
-      ls_pairs_to_update <- unique(rbind(res$ls_pairs_to_update, do.call(rbind, connected_ls)))
-      
-      ## Update the 1-skeleton
-      if (nrow(ls_pairs_to_update) > 0){
-        ls_pair_idx <- apply(ls_pairs_to_update, 2, function(idx){
-          self$cover$index_set[idx+1]
-        })
-        ls_pair_idx <- matrix(ls_pair_idx, ncol = 2)
-        self$compute_edges(ls_pair_idx)
-      }
-      
-      ## Update the percent overlap of the cover
-      self$cover$percent_overlap <- percent_overlap
-      
-      ## Returns statistics about how the Mapper changed if requested, self o.w.
-      if (stats){ 
-        res_stats <- list(
-          old_vertices=unname(unlist(old_vertices)), 
-          new_vertices=unname(unlist(self$ls_vertex_map[(res$ls_to_update+1L)])), 
-          old_ls_map = old_ls_map, 
-          new_ls_map = self$ls_vertex_map, 
-          updated_ls = res$ls_to_update, 
-          updated_ls_pairs = ls_pairs_to_update
-        )
-        return(res_stats)
-      } 
-      else { return(self) }
-    }
+    ## Populates the initial vertices; there shouldn't be any edges, since overlap == 0
+    self$compute_vertices()
+    private$.multiscale$initialize_vertices(private$.cl_map, private$.vertices)
+    
+    ## Add the read-only multiscale structure to the objects self environment
+    makeActiveBinding(
+      "multiscale", 
+      function(value){
+        if (missing(value)){ return(private$.multiscale) }
+        else {
+          stop("The '$multiscale' indexing structure is read-only. Use '$enable_multiscale' to recompute it.")
+        }
+      }, 
+      env = self ## add to public environment 
+    )
+    
+    ## Rebind the R6 instances vertices member to the multiscale structures internal map
+    remove(".vertices", envir = private) ## Remove the current list binding
+    makeActiveBinding(
+      sym = ".vertices", 
+      fun = function(value) { 
+        if (missing(value)){ private$.multiscale$vertices }
+        else {
+          stop("'$vertices' is read-only in the multiscale version.")
+        }
+      }, 
+      env = private ## add to public environment
+    )
+    
+    ## TODO: Should the active binding the the vertices also be replaced?
+    # private$.vertices
+    
+    ## Enable the update_mapper function 
+    enable_multiscale_int(self)
     
     return(self)
   }
 ) # multiscale 
+
+## Add the ability to 'update' the Mapper by changing its overlap.
+## If stats=TRUE, returns information related to how the Mapper changes w.r.t the previous Mapper
+## TODO: Abstract use with API that allows *apply()-like functionality (is this useful?) 
+enable_multiscale_int <- function(M){
+  #Rcpp:::externalptr_address
+  current_env <- M$.__enclos_env__
+  
+  ## Add a function to update the mapper dynamically 
+  update_mapper <- function(percent_overlap, stats=FALSE){
+    stopifnot(all(percent_overlap >= 0 && percent_overlap < 100))
+    stopifnot(length(percent_overlap) == ncol(self$cover$filter_values))
+    
+    ## Get the index of the requested parameterization
+    R <- self$cover$overlap_to_interval_len(percent_overlap)
+    idx <- private$.multiscale$get_nearest_filtration_index(R)
+    
+    ## Update the segments 
+    segment_res <- private$.multiscale$update_segments(idx)
+    
+    ## Extract the simplex tree 
+    stree_ptr <- private$.simplicial_complex$as_XPtr()
+    
+    ## Detect the edges between level sets affected by the change
+    connected_ls <- lapply(segment_res$ls_to_update, function(ls){
+      adj_lsfis <- check_connected(ls, private$.cl_map, self$vertices, stree_ptr)
+      if (length(adj_lsfis) > 0){
+        cbind(pmin(ls, adj_lsfis-1L), pmax(ls, adj_lsfis-1L))
+      } else { NULL }
+    })
+    
+    ## Collect statistics if requested 
+    if (stats){
+      old_vertices <- self$ls_vertex_map[(segment_res$ls_to_update+1L)]
+      old_ls_map <- self$ls_vertex_map
+    }
+    
+    ## Update the vertices directly, without storing the level sets explicitly. 
+    ## All connected edges to the vertices in the updated level sets are invalidated. 
+    if (length(segment_res$ls_to_update) > 0){
+      self$multiscale$update_vertices(
+        which_levels = segment_res$ls_to_update,
+        X = private$.X,
+        f = self$clustering_algorithm, 
+        ls_vertex_map = private$.cl_map,
+        stree = stree_ptr
+      )
+    }
+    ## ASSERT all(unname(unlist(m$ls_vertex_map)) == as.integer(names(m$vertices)))
+    
+    ## The pairs to update
+    ls_pairs_to_update <- unique(rbind(segment_res$ls_pairs_to_update, do.call(rbind, connected_ls)))
+    
+    ## Update the 1-skeleton
+    if (nrow(ls_pairs_to_update) > 0){
+      ls_pair_idx <- apply(ls_pairs_to_update, 2, function(idx){
+        self$cover$index_set[idx+1]
+      })
+      ls_pair_idx <- matrix(ls_pair_idx, ncol = 2)
+      self$compute_edges(ls_pair_idx)
+    }
+    
+    ## Update the percent overlap of the cover
+    self$cover$percent_overlap <- percent_overlap
+    
+    ## Returns statistics about how the Mapper changed if requested, self otherwise
+    if (stats){ 
+      res_stats <- list(
+        old_vertices=unname(unlist(old_vertices)), 
+        new_vertices=unname(unlist(self$ls_vertex_map[(segment_res$ls_to_update+1L)])), 
+        old_ls_map = old_ls_map, 
+        new_ls_map = self$ls_vertex_map, 
+        updated_ls = segment_res$ls_to_update, 
+        updated_ls_pairs = ls_pairs_to_update
+      )
+      return(res_stats)
+    } 
+    else { return(self) }
+    
+  } # update_mapper
+  
+  ## Add as a public function 
+  current_env[["self"]]$add_function("update_mapper", FUN = update_mapper)
+}
+
 
 ## More preprocessing...
 rowmatch <- function(A,B) { 
@@ -183,6 +221,15 @@ rowmatch <- function(A,B) {
   b <- do.call("f", as.data.frame(B))
   match(a, b)
 }
+
+## Apply a function to 
+MapperRef$set("public", "apply_multiscale", 
+  function(overlaps, FUN){
+    ## Check signature of FUN
+    stopifnot(!all(match(c("M", "idx"), names(formals(FUN))) == c(1, 2)))
+    
+  }
+)
 
 ## Multiscale Module
 Rcpp::loadModule("multiscale_module", TRUE)

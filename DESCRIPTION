@@ -1,7 +1,7 @@
 Package: Mapper
 Type: Package
 Title: Topological Data Analysis using Mapper
-Version: 0.6.0
+Version: 0.7.0
 Date: 2018-10-29
 Authors@R: c(person("Matt", "Piekenbrock", email = "matt.piekenbrock@gmail.com", role = c("aut", "cre", "cph")), 
              person("Gurjeet","Singh", role = c("ctb","cph")))
@@ -16,9 +16,9 @@ License: file LICENSE
 BugReports: https://github.com/peekxc/mapper
 Suggests: 
     igraph,
-    htmlwidgets, shiny, DT,
+    htmlwidgets, shiny, DT, grapher,
     proxy, parallelDist, fastcluster, RANN,
-    testthat, knitr
+    testthat, knitr, rmarkdown
 Copyright: The Mapper method was originally developed by Gurjeet Singh, Facundo Mémoli, and Gunnar Carlsson. The software is Copyright by Matt Piekenbrock.
 Encoding: UTF-8
 LazyData: true

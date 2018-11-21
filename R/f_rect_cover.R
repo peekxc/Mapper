@@ -136,3 +136,14 @@ FixedRectangularCover$set("public", "level_sets_to_compare", function(){
   return(res)
 })
 
+## Converts percent overlap to interval length for a fixed number of intervals
+FixedRectangularCover$set("public", "overlap_to_interval_len", function(percent_overlap){
+  stopifnot(all(is.numeric(self$number_intervals)))
+  filter_rng <- apply(self$filter_values, 2, range)
+  { filter_min <- filter_rng[1,]; filter_max <- filter_rng[2,] }
+  filter_len <- diff(filter_rng)
+  base_interval_length <- filter_len/self$number_intervals
+  prop_overlap <- percent_overlap/100
+  return(base_interval_length + (base_interval_length*prop_overlap)/(1.0 - prop_overlap))
+})
+

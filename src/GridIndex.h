@@ -1,3 +1,5 @@
+#ifndef GRID_INDEX_H
+#define GRID_INDEX_H
 #include "utility_rcpp.h"
 
 // = GridIndex = 
@@ -27,3 +29,4 @@ struct GridIndex {
   IntegerVector multi_from_flat_rcpp(std::size_t index);
   IntegerMatrix multi_matrix();
 };
+#endif 

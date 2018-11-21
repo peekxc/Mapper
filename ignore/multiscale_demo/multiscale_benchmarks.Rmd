@@ -2,20 +2,403 @@
 title: "Multiscale Benchmarks"
 output: html_notebook
 ---
-```{r}
 
-compute_multiscale <- function(mapper, g){
-  d <- ncol(mapper$cover$filter_values)
-  mapper$enable_multiscale() 
-  mapper$update_mapper(rep(0, d))
+```{r}
+## Given an (nxd) matrix, produces a new matrix on the order of O(nd) of distinct 
+## nondecreasing combinations of the original matrix
+nondecreasing_matrix <- function(mat){
+  n <- nrow(mat)
+  d <- ncol(mat)
+  idx <- rep(1, d)
+  res <- list()
+  while(any(idx < n)){
+    ## extract current row 
+    c_row <- sapply(seq(d), function(d_i){ mat[idx[d_i],d_i] })
+    
+    ## get index of next largest element 
+    min_idx <- which.min(ifelse(idx < n, c_row, Inf))
+    
+    ## Increase row
+    n_row <- sapply(seq(d), function(d_i){
+        mat[idx[d_i], d_i]
+    })
+    
+    ## append
+    res <- append(res, list(n_row))
+    
+    ## increment 
+    idx[min_idx] <- idx[min_idx] + 1
+  }
+  do.call(rbind, res)
+}
+
+## Benchmark
+## Given a function that returns a Mapper object and a list of discretizations
+bench_mapper <- function(mapper_f, g_card) {
+  lapply(g_card, function(degree){
   
-  ## Get the overlap values
-  lapply(g, function(g_i){
-    mapper$update_mapper(rep(g_i, d), stats = TRUE)
+    ## Get a new mapper
+    m <- mapper_f()
+    
+    ## Get the overlap values 
+    if (is.numeric(degree)){
+      ## How good of an approximation to the multiscale mapper is wanted
+      g <- replicate(ncol(m$cover$filter_values), seq(0, 50, length.out = degree))
+    } else if (degree == "exact"){
+      filter_rng <- apply(m$cover$filter_values, 2, range)
+      { filter_min <- filter_rng[1,]; filter_max <- filter_rng[2,] }
+      filter_len <- diff(filter_rng)
+      r_len <- filter_len/m$cover$number_intervals
+      d <- ncol(m$cover$filter_values)
+      g <- do.call(cbind, lapply(seq(d), function(d_i){
+        as.vector(1) - (as.vector(r_len[[d_i]])/m$multiscale$filt_dist[[d_i]])
+      }))
+      g <- g[apply(g, 1, function(g_i) all(g_i < 0.50)),,drop = FALSE]*100
+      g <- nondecreasing_matrix(g)
+    }
+    print("calculated g")
+  
+    ## Cumulative number of set / pairs need to be computed
+    cum_num_updates <- apply(g, 1, function(g_i){
+      print(g_i)
+      
+      ## Worst case -- no knowledge
+      worst_sets <- prod(m$cover$number_intervals)
+      worst_pairs <- choose(worst_sets, 2)
+      
+      ## Bounded case 
+      bounded_cover <- m$cover$clone()
+      bounded_cover$percent_overlap <- g_i
+      bounded_pairs <- nrow(bounded_cover$level_sets_to_compare())
+      
+      ## Our approach
+      tmp <- m$update_mapper(g_i, stats = TRUE)
+      indexed_sets <- length(tmp$updated_ls)
+      indexed_pairs <- nrow(tmp$updated_ls_pairs)
+      
+      list(
+        sets = list(worst_sets, indexed_sets),
+        pairs = list(worst_pairs, bounded_pairs, indexed_pairs)
+      )
+    })
+    
+    ## Accumulate the results
+    set_updates <- do.call(rbind, lapply(cum_num_updates, function(lst) lst$sets))
+    set_df <- data.frame(resolution=degree, apply(set_updates, 2, cumsum), percent_overlap=g)
+    pair_updates <- do.call(rbind, lapply(cum_num_updates, function(lst) lst$pairs))
+    pair_df <- data.frame(resolution=degree, apply(pair_updates, 2, cumsum), percent_overlap=g)
+    return(list(set_res = set_df, pair_res = pair_df))
+  })
+}
+```
+
+```{r}
+## Diabetes data from the original paper + KDE 
+data("chemdiab", package = "locfit")
+X <- apply(chemdiab[, 1:5], 2, function(x) scale(x, center = FALSE))
+f_kde <- ks::kde(X, H = diag(5), eval.points = X, verbose = FALSE)$estimate
+f_ecc <- apply(as.matrix(dist(X)), 1, max)
+
+## Diabetes mapper
+diab_mapper <- function(Z){
+  return(function(){
+    MapperRef$new(X = X)$
+      use_cover(filter_values = matrix(Z), typename = "fixed rectangular", number_intervals = 4L, percent_overlap = 0)$
+      use_distance_measure(measure = "euclidean")$
+      use_clustering_algorithm(cl = "single", num_bins = 15L)$
+      compute_k_skeleton(k = 1L)$
+      enable_multiscale() ## enables multiscale mapper
+  })
+}
+
+## Computes the mapper at the given discrete approximations. 'Exact' computes all poss
+g_card <- list(10, 50, "exact")
+diab_bench_kde <- do.call(rbind, bench_mapper(diab_mapper(f_kde), g_card))
+diab_bench_ecc <- do.call(rbind, bench_mapper(diab_mapper(f_ecc), g_card))
+saveRDS(diab_bench_kde, file = "diab_bench_kde.rds")
+saveRDS(diab_bench_ecc, file = "diab_bench_ecc.rds")
+```
+
+$k$-dimensional benchmarks
+```{r}
+## World Values Survey data
+library("Mapper")
+
+## World Values Survey 
+WV6_Data_R <- readRDS("~/WaCS/reporting/SIAGA - Mapper Parameterization/data/WV6_Data_R_v_2016_01_01.rds")
+WV_US_survey <- data.table::data.table(WV6_Data_R)[V2 == 840]
+
+## Choose some interesting dimensions to consider. Feel free to swap these in and out based on your interests! 
+key_vals <- c(V4="FamilyImportance", V5="FriendImportance", V7="PoliticsImportance", V8="WorkImportance", 
+              V9="ReligionImportance", V10="Happiness", V11="Health", V23="Satisfied", V24="TrustInOthers", 
+              V25="ReligiousMember", V29="PoliticsMember", V30="EnvironMember", V32="CharityMember", 
+              V55="ControlOverLife", V56="TakeAdvantageOf", V57="MarriedStatus", V58="NumChildren", 
+              V59="FinancialSatisfaction", V60="CountryAimsFirstChoice", V61="CountryAimsSecondChoice", 
+              V67="FutureWorkEmphasis", V68="FutureTechnologyEmphasis", V69="FutureRespectAuthority", 
+              V84="InterestInPolitics", V95="PoliticalLeaning", V97="OwnershipOfBusiness", V98="BeliefInCompetition", 
+              V101="BeliefOnWealth")
+
+## Scale the data. This also recenters the responses to a common location. 
+WV_US.scaled <- apply(WV_US_survey[,.SD, .SDcols = names(key_vals)], 2, scale)
+colnames(WV_US.scaled) <- key_vals
+
+## Extract the most statistically independent components w/ ICA, and the first 3 principle components w/ PCA.
+wv_ica <- fastICA::fastICA(as.matrix(WV_US.scaled), n.comp=3, method = "C", alg.typ = "deflation", fun = "logcosh")
+wv_pca <- stats::prcomp(as.matrix(WV_US.scaled), center=FALSE, rank=3) ## equiv. to wv_ica$X %*% wv_ica$K
+
+## Use empirical distance-to-measure (DTM) to remove outliers
+detect_outliers <- function(X, percentile=0.99, k=15L){
+  knn <- RANN::nn2(X, k = k)
+  dtm <- rowSums(knn$nn.dist)/k
+  which(dtm >= quantile(dtm, c(percentile)))
+}
+ica_outliers <- detect_outliers(wv_ica$S, percentile = 0.95)
+pca_outliers <- detect_outliers(wv_pca$x, percentile = 0.95)
+
+## World Values Survey Mapper
+wvs_mapper <- function(X, Z){
+  return(function(){
+    m <- Mapper:::MapperRef$new(X)$
+      use_cover(filter_values=Z, type="fixed rectangular", number_intervals=5L, percent_overlap=0)$
+      use_distance_measure(measure = "euclidean")
+    # use_clustering_algorithm(cl = "single", num_bins = 10L)$ # For analysis 
+      m$clustering_algorithm <- function(X, idx, ...){ rep(1L, length(idx)) }
+      m$compute_k_skeleton(k = 1L)$
+      enable_multiscale() ## enables multiscale mapper
   })
 }
 
 
+## Computes the mapper at the given discrete approximations. 'Exact' computes all poss
+g_card <- list(10, 100, "exact")
+wvs_ica_mapper_f <- wvs_mapper(as.matrix(WV_US.scaled)[-ica_outliers,], wv_ica$S[-ica_outliers,])
+wvs_pca_mapper_f <- wvs_mapper(as.matrix(WV_US.scaled)[-pca_outliers,], wv_pca$x[-pca_outliers,])
+wvs_bench_ica <- do.call(rbind, bench_mapper(wvs_ica_mapper_f, g_card))
+wvs_bench_pca <- do.call(rbind, bench_mapper(wvs_pca_mapper_f, g_card))
+saveRDS(wvs_bench_ica, file = "wvs_bench_ica.rds")
+saveRDS(wvs_bench_pca, file = "wvs_bench_pca.rds")
+```
+
+Torus example data set 
+```{r}
+# Rejection sampling method of sampling from a torus 
+# Code from "Sampling from A Manifold" by Diaconis, Holmes and Shahshahani
+# http://arxiv.org/pdf/1206.6913.pdf
+
+## Rejection-sampling of torus 
+reject <- function(n=100,r=0.5,R=1) {
+  xvec <- runif(n,0,2*pi)
+  yvec <- runif(n,0,1/pi)
+  fx <- (1+(r/R)*cos(xvec))/(2*pi)
+  xvec[yvec<fx]
+}
+
+## Torus in R^3
+M <- local({
+  n <- 10000L*2 ## number of points to sample 
+  R <- 6 ## distance from the center of interior tube to center of torus
+  r <- 3 ## radius of tube
+  p <- 4 ## transformed variable
+  q <- reject(n, r = r, R = R) ## use runif(n, min = 0, max = 2*p) for comparison
+  y <- runif(length(q), min = 0, max = 2*p)
+  cbind((R + r*cos(q))*cos(y), (R + r*cos(q))*sin(y), sin(q))
+})
+M <- apply(M, 2, scale) # rgl::plot3d(M) to see the point cloud
+
+## Apply a random rotation
+set.seed(1234)
+M.pad <- cbind(M, replicate(27L, rep(0L, nrow(M))))
+QR.norm <- qr(x = replicate(30, rnorm(30)))
+M_emb <- M.pad %*% QR.norm$qr
+```
+
+<!-- Loading a conda environment w/ umap and scikit installed -->
+```{r, echo = FALSE, eval=TRUE}
+## Load UMAP using reticulate
+library("reticulate")
+reticulate::use_python(normalizePath("~/miniconda3/envs/XAI/bin/python3"), required = TRUE)
+reticulate::use_condaenv("XAI", required = TRUE)
+# sys <- import("sys")
+# cat(sys$version)
+# cat("\nPath: ", head(sys$path, 1))
+```
+
+Laplacian Eigenmaps and UMAP filters
+```{r}
+## Build the heated graph 
+M_emb.scale <- apply(M_emb, 2, scale)
+torus_dist <- parallelDist::parallelDist(M_emb.scale, method = "euclidean")
+sigma <- mean(apply(M_emb.scale, 2, stats::bw.SJ))
+torus_kernel <- exp(-(torus_dist/(sigma*10))) ## 10 might be the smallest, 25 is too large
+aff_matrix <- as.matrix(torus_kernel) ## Precompute the 'affinity' matrix
+# rgl::plot3d(M_emb, col = bin_color(aff_matrix[1,]))
+# rgl::texts3d(x = M_emb[1,1], y = M_emb[1,2], M_emb[1,3], texts = "1")
+
+## Do the Laplacian Eigenmap embedding
+sklearn <- import("sklearn")
+se <- sklearn$manifold$SpectralEmbedding(n_components = 2L, affinity = 'precomputed')
+torus_le <- se$fit_transform(aff_matrix)
+
+## Do the UMAP embedding
+umap <- import("umap") ## installed from pip via umap-learn module
+rot_k <- ceiling(log(nrow(M_emb))*3*sqrt(2)) ## Rule of thumb 
+nn <- RANN::nn2(M_emb, query = M_emb, k = rot_k)
+reducer <- umap$UMAP(n_components=2L, n_neighbors=as.integer(rot_k), 
+                     min_dist=0.65, metric = "euclidean")
+torus_umap <- reducer$fit_transform(M_emb)
+# rgl::plot3d(torus_umap)
+```
+
+```{r}
+## Torus Mapper
+torus_mapper <- function(Z, overlap){
+  function(){
+    m <- Mapper:::MapperRef$new(as.matrix(M_emb))$
+    use_cover(filter_values=Z, type="fixed rectangular", number_intervals=15L, percent_overlap=overlap)$
+    use_distance_measure(measure = "euclidean")
+    # use_clustering_algorithm(cl = "single", num_bins = 10L)$ # For analysis 
+    m$clustering_algorithm <- function(X, idx, ...){ rep(1L, length(idx)) }
+    m$compute_k_skeleton(k = 1L)$
+      enable_multiscale()
+  }
+}
+
+## Computes the mapper at the given discrete approximations. 'Exact' computes all poss
+g_card <- list(10, 100, "exact")
+torus_bench_le <- do.call(rbind, bench_mapper(torus_mapper(torus_le, 20), g_card))
+torus_bench_umap <- do.call(rbind, bench_mapper(torus_mapper(torus_umap, 15), g_card))
+saveRDS(torus_bench_le, file = "torus_bench_le.rds")
+saveRDS(torus_bench_umap, file = "torus_bench_umap.rds")
+```
+
+
+Put together all the data to make the results plot
+```{r}
+## Data formatting for ggplot
+format_data <- function(bench_res, type = c("set", "pair")){
+  bench_cols <- switch(type, 
+                       "set"=c("degree", "Naïve", "Indexed", "percent_overlap"), 
+                       "pair" = c("degree", "Naïve", "Bounded", "Indexed", "percent_overlap"))
+  bench_idx <- switch(type, "set"=2:3, "pair"=2:4)
+  colnames(bench_res) <- bench_cols
+  agg_res <- data.table::melt(bench_res, id.vars = c("degree", "percent_overlap"),
+                              measure.vars=colnames(bench_res)[bench_idx])
+  type <- sprintf("%s-%s", as.character(agg_res$variable), agg_res$degree)
+  bench_data <- data.frame(type, agg_res$percent_overlap, agg_res$value)
+  colnames(bench_data) <- c("approx_type", "percent_overlap", "counts")
+  bench_data[["method"]] <- agg_res$variable
+  bench_data[["approx_degree"]] <- agg_res$degree
+  bench_data[["counts"]] <- log(bench_data$counts + 1) ## Add 1 to remove -Inf when 0 are compared at start
+  return(bench_data)
+}
+normalize_overlap <- function(x, type=c("set", "pair")){
+  cc <- ifelse(type == "set", 4, 5)
+  if (ncol(x) == cc){ return(x) }
+  else {
+    normalize <- function(x){ (x - min(x))/(max(x) - min(x)) }
+    return(cbind(x[, 1:cc], normalize(apply(x[, cc:ncol(x)], 1, sum))))
+  }
+}
+diab_bench_ecc <- readRDS(file = "~/mapper/ignore/multiscale_demo/diab_bench_ecc.rds")
+diab_bench_kde <- readRDS(file = "~/mapper/ignore/multiscale_demo/diab_bench_kde.rds")
+wvs_bench_pca <- readRDS(file = "~/mapper/ignore/multiscale_demo/wvs_bench_pca.rds")
+wvs_bench_ica <- readRDS(file = "~/mapper/ignore/multiscale_demo/wvs_bench_ica.rds")
+torus_bench_le <- readRDS(file = "~/mapper/ignore/multiscale_demo/torus_bench_le.rds")
+torus_bench_umap <- readRDS(file = "~/mapper/ignore/multiscale_demo/torus_bench_umap.rds")
+
+## For d > 1, the sequence of overlaps is a vector, which in unamenable to plot as coordinate axis. 
+## However, the linear combination of the values in the sequence is monotonically increasing.
+type <- "set"
+type_idx <- ifelse(type=="set", 1L, 2L)
+fpairs_diab_ecc <- format_data(normalize_overlap(do.call(rbind, diab_bench_ecc[, type_idx]), type), type)
+fpairs_diab_kde <- format_data(normalize_overlap(do.call(rbind, diab_bench_kde[, type_idx]), type), type)
+fpairs_wvs_pca <- format_data(normalize_overlap(do.call(rbind, wvs_bench_pca[, type_idx]), type), type)
+fpairs_wvs_ica <- format_data(normalize_overlap(do.call(rbind, wvs_bench_ica[, type_idx]), type), type)
+fpairs_torus_le <- format_data(normalize_overlap(do.call(rbind, torus_bench_le[, type_idx]), type), type)
+fpairs_torus_umap <- format_data(normalize_overlap(do.call(rbind, torus_bench_umap[, type_idx]), type), type)
+
+
+## Double legend line plot showing multiple groups 
+make_line_plot <- function(x, title, sub_title){
+  library("ggplot2")
+  library("viridis")
+  ## The fill aesthetic is dummy-group used to create two legends, because ggplot has a poorly designed interface.
+  # y_breaks <- with(x, { seq(min(pairs), max(pairs)+0.5, by = 0.5) })
+  # legend_title2 <- expression(paste(n^th, "-approximation:")
+  legend_title2 <- "Approximation:"
+  y_breaks <- ceiling(with(x, { seq(0, max(counts), length.out = 10) }))
+  ggplot(data = x, aes(x=percent_overlap, group=approx_type, fill=approx_degree, color=method)) +
+  geom_line(mapping = aes(y=counts, linetype=approx_degree, color=method), size=0.70) + 
+  scale_linetype_manual(values=c("11", "twodash", "solid"), name=legend_title2) +
+  scale_color_viridis(discrete = TRUE, name = "Method:", begin = 0, end = 0.8) +
+  scale_y_continuous(breaks = y_breaks, position="left") + 
+  theme_bw() +
+  theme(legend.title = element_text(face="bold")) + 
+  xlab("Percent Overlap") + ylab(label = "Cum. # Intersection Comparisons\n") + 
+  theme(axis.title=element_text(size=11))+
+  ggtitle(title, subtitle = as.expression(parse(text=sprintf("italic('%s')", sub_title)))) +
+  ## Legend Positions 
+  # Bottom right corner 
+  # theme(legend.position = c(0.98, 0.02), legend.direction = "vertical", legend.box = "horizontal",
+  #       legend.title = element_text(size=6), legend.text = element_text(size=5), legend.key.size = unit(0.4, "cm"),
+  #       legend.key.width=unit(0.8,"cm"), legend.box.margin = margin(0.025, 0.025, 0.025, 0.025, unit = "cm"),
+  #       legend.spacing.x = unit(0.05, "cm"), legend.justification = c(1, 0),
+  #       legend.box.background = element_rect(colour = "black"))
+  # Top, horiozontal
+  # theme(legend.position = "top", legend.direction = "horizontal", legend.box = "horizontal",
+  #   legend.title = element_text(size=8), legend.text = element_text(size=6), legend.key.size = unit(0.02, "pt"),
+  #   legend.key.width=unit(0.75,"pt"), legend.box.margin = margin(0.025, 0.025, 0.025, 0.025, unit = "pt"),
+  #   legend.spacing = unit(0.25, "pt"), legend.justification = c(1, 1), legend.box.spacing = unit(0, "pt"),
+  #   legend.box.background = element_rect(colour = "black"), legend.margin=margin(0.01, 0.03, 0.01, 0.03, unit = "pt"))
+  # Bottom, horizontal 
+  theme(legend.position = "bottom", legend.direction = "horizontal", legend.box = "horizontal",
+  legend.title = element_text(size=10), legend.text = element_text(size=8), 
+  legend.key.width = unit(25.5, "pt"), 
+  legend.box.margin = margin(1.5, 2.5, 1.5, 2.5, unit = "pt"),
+  legend.spacing = unit(2.25, "pt"), legend.justification = "center", legend.box.spacing = unit(5, "pt"),
+  legend.box.background = element_rect(colour = "black"), legend.margin=margin(1, 2, 1, 2, unit = "pt"))
+}
+data_names <- c("Miller-Reaves Chemical Diabetes data set", 
+                "World Values Survey data set", 
+                "Embedded Torus Synthetic data set")
+g1 <- make_line_plot(fpairs_diab_ecc, title = data_names[1], sub_title = "KDE filter (1D)")
+g2 <- make_line_plot(fpairs_diab_kde, title = data_names[1], sub_title = "Eccentricity filter (1D)")
+g3 <- make_line_plot(fpairs_wvs_pca, title = data_names[2], sub_title = "Principle Components filter (3D)")
+g4 <- make_line_plot(fpairs_wvs_ica, title = data_names[2], sub_title = "Independent Components filter (3D)")
+g5 <- make_line_plot(fpairs_torus_le, title = data_names[3], sub_title = "Laplacian Eigenmap filter (2D)")
+g6 <- make_line_plot(fpairs_torus_umap, title = data_names[3], sub_title = "UMAP filter (2D)")
+
+## Save as PDF, per SIAM and ACM recommendations 
+local({
+  { page_width <- 390; page_height <- 592 } ## LaTeX inner body page width/height
+  wh_ratio <- (page_height*0.23)/page_width ## To get figure aspect ratio to whatever percentage height of page
+  res <- 4 ## to increase/decrease resolution
+  { pt_width <- page_width*res; pt_height <- wh_ratio*pt_width } 
+  pdf(file = "set_results.pdf", width = pt_width/72, height = pt_height/72, compress = TRUE)
+  gridExtra::grid.arrange(g1, g3, g5, g2, g4, g6, nrow = 2, ncol = 3)
+  dev.off()
+})
+
+## The fill aesthetic is dummy-group used to create two legends, because ggplot has a poorly designed interface.
+# ggplot(data = bench_data, aes(x=percent_overlap, group=approx_type, fill=approx_degree, color=method)) +
+#   geom_line(mapping = aes(y=pairs, linetype=approx_degree, color=method), size=0.90) + 
+#   scale_linetype_manual(values=c("11", "twodash", "solid"), name=expression(paste(n^th, "-approximation"))) +
+#   scale_color_viridis(discrete = TRUE, name = "Method", begin = 0, end = 0.8) +
+#   scale_y_continuous(breaks = seq(min(vals), max(vals)+0.5, by = 0.5), position="right") + 
+#   theme_bw() +
+#   theme(legend.key.width = unit(1,"cm"), legend.position="left") + 
+#   xlab("Percent Overlap") + ylab("Cumulative # Intersection Comparisons\n") +   
+#   ggtitle("Computing mapper across scales", subtitle = expression(italic("Chemical Diabetes data set")))
+
+## Legend horizontal at bottom 
+# g1 + theme(legend.position = "bottom", legend.direction = "horizontal", legend.box = "vertical", legend.title = element_text(size=10), legend.text = element_text(size=8), legend.key.size = unit(0.6, "cm"), legend.key.width=unit(0.8,"cm"), legend.box.spacing = margin(0, 0, 0, 0, unit = "cm"), legend.spacing.y = unit(-0.3, "cm"))
+
+
+```
+```
+
+
+```{r}
 
 ls1 <- sapply(seq(length(mapper$cover$level_sets))-1L, function(i){
   multiscale$extract_level_set(i)
@@ -31,209 +414,45 @@ ls1 <- sapply(seq(length(mapper$cover$level_sets))-1L, function(i){
 # rgl::points3d(bnds[,1:3])
 ```
 
+## Smooth approximation of hausdorff distance
 ```{r}
-## Benchmark
-bench_mapper <- function(mapper_f, g_card) {
-  lapply(g_card, function(degree){
-  
-    ## Get a new mapper
-    m <- mapper_f()
-    multiscale <- m$.__enclos_env__[["private"]][[".multiscale"]]
-    
-    ## Get the overlap values 
-    if (is.numeric(degree)){
-      ## How good of an approximation to the multiscale mapper is wanted
-      g <- replicate(ncol(m$cover$filter_values), seq(0, 50, length.out = degree))
-    } else if (degree == "exact"){
-      env <- environment(m$update_mapper)
-      r_len <- env[["base_interval_length"]]
-      g <- do.call(cbind, lapply(multiscale$filt_dist, function(r_x) as.vector(1) - as.vector(r_len)/r_x))
-      g <- g[apply(g, 1, function(g_i) all(g_i < 0.50)),,drop = FALSE]*100
-    }
-  
-    ## Cumulative number of edges need to be computed
-    cum_num_edges <- apply(g, 1, function(g_i){
-      print(g_i)
-      
-      ## Worst case -- no knowledge
-      worst_case <- choose(prod(m$cover$number_intervals), 2)
-      
-      ## Bounded case 
-      bounded_cover <- m$cover$clone()
-      bounded_cover$percent_overlap <- g_i
-      bounded_case <- nrow(bounded_cover$level_sets_to_compare())
-      
-      ## Our approach
-      tmp <- m$update_mapper(rep(g_i, ncol(m$cover$filter_values)), stats = TRUE)
-      optimal_case <- nrow(tmp$updated_ls_pairs)
-      
-      list(worst_case, bounded_case, optimal_case)
-    })
-    
-    ## Accumulate the results
-    data.frame(resolution=degree, apply(do.call(rbind, cum_num_edges), 2, cumsum), percent_overlap=g)
-  })
-}
-```
+c_mapper <- m_le
+c_mapper <- m_umap
 
-```{r}
-## Diabetes data from the original paper + KDE 
-X <- apply(chemdiab[, 1:5], 2, function(x) scale(x, center = FALSE))
-f_x <- ks::kde(X, H = diag(5), eval.points = X, verbose = FALSE)$estimate
 
-## Diabetes mapper
-diab_mapper <- function(){
-  MapperRef$new(X = X)$
-  use_cover(filter_values = matrix(f_x), typename = "fixed rectangular", number_intervals = 4L, percent_overlap = 0)$
-  use_distance_measure(measure = "euclidean")$
-  use_clustering_algorithm(cl = "single", num_bins = 15L)$
-  compute_k_skeleton(k = 1L)$
-  enable_multiscale() ## enables multiscale mapper
-}
-
-## The discrete approximations to make
-g_card <- list(10, 50, "exact")
-bench_res <- bench_mapper(diab_mapper, g_card)
-tmp <- do.call(rbind, bench_res)
-colnames(tmp) <- c("degree", "Brute Force", "Bounded Approach", "Indexed Approach", "percent_overlap")
-
-## ggplot has a poorly designed interface.
-agg_res <- data.table::melt(tmp, id.vars = c("degree", "percent_overlap"), measure.vars=colnames(tmp)[2:4])
-type <- sprintf("%s-%s", as.character(agg_res$variable), agg_res$degree)
-bench_data <- data.frame(type, agg_res$percent_overlap, agg_res$value)
-colnames(bench_data) <- c("approx_type", "percent_overlap", "pairs")
-bench_data[["method"]] <- agg_res$variable
-bench_data[["approx_degree"]] <- agg_res$degree
-
-ggplot2::ggplot(data = bench_data, aes(x=percent_overlap, group=approx_type, fill=approx_degree, color=method)) +
-  geom_line(mapping = aes(y=log(pairs), linetype=approx_degree, color=method), size=0.80) + 
-  scale_linetype_manual(values=c("11", "dashed", "solid"), name=expression(n, "-approximation"))+
-  scale_color_manual(values=c("red", "green", "orange"), name = "ss")
-  geom_line(mapping = aes(y=log(pairs), color=method), size=0.80)
-    +
-    guides(fill = guide_legend(title='vdf color'), color = guide_legend(title='vdf color'))
-  guide_legend()
-  scale_color_discrete(guide = guide_legend())
-
-linetypes <- c("dotted", "dashed", "solid")
-library("ggplot2")
-ggplot2::ggplot(data = agg_res, aes(x=percent_overlap, group=degree, fill=variable)) +
-  geom_line(mapping = aes(y=log(pairs), linetype=approx_type), color="red", size=0.80) +  
-    scale_linetype_manual(values=rep(linetypes, 3), name="group")+
-    guides(fill=guide_legend(override.aes=list(linetype=rep(linetypes, 3))))
-  geom_line(mapping = aes(y=log(`Bounded Approach`), linetype=degree), color="blue", size=0.80) +
-  geom_line(mapping = aes(y=log(`Indexed Approach`), linetype=degree), color="green", size=0.80)+
-  scale_linetype_manual(values=linetypes)+
-  theme(legend.position="right") + theme_bw() + 
-  xlab("Percent Overlap") + ylab("Cumulative # Intersection Comparisons")+ 
-  ggtitle("Computing mapper at multiple scales") +
-  scale_linetype_manual(values=linetypes, guide = guide_legend(override.aes = list(shape = 22, size = 5)))
-
-```
-
-```{r}
-## Diabetes data from the original paper + KDE 
-library("Mapper")
-
-## World Values Survey 
-load("/Users/mpiekenbrock/Downloads/WV6_Data_R_v_2016_01_01.rdata")
-WV_survey <- data.table::data.table(WV6_Data_R)
-WV_US <- WV_survey[V2 == 840]
-
-key_vals <- c(V4="FamilyImportance", V5="FriendImportance", V7="PoliticsImportance", V8="WorkImportance", 
-              V9="ReligionImportance", V10="Happiness", V11="Health", V23="Satisfied", V24="TrustInOthers", 
-              V25="ReligiousMember", V29="PoliticsMember", V30="EnvironMember", V32="CharityMember", 
-              V55="ControlOverLife", V56="TakeAdvantageOf", V57="MarriedStatus", V58="NumChildren", 
-              V59="FinancialSatisfaction", V60="CountryAimsFirstChoice", V61="CountryAimsSecondChoice", 
-              V67="FutureWorkEmphasis", V68="FutureTechnologyEmphasis", V69="FutureRespectAuthority", 
-              V84="InterestInPolitics", V95="PoliticalLeaning", V97="OwnershipOfBusiness", V98="BeliefInCompetition", 
-              V101="BeliefOnWealth")
-
-WV_US_subset <- WV_US[,.SD, .SDcols = names(key_vals)]
-normalize <- function(x){ (x - min(x))/(max(x) - min(x)) }
-WV_US_normed <- apply(WV_US_subset, 2, normalize)
-WV_US_nice <- WV_US_subset
-colnames(WV_US_nice) <- key_vals
-
-wv_ica <- fastICA::fastICA(as.matrix(WV_US_nice), n.comp = 2, method = "C", alg.typ = "deflation", row.norm = TRUE)
-
-new_mapper <- function(){
-  Mapper:::MapperRef$new(as.matrix(WV_US_nice))$
-  use_cover(filter_values=wv_ica$S, type="fixed rectangular", number_intervals=10L, percent_overlap=0)$
-  use_distance_measure(measure = "euclidean")$
-  use_clustering_algorithm(cl = "single", num_bins = 10L)$
-  compute_k_skeleton(k = 1L)$
-  enable_multiscale() ## enables multiscale mapper
-}
-
-## The discrete approximations to make
-g_card <- list(10, 100, "exact")
-
-## Benchmark results
-bench_res <- lapply(g_card, function(degree){
-  
-  ## Get a new mapper
-  m <- new_mapper()
-  multiscale <- m$.__enclos_env__[["private"]][[".multiscale"]]
-  
-  ## Get the overlap values 
-  d <- ncol(m$cover$filter_values)
-  if (is.numeric(degree)){
-    ## How good of an approximation to the multiscale mapper is wanted
-    g <- replicate(d, seq(0, 50, length.out = degree))
-  } else if (degree == "exact"){
-    env <- environment(m$update_mapper)
-    r_len <- env[["base_interval_length"]]
-    g <- do.call(cbind, lapply(1:d, function(d_i) as.vector(1) - as.vector(r_len[[d_i]])/multiscale$filt_dist[[d_i]]))
-    g <- g[apply(g, 1, function(g_i) all(g_i < 0.50)),,drop = FALSE]*100
-  }
-  
-  ## Cumulative number of edges need to be computed
-  cum_num_edges <- apply(g, 1, function(g_i){
-    print(g_i)
-    
-    ## Worst case -- no knowledge
-    worst_case <- choose(prod(m$cover$number_intervals), 2)
-    
-    ## Bounded case 
-    bounded_cover <- m$cover$clone()
-    bounded_cover$percent_overlap <- g_i
-    bounded_case <- nrow(bounded_cover$level_sets_to_compare())
-    
-    ## Our approach
-    tmp <- m$update_mapper(g_i, stats = TRUE)
-    optimal_case <- nrow(tmp$updated_ls_pairs)
-    
-    list(worst_case, bounded_case, optimal_case)
-  })
-  
-  ## Accumulate the results
-  res <- data.frame(resolution=degree, 
-                    apply(do.call(rbind, cum_num_edges), 2, cumsum), 
-                    percent_overlap=g)
-  return(res)
-})
-
-tmp <- do.call(rbind, bench_res)
-colnames(tmp) <- c("degree", "Brute Force", "Bounded Approach", "Indexed Approach", "percent_overlap")
-
-# agg_res <- data.table::melt(tmp, id.vars = c("degree", "percent_overlap"), measure.vars=colnames(tmp)[2:4])
-linetypes <- c("dotted", "dashed", "solid")
-library("ggplot2")
-ggplot2::ggplot(data = tmp, aes(x=percent_overlap, group=degree)) +
-  geom_line(mapping = aes(y=log(`Brute Force`), linetype=degree), color="red", size=0.8) +    
-  geom_line(mapping = aes(y=log(`Bounded Approach`), linetype=degree), color="blue", size=0.8) +
-  geom_line(mapping = aes(y=log(`Indexed Approach`), linetype=degree), color="green", size=0.8)+
-  scale_linetype_manual(values=linetypes)+
-  theme(legend.position="right")
+d_h.mds <- cmdscale(d = d_h, k = 3L, eig = FALSE)
 ```
 
 
-
+To plot the torus
 ```{r}
-crater <- as.matrix(readr::read_table(file = "~/Downloads/crater.xy.txt", col_names = FALSE))
+## Plot with RGL + igraph 
+am <- c_mapper$simplicial_complex$as_adjacency_matrix()
+g <- igraph::graph_from_adjacency_matrix(am, mode = "undirected")
+v_color_f1 <- bin_color(sapply(c_mapper$vertices, function(vids){ mean(c_mapper$X[vids, 1]) }))
+v_color_f2 <- bin_color(sapply(c_mapper$vertices, function(vids){ mean(c_mapper$X[vids, 2]) }))
 
+## Plot with RGL w/ first filter highlight
+igraph::rglplot(g, layout = d_h.mds, vertex.size = 8, vertex.label = NA, 
+                vertex.color = v_color_f1, 
+                edge.color = "black", edge.width = 2)
+rgl::axes3d()
+rgl::title3d(main = NULL, sub = NULL, xlab = "mds1", ylab="mds2", zlab="mds3")
+
+## Save RGL parameters to a list object
+pp <- rgl::par3d(no.readonly=TRUE)
+dput(pp, file="torus_view_le.R", control = "all")
+  
+## Plot with RGL w/ second filter 
+pp <- dget("torus_view_le.R")
+igraph::rglplot(g, layout = d_h.mds, vertex.size = 8, vertex.label = NA, 
+                vertex.color = v_color_f2, 
+                edge.color = "black", edge.width = 2)
+rgl::axes3d()
+rgl::title3d(main = NULL, sub = NULL, xlab = "mds1", ylab="mds2", zlab="mds3")
+rgl::par3d(pp) ## view same orientation 
 ```
+
 
 
 ```{r}
@@ -251,6 +470,244 @@ plot(g, vertex.color = palette()[v_col])
 # gtour(olive[3:10], olive[[1]])
 gtour(chemdiab[,1:5], as.integer(chemdiab$cc))
 ```
+
+```{r}
+# - Other examples - 
+# ## Points unformly distributed on a 3-sphere
+# sphere <- replicate(3, expr = rnorm(10000))
+# sphere <- t(apply(sphere, 1, function(x) x/norm(matrix(x), type = "F")))
+# 
+# m_sphere <- MapperRef$new(X = sphere)
+# m_sphere$
+#   use_cover(filter_values = sphere[, c(1, 3)], typename = "fixed rectangular", 
+#             number_intervals = 6L, percent_overlap = 20)$
+#   use_distance_measure(measure = "euclidean")$
+#   use_clustering_algorithm(cl = "single", num_bins = 10L)$
+#   compute_k_skeleton(k = 1L)$
+#   enable_multiscale() ## enables multiscale mapper
+#   
+# 
+# el <- m_sphere$simplicial_complex$as_edge_list()
+# ds <- Mapper::union_find(m_sphere$simplicial_complex$n_simplexes[[1]])
+# invisible(apply(el, 1, function(x) ds$union(x[1], x[2])))
+# H_0 <- length(unique(ds$connected_components())) ## first betti number
+
+## double-torus embedded in R^3
+# double_torus <- local({
+#   { c <- 1; a <- 2 }
+#   { u <- runif(1000, min = 0, max = 2*pi); v <- runif(1000, min = 0, max = 2*pi) }
+#   cbind(
+#     x = (c + a * cos(v)) * cos(u),
+#     y = (c + a * cos(v)) * sin(u),
+#     z = a * sin(v)
+#   )
+# })
+```
+
+```{r}
+
+head(bench_res_ica)
+bench_res_ica$percent_overlap <- apply(bench_res_ica[, 5:7], 1, function(x){ mean(x)})
+bench_res_ica <- bench_res_ica[, c("resolution", "X1", "X2", "X3", "percent_overlap")]
+
+make_line_plot(format_data(bench_res_ica), "1", "2")
+
+outlier_idx <- detect_outliers(wv_ica$S, percentile = 0.95)
+m_wvs <- MapperRef$
+  new(as.matrix(WV_US.scaled)[-outlier_idx,])$
+  use_cover(filter_values=wv_ica$S[-outlier_idx,], type="fixed rectangular", number_intervals=5L, percent_overlap=20)$
+  use_distance_measure(measure = "euclidean")$
+  use_clustering_algorithm(cl = "single", num_bins = 10L)$
+  compute_k_skeleton(k = 1L)
+
+g <- igraph::graph_from_adjacency_matrix(m_wvs$simplicial_complex$as_adjacency_matrix(), 
+                                         mode = "undirected", add.colnames = NA)
+normalize <- function(x, a=0, b=1){ (b-a)*((x - min(x))/(max(x) - min(x))) + a }
+v_len <- sapply(m_wvs$vertices, length)
+v_labels <- apply( cbind( names(m_wvs$vertices), v_len), 1, function(x) paste0(x, collapse = ":"))
+v_size <- normalize(log(v_len), 10, 20)
+v_color <- bin_color(log(v_len))
+d_h <- hausdorff_distance(m_wvs)
+dh_mds <- cmdscale(d_h, k = 2, eig = FALSE)
+# v_coords <- dh_mds
+v_coords <- igraph::layout_with_dh(g, coords = dh_mds, weight.node.dist = 1, 
+                                   weight.node.edge.dist = 0.001*(1-edge_density(g)))
+igraph::plot.igraph(g, 
+    vertex.size = v_size, vertex.color = v_color, 
+    vertex.label = v_labels, vertex.label.cex = 0.5, vertex.label.color = "black",
+    edge.width = 0.75, layout = v_coords)
+
+## Given two mappers and a set of coordinates corresponding to the vertices of the first mapper, 
+## finds a set of coordinates for the vertices of that second mapper that approximates aligns to the 
+## the first mapper
+align_mappers <- function(coords, m1, m2){
+  stopifnot(all(dim(m1$X) == dim(m2$X)))
+  stopifnot(nrow(coords) == length(m1$vertices))
+  n_vertex <- c(length(m1$vertices), length(m2$vertices))
+  idx <- arrayInd(seq(prod(n_vertex)), .dim = n_vertex)
+  min_dist <- apply(idx, 1, function(ii){
+    v1 <- m1$vertices[[ii[1]]]
+    v2 <- m2$vertices[[ii[2]]]
+    mean(RANN::nn2(data = m1$X[v1,,drop=F], query = m2$X[v2,,drop=F], k = 1)$nn.dist)
+  })
+  min_v <- sapply(seq(n_vertex[[2]]), function(j){
+    ii <- which(idx[, 2] == j)
+    idx[ii[which.min(min_dist[ii])],1]
+  })
+  return(coords[min_v,])
+}
+
+wvs_mapper <- function(overlap){
+  MapperRef$
+  new(as.matrix(WV_US.scaled)[-outlier_idx,])$
+  use_cover(filter_values=wv_ica$S[-outlier_idx,], type="fixed rectangular", number_intervals=5L, percent_overlap=overlap)$
+  use_distance_measure(measure = "euclidean")$
+  use_clustering_algorithm(cl = "single", num_bins = 10L)$
+  compute_k_skeleton(k = 1L)
+}
+make_graph <- function(m){ 
+  igraph::graph_from_adjacency_matrix(m$simplicial_complex$as_adjacency_matrix(), mode = "undirected") 
+}
+
+# igraph::layout_with_fr(make_graph(wv_m2), coords = coord2, start.temp = 0.01, niter = 10)
+test_g <- seq(2.5, 25, by = 2.5)
+wv_mappers <- lapply(test_g, function(g){
+  wvs_mapper(g)
+})
+connected_mapper <- tail(wv_mappers, 1)[[1]]
+d_h <- Mapper::hausdorff_distance(connected_mapper)
+base_coords <- apply(cmdscale(d_h, k = 2, eig = FALSE), 2, normalize)
+
+
+base_grapher <- connected_mapper$as_grapher(FALSE)
+base_grapher$nodes$x <- base_coords[, 1]
+base_grapher$nodes$y <- base_coords[, 2]
+
+n_nodes <- connected_mapper$simplicial_complex$n_simplexes[[1]]
+n_edges <- connected_mapper$simplicial_complex$n_simplexes[[2]]
+v_color <- bin_color(log(sapply(connected_mapper$vertices, length)))
+G <- grapher(base_grapher) %>% 
+  setLinkColor(color = rep(rgb(0, 0, 0), n_edges)) %>% 
+  setNodeColor(color = v_color) %>% 
+  enableForce()
+
+
+library(shiny)
+ui <- pageWithSidebar(
+  headerPanel("Simple shiny app with Grapher"),
+  sidebarPanel(
+    actionButton(inputId = "toggle_force", label = "Toggle force"),
+    actionButton(inputId = "get_network", label = "Get network")
+  ),
+  ## The main canvas container holding the grapher
+  mainPanel( grapherOutput(outputId = "grapher", height = "100vh") )
+)
+
+server <- function(input, output, session) {
+  ## Pass the htmlwidget to the canavs container via 'renderGrapher'
+  enable_force <<- TRUE
+  output$grapher <- renderGrapher({ G })
+  observeEvent(input$get_network, {
+    session <- shiny::getDefaultReactiveDomain()
+    session$sendCustomMessage("grapher:getNetwork", list(id="grapher"))
+  })
+  observeEvent(input$network, {
+    req(input$network)
+    network <<- input$network
+  })
+  observeEvent(input$toggle_force, {
+    req(input$toggle_force)
+    if (enable_force){
+      enableForce("grapher")
+      enable_force <<- FALSE
+    } else {
+      disableForce("grapher")
+      enable_force <<- TRUE
+    }
+  })
+}
+
+shinyApp(ui, server)
+
+nice_coords <- do.call(rbind, lapply(network$nodes, function(v) with(v, c(x, y))))
+
+all_coords <- lapply(wv_mappers, function(m){
+  align_mappers(nice_coords, connected_mapper, m)
+})
+
+
+g <- make_graph(wv_mappers[[1]])
+x <- igraph::layout.davidson.harel(g, coords = all_coords[[1]], 
+                            maxiter = 10, fineiter = 10, cool.fact = 0.75, weight.node.dist = 1, 
+                            weight.border = 10, weight.edge.lengths = edge_density(g)/10, 
+                            weight.edge.crossings = 1 - sqrt(edge_density(g)), 
+                            weight.node.edge.dist = 0.2 * (1 - edge_density(g)))
+plot(all_coords[[1]], xlim = range(c(all_coords[[1]][, 1], x[, 1])), ylim = range(c(all_coords[[1]][, 2], x[, 2])))
+points(x, col = "blue")
+
+# all_g <- lapply(wv_mappers, make_graph)
+
+plot_mapper_igraph <- function(m, v_coords, ...){
+  normalize <- function(x, a=0, b=1){ (b-a)*((x - min(x))/(max(x) - min(x))) + a }
+  v_len <- sapply(m$vertices, length)
+  v_labels <- apply( cbind( names(m$vertices), v_len), 1, function(x) paste0(x, collapse = ":"))
+  v_size <- normalize(log(v_len), 4, 12)
+  v_color <- bin_color(log(v_len))
+  igraph::plot.igraph(g, 
+      vertex.size = v_size, vertex.color = v_color, 
+      vertex.label = v_labels, vertex.label.cex = 0.5, vertex.label.color = "black",
+      edge.width = 0.75, layout = v_coords, ...)
+}
+
+layout(matrix(seq(4), nrow = 2, ncol = 2))
+par(mar = c(0, 0, 0, 0))
+invisible(lapply(seq(1), function(i){
+  perturbed_coords <- igraph::layout_with_fr(
+    make_graph(wv_mappers[[i]]), coords = all_coords[[i]], 
+    niter = 100, start.temp = 45
+  )
+  plot_mapper_igraph(wv_mappers[[i]], perturbed_coords)
+}))
+
+
+
+igraph::layout_with_fr(graph = g2, coords = coord2)
+
+plot(g1, layout = base_coords)
+
+wut <- grapher::getDefaultJsonConfig(network = 
+
+grapher::grapher(wut) %>% 
+  grapher::setNodes()
+#   plot(coords )
+#   text(coords, labels = 1:nrow(coords), cex = 0.4, pos = 3)
+#   points(coords[min_v,], col = "green", pch = 20, cex = 0.4)
+#   text(coords[min_v,], labels = 1:nrow(coords[min_v,]), cex = 0.4, pos = 3, col = "green")
+# arrayInd(seq(prod(rep(3, 3))), .dim = 3)
+#   idx <- combn(n_vertex, 2)
+#   d_h.vec <- apply(idx, 2, function(ii){
+#     v1 <- m$vertices[[ii[1]]]
+#     v2 <- m$vertices[[ii[2]]]
+#     xy <- mean(RANN::nn2(data = m$X[v1,,drop=F], query = m$X[v2,,drop=F], k = 1)$nn.dist)
+#     yx <- mean(RANN::nn2(data = m$X[v2,,drop=F], query = m$X[v1,,drop=F], k = 1)$nn.dist)
+#     max(xy, yx)
+#   })
+# }
+
+
+
+
+# agg_res <- data.table::melt(tmp, id.vars = c("degree", "percent_overlap"), measure.vars=colnames(tmp)[2:4])
+linetypes <- c("dotted", "dashed", "solid")
+library("ggplot2")
+ggplot2::ggplot(data = tmp, aes(x=percent_overlap, group=degree)) +
+  geom_line(mapping = aes(y=log(`Brute Force`), linetype=degree), color="red", size=0.8) +    
+  geom_line(mapping = aes(y=log(`Bounded Approach`), linetype=degree), color="blue", size=0.8) +
+  geom_line(mapping = aes(y=log(`Indexed Approach`), linetype=degree), color="green", size=0.8)+
+  scale_linetype_manual(values=linetypes)+
+  theme(legend.position="right")
+```
+
 
 ```{r}
 library(shiny)
@@ -274,4 +731,39 @@ gtour <- function(data, groups) {
     add_axis("x", title = "") %>% add_axis("y", title = "") %>%
     set_options(duration = 0)
 }
+
+```
+
+
+
+```{r}
+multiscale_le <- m_le$.__enclos_env__[["private"]][[".multiscale"]]
+
+np <- import("numpy")
+sklearn <- import("sklearn")
+scaled.laplacian <- apply(graph_laplacian[idx, idx], 2, scale)
+aff_matrix <- r_to_py(as.matrix(torus_kernel)[1:500, 1:500], TRUE)
+spec_emb <- sklearn$manifold$SpectralEmbedding(n_components=2, affinity = 'precomputed')
+wut <- spec_emb$fit(aff_matrix)
+wut <- spec_emb$affinity
+
+le_emb <- sklearn$manifold$spectral_embedding(adjacency = aff_matrix, n_components = 2, norm_laplacian = TRUE)
+# graph_laplacian <- igraph::graph.laplacian(igraph::make_full_graph(n), normalized = TRUE, weights = torus_kernel)
+# saveRDS(graph_laplacian, file = "graph_laplacian.rds")
+graph_laplacian <- readRDS(file = "graph_laplacian.rds")
+
+## Check Matrix::isSymmetric(graph_laplacian) == TRUE
+idx <- sample(1:n, replace = FALSE, size = 500L)
+gl_eig_vec <- RSpectra::eigs_sym(graph_laplacian[idx, idx], k = 2L, which = "LM")
+
+gl_eig_vec <- RSpectra::eigs_sym(graph_laplacian[idx, idx], k = 2L, which = "LM")
+
+gl_eig <- eigen(graph_laplacian)
+?Matrix::solve
+heated_graph <- igraph::graph_from_adjacency_matrix(g, mode = "undirected", weighted = TRUE)
+
+D <- diag(apply(g, 2, sum), nrow(g), ncol(g))
+L <- D - g
+eigen(L)
+```
 

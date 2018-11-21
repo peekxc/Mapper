@@ -92,8 +92,7 @@ IntegerVector check_connected(const IntegerVector ls_to_check, const List& ls_ve
 }
 
 // Turns vertex list into a mapping between vertex id --> points 
-std::map< int, IntegerVector > vertices_to_map(List& ls_vertex_map, List& vertices, SEXP stree){
-  Rcpp::XPtr<SimplexTree> stree_ptr(stree); // Extract the simplex tree
+std::map< int, IntegerVector > vertices_to_map(List& ls_vertex_map, List& vertices){
   const std::size_t n_level_sets = ls_vertex_map.size();
   std::map< int, IntegerVector > res; 
   
@@ -102,9 +101,9 @@ std::map< int, IntegerVector > vertices_to_map(List& ls_vertex_map, List& vertic
     const IntegerVector v_ids = ls_vertex_map.at(i);
     
     // Save the vertices into the map with their corresponding ids. 
-    std::for_each(v_ids.begin(), v_ids.end(), [&stree_ptr, &vertices, &res](const int v_id){
-      const std::size_t v_idx = stree_ptr->find_vertex(v_id);
-      const IntegerVector& pts = as<IntegerVector>(vertices.at(v_idx)); // okay to access by index
+    std::for_each(v_ids.begin(), v_ids.end(), [&vertices, &res](const int v_id){
+      std::string v_key = std::to_string(v_id);
+      const IntegerVector& pts = as<IntegerVector>(vertices[v_key]); // okay to access by index
       res.emplace(v_id, pts);
     });
   }
@@ -125,7 +124,7 @@ std::map< int, IntegerVector > vertices_to_map(List& ls_vertex_map, List& vertic
 List build_0_skeleton(const IntegerVector which_levels, const NumericMatrix& X, Function f, const List& level_sets, List& vertices, List& ls_vertex_map, SEXP stree){
   
   // std::vector< IntegerVector > res(vertices.begin(), vertices.end());
-  std::map< int, IntegerVector > v_map = vertices_to_map(ls_vertex_map, vertices, stree);
+  std::map< int, IntegerVector > v_map = vertices_to_map(ls_vertex_map, vertices);
   
   // Loop through the levels to update. This will update the vertices, the vertex map, and the simplex tree
   for (const int index: which_levels){
@@ -174,7 +173,7 @@ void build_1_skeleton(const IntegerMatrix& ls_pairs, const int min_sz, const Lis
           if (intersect_size >= min_sz){
             std::vector<uint> simplex = { uint(*n1), uint(*n2) };
             stree_ptr->insert_simplex(simplex);
-          }
+          } 
         } else {
           // Add edge between the two if they have a non-empty intersection.
           bool intersect_check = std::any_of(n1_idx.begin(), n1_idx.end(), [&](int k){
@@ -183,7 +182,7 @@ void build_1_skeleton(const IntegerMatrix& ls_pairs, const int min_sz, const Lis
           if (intersect_check){
             std::vector<uint> simplex = { uint(*n1), uint(*n2) };
             stree_ptr->insert_simplex(simplex);
-          }
+          } 
         }
       }
     }
@@ -222,21 +221,20 @@ List intersectNodes(const List& nodes1, const List& nodes2, const IntegerVector&
 
 // Multiscale-version of updating the vertices in the level sets. Unlike the regular version, 
 // the level sets are not explicitly stored in memory, but are rather extracted from the segments dynamically. 
-// [[Rcpp::export]]
-List update_level_sets(const IntegerVector which_levels, SEXP ms, const NumericMatrix& X, const Function f, List& vertices, List& ls_vertex_map, SEXP stree){
-  Rcpp::XPtr< MultiScale > ms_ptr(ms); // Cast the pointer to get the multiscale structure
-  
-  // // Shallow(?) copy the internals vectors 
-  // std::vector< IntegerVector > res(vertices.begin(), vertices.end());
-  std::map< int, IntegerVector > v_map = vertices_to_map(ls_vertex_map, vertices, stree);
-
-  // Update the vertices in the level sets dynamically
-  for (const int index: which_levels){
-    const IntegerVector level_set = ms_ptr->extract_level_set(index) + 1; // convert to 1-based for R
-    update_level_set(index, level_set, X, f, v_map, ls_vertex_map, stree);
-  }
-  
-  // Return the new vertices
-  return(wrap(v_map));
-}
+// List update_level_sets(const IntegerVector which_levels, SEXP ms, const NumericMatrix& X, const Function f, List& vertices, List& ls_vertex_map, SEXP stree){
+//   Rcpp::XPtr< MultiScale > ms_ptr(ms); // Cast the pointer to get the multiscale structure
+//   
+//   // // Shallow(?) copy the internals vectors 
+//   // std::vector< IntegerVector > res(vertices.begin(), vertices.end());
+//   std::map< int, IntegerVector > v_map = vertices_to_map(ls_vertex_map, vertices, stree);
+// 
+//   // Update the vertices in the level sets dynamically
+//   for (const int index: which_levels){
+//     const IntegerVector level_set = ms_ptr->extract_level_set(index) + 1; // convert to 1-based for R
+//     update_level_set(index, level_set, X, f, v_map, ls_vertex_map, stree);
+//   }
+//   
+//   // Return the new vertices
+//   return(wrap(v_map));
+// }
 

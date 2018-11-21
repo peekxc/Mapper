@@ -13,6 +13,7 @@
 #'   \item{print}{ Prints the connected components. }
 #'   \item{connected_components}{ Retrieves the connected components as a integer vector. }
 #' }
+#' @param size the size of the disjoint set
 #' @return A queryable disjoint-set structure. 
 #' @references Tarjan, Robert Endre. "Efficiency of a good but not linear set union algorithm." Journal of the ACM (JACM) 22.2 (1975): 215-225.
 #' @export

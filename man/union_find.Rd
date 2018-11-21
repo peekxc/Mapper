@@ -6,6 +6,9 @@
 \usage{
 union_find(size)
 }
+\arguments{
+\item{size}{the size of the disjoint set}
+}
 \value{
 A queryable disjoint-set structure.
 }
