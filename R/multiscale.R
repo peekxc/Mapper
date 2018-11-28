@@ -49,6 +49,7 @@ MapperRef$set("public", "enable_multiscale",
     })
     
     ## Order the distances to the target level sets
+    ## TODO: generalize this to other rectangular covers
     dist_order <- lapply(1:d, function(d_i) order(dist_to_ls[[d_i]]$target_dist))
     
     ## Get the corresponding interval sizes 
@@ -81,11 +82,11 @@ MapperRef$set("public", "enable_multiscale",
     
     ## Create the indexing structure
     private$.multiscale <- Mapper:::MultiScale$new(n, as.vector(self$cover$number_intervals))
-    private$.multiscale$insert_pts(A, do.call(cbind, ls_paths))
+    private$.multiscale$insert_pts(A, do.call(cbind, ls_paths)) # index paths
     for (d_i in 1L:d){
-      private$.multiscale$create_filtration(dist_order[[d_i]]-1L, interval_sizes[[d_i]], d_i-1)
-      private$.multiscale$set_filtration_rle(intersection_cuts[[d_i]], d_i-1)
-      private$.multiscale$create_ls_paths(uniq_ls_paths[[d_i]]-1L, d_i-1)
+      private$.multiscale$create_filtration(dist_order[[d_i]]-1L, interval_sizes[[d_i]], d_i-1) ## sigma and rHat order
+      private$.multiscale$set_filtration_rle(intersection_cuts[[d_i]], d_i-1) ## the reindexing table 
+      private$.multiscale$create_ls_paths(uniq_ls_paths[[d_i]]-1L, d_i-1) ## unique paths 
     }
     
     ## Populates the initial vertices; there shouldn't be any edges, since overlap == 0
@@ -222,14 +223,15 @@ rowmatch <- function(A,B) {
   match(a, b)
 }
 
-## Apply a function to 
-MapperRef$set("public", "apply_multiscale", 
-  function(overlaps, FUN){
-    ## Check signature of FUN
-    stopifnot(!all(match(c("M", "idx"), names(formals(FUN))) == c(1, 2)))
-    
-  }
-)
+## Apply a function to all the mappers in a sequence 
+## TODO: is this needed? 
+# MapperRef$set("public", "apply_multiscale", 
+#   function(overlaps, FUN){
+#     ## Check signature of FUN
+#     stopifnot(!all(match(c("M", "idx"), names(formals(FUN))) == c(1, 2)))
+#     
+#   }
+# )
 
 ## Multiscale Module
 Rcpp::loadModule("multiscale_module", TRUE)

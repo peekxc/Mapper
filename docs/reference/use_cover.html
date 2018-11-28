@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>cutoff_first_bin function — cutoff_first_bin • Mapper</title>
+<title>Selects one of the available covering methods to use. — use_cover • Mapper</title>
 
 <!-- jquery -->
 <script src="https://code.jquery.com/jquery-3.1.0.min.js" integrity="sha384-nrOSfDHtoPMzJHjVTdCopGqIqeYETSXhZDFyniQ8ZHcVy08QesyHcnOUpMpqnmWq" crossorigin="anonymous"></script>
@@ -30,10 +30,9 @@
 
 
 
-<meta property="og:title" content="cutoff_first_bin function — cutoff_first_bin" />
+<meta property="og:title" content="Selects one of the available covering methods to use. — use_cover" />
 
-<meta property="og:description" content="Uses the heuristic from the original Mapper paper to cut a given hierarchical cluster tree at the
-threshold corresponding to the first empty of a histogram of the linkage distances." />
+<meta property="og:description" content="Convenience method to select, parameterize, and construct a cover and associate it with the calling objects cover field." />
 <meta name="twitter:card" content="summary" />
 
 
@@ -108,36 +107,39 @@ threshold corresponding to the first empty of a histogram of the linkage distanc
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>cutoff_first_bin function</h1>
+    <h1>Selects one of the available covering methods to use.</h1>
     
-    <div class="hidden name"><code>cutoff_first_bin.Rd</code></div>
+    <div class="hidden name"><code>use_cover.Rd</code></div>
     </div>
 
     <div class="ref-description">
     
-    <p>Uses the heuristic from the original Mapper paper to cut a given hierarchical cluster tree at the
-threshold corresponding to the first empty of a histogram of the linkage distances.</p>
+    <p>Convenience method to select, parameterize, and construct a cover and associate it with the calling objects <code>cover</code> field.</p>
     
     </div>
 
-    <pre class="usage"><span class='fu'>cutoff_first_bin</span>(<span class='no'>hcl</span>, <span class='no'>diam</span>, <span class='no'>num_bins</span>)</pre>
     
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>hcl</th>
-      <td><p>hierarchical clustering in the form an 'hclust' object.</p></td>
+      <th>filter_values</th>
+      <td><p>(n x d) numeric matrix of values giving the results of the map.</p></td>
     </tr>
     <tr>
-      <th>diam</th>
-      <td><p>largest pairwise distance between the objects used to create the hierarchy.</p></td>
+      <th>typename</th>
+      <td><p>The name of the cover to use. Accepts any one of the typenames printed in the <code>available_covers</code>.</p></td>
     </tr>
     <tr>
-      <th>num_bins</th>
-      <td><p>Controls how many bins there are in the histogram used to determine cutoff.</p></td>
+      <th>...</th>
+      <td><p>Additional parameter values to pass to the covering generators initialize method.</p></td>
     </tr>
     </table>
+    
+    <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
+
+    <p>The cover is automatically constructed before being assigned to the calling Mappers <code>$cover</code> field.  
+If this is undesirable, create the cover using the appropriate R6 class generators and assign to <code>$cover</code> field directly.</p>
     
 
   </div>
@@ -145,7 +147,9 @@ threshold corresponding to the first empty of a histogram of the linkage distanc
     <h2>Contents</h2>
     <ul class="nav nav-pills nav-stacked">
       <li><a href="#arguments">Arguments</a></li>
-                </ul>
+      
+      <li><a href="#details">Details</a></li>
+          </ul>
 
   </div>
 </div>

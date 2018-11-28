@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>cutoff_first_bin function — cutoff_first_bin • Mapper</title>
+<title>Hausdorff Distance — hausdorff_distance • Mapper</title>
 
 <!-- jquery -->
 <script src="https://code.jquery.com/jquery-3.1.0.min.js" integrity="sha384-nrOSfDHtoPMzJHjVTdCopGqIqeYETSXhZDFyniQ8ZHcVy08QesyHcnOUpMpqnmWq" crossorigin="anonymous"></script>
@@ -30,10 +30,17 @@
 
 
 
-<meta property="og:title" content="cutoff_first_bin function — cutoff_first_bin" />
+<meta property="og:title" content="Hausdorff Distance — hausdorff_distance" />
 
-<meta property="og:description" content="Uses the heuristic from the original Mapper paper to cut a given hierarchical cluster tree at the
-threshold corresponding to the first empty of a histogram of the linkage distances." />
+<meta property="og:description" content="Computes a smooth approximation to the Hausdorff distance between the vertices of a mapper.
+Implements the equation in Section 5 of the original Mapper paper. 
+$$
+ d_h(X_i, X_j) = \max{( \frac{\sum_y \min_x(d(x, y)) }{n_j}, \frac{\sum_x \min_y(d(x, y)) }{n_i})}
+$$
+where \(x, y\) are elements of the clusters \(C_i, C_j\) respectively, and \(X_i, X_j\) are the clusters corresponding 
+vertices in the mapper. See the reference below for more details. 
+
+WARNING: This function may be very computationally expensive." />
 <meta name="twitter:card" content="summary" />
 
 
@@ -108,36 +115,47 @@ threshold corresponding to the first empty of a histogram of the linkage distanc
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>cutoff_first_bin function</h1>
+    <h1>Hausdorff Distance</h1>
     
-    <div class="hidden name"><code>cutoff_first_bin.Rd</code></div>
+    <div class="hidden name"><code>hausdorff_distance.Rd</code></div>
     </div>
 
     <div class="ref-description">
     
-    <p>Uses the heuristic from the original Mapper paper to cut a given hierarchical cluster tree at the
-threshold corresponding to the first empty of a histogram of the linkage distances.</p>
+    <p>Computes a smooth approximation to the Hausdorff distance between the vertices of a mapper.
+Implements the equation in Section 5 of the original Mapper paper. 
+$$
+ d_h(X_i, X_j) = \max{( \frac{\sum_y \min_x(d(x, y)) }{n_j}, \frac{\sum_x \min_y(d(x, y)) }{n_i})}
+$$
+where \(x, y\) are elements of the clusters \(C_i, C_j\) respectively, and \(X_i, X_j\) are the clusters corresponding 
+vertices in the mapper. See the reference below for more details. <br />
+<br />
+<strong>WARNING:</strong> This function may be very computationally expensive.</p>
     
     </div>
 
-    <pre class="usage"><span class='fu'>cutoff_first_bin</span>(<span class='no'>hcl</span>, <span class='no'>diam</span>, <span class='no'>num_bins</span>)</pre>
+    <pre class="usage"><span class='fu'>hausdorff_distance</span>(<span class='no'>m</span>)</pre>
     
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>hcl</th>
-      <td><p>hierarchical clustering in the form an 'hclust' object.</p></td>
-    </tr>
-    <tr>
-      <th>diam</th>
-      <td><p>largest pairwise distance between the objects used to create the hierarchy.</p></td>
-    </tr>
-    <tr>
-      <th>num_bins</th>
-      <td><p>Controls how many bins there are in the histogram used to determine cutoff.</p></td>
+      <th>m</th>
+      <td><p>A <code>MapperRef</code> object.</p></td>
     </tr>
     </table>
+    
+    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
+
+    <p>A <code><a href='http://www.rdocumentation.org/packages/stats/topics/dist'>dist</a></code> object with <code>Size</code> equal to the number of vertices.</p>
+    
+    <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
+
+    <p>Currently, this requires the <span class="pkg">RANN</span> to be installed, and only considers euclidean distance.</p>
+    
+    <h2 class="hasAnchor" id="references"><a class="anchor" href="#references"></a>References</h2>
+
+    <p>Singh, Gurjeet, Facundo Memoli, and Gunnar E. Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.</p>
     
 
   </div>
@@ -145,7 +163,13 @@ threshold corresponding to the first empty of a histogram of the linkage distanc
     <h2>Contents</h2>
     <ul class="nav nav-pills nav-stacked">
       <li><a href="#arguments">Arguments</a></li>
-                </ul>
+      
+      <li><a href="#value">Value</a></li>
+
+      <li><a href="#details">Details</a></li>
+
+      <li><a href="#references">References</a></li>
+          </ul>
 
   </div>
 </div>

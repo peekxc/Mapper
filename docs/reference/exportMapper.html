@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>cutoff_first_bin function — cutoff_first_bin • Mapper</title>
+<title>Exports the essential mapper graph information — exportMapper • Mapper</title>
 
 <!-- jquery -->
 <script src="https://code.jquery.com/jquery-3.1.0.min.js" integrity="sha384-nrOSfDHtoPMzJHjVTdCopGqIqeYETSXhZDFyniQ8ZHcVy08QesyHcnOUpMpqnmWq" crossorigin="anonymous"></script>
@@ -30,10 +30,9 @@
 
 
 
-<meta property="og:title" content="cutoff_first_bin function — cutoff_first_bin" />
+<meta property="og:title" content="Exports the essential mapper graph information — exportMapper" />
 
-<meta property="og:description" content="Uses the heuristic from the original Mapper paper to cut a given hierarchical cluster tree at the
-threshold corresponding to the first empty of a histogram of the linkage distances." />
+<meta property="og:description" content="Exports the essential mapper graph information" />
 <meta name="twitter:card" content="summary" />
 
 
@@ -108,36 +107,35 @@ threshold corresponding to the first empty of a histogram of the linkage distanc
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>cutoff_first_bin function</h1>
+    <h1>Exports the essential mapper graph information</h1>
     
-    <div class="hidden name"><code>cutoff_first_bin.Rd</code></div>
+    <div class="hidden name"><code>exportMapper.Rd</code></div>
     </div>
 
     <div class="ref-description">
     
-    <p>Uses the heuristic from the original Mapper paper to cut a given hierarchical cluster tree at the
-threshold corresponding to the first empty of a histogram of the linkage distances.</p>
+    <p>Exports the essential mapper graph information</p>
     
     </div>
 
-    <pre class="usage"><span class='fu'>cutoff_first_bin</span>(<span class='no'>hcl</span>, <span class='no'>diam</span>, <span class='no'>num_bins</span>)</pre>
     
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>hcl</th>
-      <td><p>hierarchical clustering in the form an 'hclust' object.</p></td>
-    </tr>
-    <tr>
-      <th>diam</th>
-      <td><p>largest pairwise distance between the objects used to create the hierarchy.</p></td>
-    </tr>
-    <tr>
-      <th>num_bins</th>
-      <td><p>Controls how many bins there are in the histogram used to determine cutoff.</p></td>
+      <th>graph_type</th>
+      <td><p>export preference on the structure the graph output.</p></td>
     </tr>
     </table>
+    
+    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
+
+    <p>list with the following members:</p><ul>
+<li><p>vertices list of the indices of the original data the current vertex intersects with.</p></li>
+<li><p>graph some adjacency representation of the mapper graph.</p></li>
+<li><p>level_sets map connecting the which vertices belong to the preimage of the sets in the cover.</p></li>
+</ul>
+
     
 
   </div>
@@ -145,7 +143,9 @@ threshold corresponding to the first empty of a histogram of the linkage distanc
     <h2>Contents</h2>
     <ul class="nav nav-pills nav-stacked">
       <li><a href="#arguments">Arguments</a></li>
-                </ul>
+      
+      <li><a href="#value">Value</a></li>
+          </ul>
 
   </div>
 </div>

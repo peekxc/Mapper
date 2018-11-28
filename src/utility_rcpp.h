@@ -7,6 +7,8 @@
 using namespace Rcpp;
 // [[Rcpp::plugins(cpp11)]]   
 
+#include <memory> //shared_ptr
+
 // Choice of base types to use for indexing/storage
 using uint = unsigned int;                      // unsigned int
 using uint8_t = uint_fast8_t;                   // 8+ bit signed integer type
@@ -17,7 +19,6 @@ template <typename T>
 using s_ptr = std::shared_ptr<T>;               // Shared pointer
 template <typename T> 
 using u_ptr = std::unique_ptr<T>;               // Unique pointer
-
 
 template <typename T>
 using enable_int = typename std::enable_if<std::is_integral<T>::value>;

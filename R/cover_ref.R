@@ -21,9 +21,9 @@
 #'  
 #'    
 #' @docType class
-#' @field filter_values (n x d) matrix of filter values
-#' @field type character string of the type of cover
-#' @field index_set character vector used to index the 'level_sets' list 
+#' @field \strong{filter_values} (n x d) matrix of filter values
+#' @field \strong{typename} Unique string identifier for the covering. 
+#' @field \strong{index_set} character vector used to index the 'level_sets' list 
 #' @field level_sets list of the 
 #' @format An \code{\link{R6Class}} generator object
 #' 
@@ -122,14 +122,17 @@ CoverRef$set("public", "validate", function(){
 # TODO
 # .available_covers <- list()
 
+#' Print available covers
+#' @description Prints the covering generators available with with package, along with their parameters.
 #' @export
 covers_available <- function(){
+  line_format <- " %-28s %-34s %-15s"
   writeLines(c(
     sprintf("Typename:%-20sGenerator:%-25sParameters:%-26s", "", "", ""),
-    sprintf(" %-28s %-34s %-15s", "fixed rectangular", "FixedRectangularCover", paste0(c("number_intervals", "percent_overlap"), collapse = ", ")), 
-    sprintf(" %-28s %-34s %-15s", "restrained rectangular", "RestrainedRectangularCover", paste0(c("number_intervals", "percent_overlap"), collapse = ", ")),
-    sprintf(" %-28s %-34s %-15s", "adaptive", "AdaptiveCover", paste0(c("number_intervals", "percent_overlap", "quantile_method"), collapse = ", ")),
-    sprintf(" %-28s %-34s %-15s", "ball", "BallCover", paste0("epsilon", collapse = ", "))
+    sprintf(line_format, "fixed rectangular", "FixedRectangularCover", paste0(c("number_intervals", "percent_overlap"), collapse = ", ")), 
+    sprintf(line_format, "restrained rectangular", "RestrainedRectangularCover", paste0(c("number_intervals", "percent_overlap"), collapse = ", ")),
+    sprintf(line_format, "adaptive", "AdaptiveCover", paste0(c("number_intervals", "percent_overlap", "quantile_method"), collapse = ", ")),
+    sprintf(line_format, "ball", "BallCover", paste0("epsilon", collapse = ", "))
   ))
 }
 

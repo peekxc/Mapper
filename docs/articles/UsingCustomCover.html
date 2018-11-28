@@ -29,7 +29,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Mapper</a>
-        <span class="label label-danger" data-toggle="tooltip" data-placement="bottom" title="Unreleased package">0.6.0</span>
+        <span class="label label-danger" data-toggle="tooltip" data-placement="bottom" title="Unreleased package">0.7.0</span>
       </span>
     </div>
 
@@ -40,6 +40,9 @@
     <span class="fa fa-home fa-lg"></span>
      
   </a>
+</li>
+<li>
+  <a href="../articles/Mapper.html">Get started</a>
 </li>
 <li>
   <a href="../reference/index.html">Reference</a>
@@ -53,9 +56,6 @@
   <ul class="dropdown-menu" role="menu">
 <li>
       <a href="../articles/UsingCustomCover.html">Using a custom covering method</a>
-    </li>
-    <li>
-      <a href="../articles/UsingMapper.html">Using the Mapper package</a>
     </li>
   </ul>
 </li>
@@ -73,6 +73,7 @@
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1>Using a custom covering method</h1>
+                        <h4 class="author">Matt Piekenbrock</h4>
             
       
       
@@ -88,7 +89,7 @@
 <p>Perhaps one of the most important aspects of parameterizing Mapper is the choice of the cover. Given data <span class="math inline">\(X\)</span> and a continuous map <span class="math inline">\(f : X \to Z\)</span>, the cover (often denoted as <span class="math inline">\(\mathcal{U} = \{U_\alpha\}_{\alpha \in A}\)</span>) is constructed over the values of <span class="math inline">\(Z\)</span>. Since <span class="math inline">\(f\)</span> is continuous, <span class="math inline">\(\mathcal{U}\)</span> also forms a cover of <span class="math inline">\(X\)</span>. That is, the sets</p>
 <p><span class="math display">\[\{ f^{-1}(U_\alpha), \alpha \in A \}\]</span> form an open cover over <span class="math inline">\(X\)</span>, i.e. <span class="math inline">\(X \subseteq \bigcup\limits_{\alpha \in A} f^{-1}(U_\alpha)\)</span>. By applying a <em>partial clustering</em> to each of these open sets in <span class="math inline">\(X\)</span>, <span class="math inline">\(f^{-1}(U_\alpha)\)</span> decomposes into a set of path-connected components. These form the <span class="math inline">\(0\)</span>-simplices of the resulting <em>mapper</em> construction.</p>
 <p>The <code>Mapper</code> package works with any covering strategy, so long as a few requirements are satisfied. All covers can be constructed either directly via their R6 generators, or more succinctly using the  member function associated with a  object. See  for more details. A few frequently used methods are included in the package. Their typenames, generators, and parameters can be listed via:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1">Mapper<span class="op">::</span><span class="kw">covers_available</span>()</a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1">Mapper<span class="op">::</span><span class="kw"><a href="http://www.rdocumentation.org/packages/Mapper/topics/covers_available">covers_available</a></span>()</a></code></pre></div>
 <pre><code>## Typename:                    Generator:                         Parameters:                          
 ##  fixed rectangular            FixedRectangularCover              number_intervals, percent_overlap
 ##  restrained rectangular       RestrainedRectangularCover         number_intervals, percent_overlap
@@ -98,7 +99,12 @@
 <div id="making-a-custom-cover" class="section level2">
 <h2 class="hasAnchor">
 <a href="#making-a-custom-cover" class="anchor"></a>Making a custom cover</h2>
-<p>To use a custom covering strategy, a new <code>R6</code> class must be defined satisfying the following requirements: 1. The class inherits from the <code>CoverRef</code> class. 2. The class overrides the <code>construct_cover</code> function. 3. Upon calling <code>construct_cover</code>, the class populates the <code>level_sets</code> member with a named list whose names are uniquely indexed by the <code>index_set</code> member, and whose values are integer indices that form a valid cover.</p>
+<p>To use a custom covering strategy, a new <code>R6</code> class must be defined satisfying the following requirements:</p>
+<ol style="list-style-type: decimal">
+<li><p>The class inherits from the <code>CoverRef</code> class.</p></li>
+<li><p>The class overrides the <code>construct_cover</code> function.</p></li>
+<li><p>Upon calling <code>construct_cover</code>, the class populates the <code>level_sets</code> member with a named list whose names are uniquely indexed by the <code>index_set</code> member, and whose values are integer indices that form a valid cover.</p></li>
+</ol>
 <p>Below is an example of a simplified version of the source code used to create the <code>BallCover</code> generator.</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1">BallCoverEx &lt;-<span class="st"> </span>R6<span class="op">::</span><span class="kw"><a href="http://www.rdocumentation.org/packages/R6/topics/R6Class">R6Class</a></span>(</a>
 <a class="sourceLine" id="cb3-2" data-line-number="2">  <span class="dt">classname =</span> <span class="st">"BallCoverEx"</span>,</a>
@@ -112,7 +118,14 @@
 <a class="sourceLine" id="cb3-10" data-line-number="10">  )</a>
 <a class="sourceLine" id="cb3-11" data-line-number="11">)</a></code></pre></div>
 <p>First, a generator is defined that satisfies (1). The public fields represent the parameters of the cover. Note that the initializer must be overridden so that the filter values along with the unique ‘typename’ of the cover are first passed to the parent <code>CoverRef</code> initializer. When that happens, a few checks are performed, and the following private fields become available to the derived class via the <code>private</code> namespace.</p>
-<p><strong>private<code>$</code></strong> - <code>.level_sets</code> := list of data indices that intersect the open sets - <code>.index_set</code> := character vector of keys that uniquely index the level sets - <code>.filter_dim</code> := constant representing the filter dimension - <code>.filter_size</code> := constant representing the number of points in the filter space - <code>.typename</code> := string identifier of the covering method</p>
+<p><strong>private<code>$</code></strong></p>
+<ul>
+<li><p><code>__.level_sets:__</code> list of data indices that intersect the open sets</p></li>
+<li><p><code>__.index_set:__</code> character vector of keys that uniquely index the level sets</p></li>
+<li><p><code>__.filter_dim:__</code> constant representing the filter dimension</p></li>
+<li><p><code>__.filter_size:__</code> constant representing the number of points in the filter space</p></li>
+<li><p><code>__.typename:__</code> string identifier of the covering method</p></li>
+</ul>
 <p>Additional information can be found in the documentation of the base class, see <code><a href="../reference/CoverRef.html">?CoverRef</a></code> for more details.</p>
 <p>The only other required function to override is the <code>construct_cover</code> method. Below is an example that uses the <code>RANN</code> package to construct a cover.</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1">BallCoverEx<span class="op">$</span><span class="kw">set</span>(<span class="st">"public"</span>, <span class="st">"construct_cover"</span>, <span class="cf">function</span>(){</a>

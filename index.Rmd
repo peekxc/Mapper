@@ -10,19 +10,21 @@ output: html_document
 library("Mapper")
 ```
 
-The **Mapper** package provides a configurable implementation of the _mapper_ framework. The package includes: 
+The **Mapper** package provides a configurable implementation of the Mapper framework (see 1). The package includes: 
 
 <img src="man/figures/mapper_logo.png" width=150 style="margin-left: 15px;" align="right" />
 
-- Chainable [R6 class generators](https://github.com/r-lib/R6) for efficiently generating _mappers_ 
+- Efficient [R6 class generators](https://github.com/r-lib/R6) for several of Mappers components
 
-- Easy to use-and-customize default components for people unfamiliar with Mapper
+- An expressive interface to customize Mapper components via [method chaining](https://adv-r.hadley.nz/r6.html#method-chaining) 
 
-- Several tools for visualizing the _mapper_ constructions
+- Pre-configured defaults and built-in tools for people unfamiliar with Mapper
 
-- Options to export the $1$-skeleton to any graph-based representation.
+- Several choices for visualizing and interacting with _mappers_
 
-The package was designed to make modifying or extending the _mapper_ construction process simple and efficient, without limiting Mappers generality. 
+- Options to export the $1$-skeleton to any graph-based representation
+
+The package was designed to make modifying or extending the Mapper method simple and efficient, without limiting its generality. 
 
 ### Getting started
 
@@ -123,15 +125,16 @@ covers_available()
 ```
 Alternatively, you can create your own cover. See the article on [how to make custom cover](articles/UsingCustomCover.html). 
 
-Note that their is a natural dependency chain to be cognizant of when swapping in or out parameters. The package does __not__ check for reverse dependencies, nor does it invalidate existing structures that follow this chain. For example, when the new cover was substituted in in the above example, it implicitly invalidates the simplicial complex. To correct for this, if swapping covers, make sure to compute the full complex again, i.e. 
-
+The cover is composed of subsets of the data indexed by an __index set__, which can be used as keys into the cover itself
 ```{r}
-m$compute_k_skeleton(k = 1L)
+print(m$cover$index_set)
+all(m$cover$index_set %in% names(m$cover$level_sets))
 ```
 
-If you want to only update specific open sets in the cover for some reason, just pass in whatever subset of the index set to compute.
+This can be useful if you want to only update only part of the complex for some reason, e.g. recluster part of the data with different clustering parameters. For example, to recluster the subsets of the data associated with the first five indices, you can do:
 ```{r}
-m$compute_vertices(which_levels = m$cover$index_set[1:5])
+clustering_parameters <- list(num_bins=5L)
+m$compute_vertices(which_levels = m$cover$index_set[1:5], clustering_parameters)
 ```
 
 The same rule applies to computing the edges. 
@@ -140,7 +143,7 @@ idx_pairs <- t(apply(combn(5, 2), 2, function(ls_idx) { m$cover$index_set[ls_idx
 m$compute_edges(which_level_pairs = idx_pairs)
 ```
 
-If the construction has too many edges, you could require the intersection size be above a certain threshold (default is 1). This isn't technically part of Mappers definition, but could be useful empirically. 
+If the construction has too many edges, you could require the intersection size be above a certain threshold (default is 1). This isn't technically part of Mappers definition, but could be useful in practical applications. 
 
 ```{r}
 m$compute_edges(min_weight = 10)
@@ -153,7 +156,7 @@ m$simplicial_complex
 head(m$vertices, 2)
 ```
 
-As shown above, the complex is stored in a [Simplex Tree](?simplex_tree), and the vertices are stored as a list. Each vertex also has an attribute "level_set" denoting the index in the index set of the cover its associated with.  
+As shown above, the complex is stored in a [Simplex Tree](?simplex_tree) (see 2), and the vertices are stored as a list. Each vertex also has an attribute "level_set" denoting the index in the index set of the cover its associated with.  
 
 The $1$-skeleton can be exported to any of the usual graph-type data structures.
 ```{r, eval=FALSE}
@@ -162,19 +165,29 @@ m$simplicial_complex$as_adjacency_list()
 m$simplicial_complex$as_edge_list()
 ```
 
-### Interacting with the __mapper__
+### Visualizing the __mapper__
 
-The __mapper__ be interactively plotted with [grapher]() package. 
-```{r}
+To get a quick overview of what the graph looks like, you can convert to an [igraph](https://igraph.org/r/) object.
+By default, the vertices are sized logarithmically according to how many points they have in them and colored based on the mean value of the points $f$ values. Each vertex is given a label of the form "x:y" where 'x' denotes the vertex id, and 'y' denotes the number of points in the vertex.  
+
+```{r, eval = FALSE, echo = TRUE}
+plot(m$as_igraph())
+```
+
+<img src="man/figures/igraph_ex.png" width=100% height=70% />
+
+More more interactive plotting methods, the __mapper__ can be converted to a [grapher]() object.  
+```{r, eval=FALSE, echo=TRUE}
 ## Visualize interactively w/ grapher
 library("grapher")
-m$as_grapher() %>% center()
+m$as_grapher(construct_widget = TRUE) %>% center()
 ```
-<img src="man/figures/figure_eight_grapher.png" width=100% height=70% />
+<img src="man/figures/figure_eight_grapher.png" width=90% height=50% />
 
 
 ## References 
-1. Boissonnat, Jean-Daniel, and Clément Maria. "The simplex tree: An efficient data structure for general simplicial complexes." Algorithmica 70.3 (2014): 406-427.
+1. Singh, Gurjeet, Facundo Mémoli, and Gunnar E. Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.
+2. Boissonnat, Jean-Daniel, and Clément Maria. "The simplex tree: An efficient data structure for general simplicial complexes." Algorithmica 70.3 (2014): 406-427.
 <!-- ## Sphere example  -->
 
 <!-- TODO -->

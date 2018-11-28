@@ -5,11 +5,11 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Using the Mapper package • Mapper</title>
+<title>Using the Mapper Package • Mapper</title>
 <!-- jquery --><script src="https://code.jquery.com/jquery-3.1.0.min.js" integrity="sha384-nrOSfDHtoPMzJHjVTdCopGqIqeYETSXhZDFyniQ8ZHcVy08QesyHcnOUpMpqnmWq" crossorigin="anonymous"></script><!-- Bootstrap --><link href="https://maxcdn.bootstrapcdn.com/bootswatch/3.3.7/simplex/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script><!-- Font Awesome icons --><link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-T8Gy5hrqNKT+hzMclPo118YTQO6cYprQmhrYwIiQ/3axmI1hQomh7Ud2hPOy8SP1" crossorigin="anonymous">
 <!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.7.1/clipboard.min.js" integrity="sha384-cV+rhyOuRHc9Ub/91rihWcGmMmCXDeksTtCihMupQHSsi8GIIRDG0ThDc3HGQFJ3" crossorigin="anonymous"></script><!-- sticky kit --><script src="https://cdnjs.cloudflare.com/ajax/libs/sticky-kit/1.1.3/sticky-kit.min.js" integrity="sha256-c4Rlo1ZozqTPE2RLuvbusY3+SU1pQaJC0TjuhygMipw=" crossorigin="anonymous"></script><!-- pkgdown --><link href="../pkgdown.css" rel="stylesheet">
-<script src="../pkgdown.js"></script><meta property="og:title" content="Using the Mapper package">
+<script src="../pkgdown.js"></script><meta property="og:title" content="Using the Mapper Package">
 <meta property="og:description" content="">
 <meta name="twitter:card" content="summary">
 <!-- mathjax --><script src="https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script><!--[if lt IE 9]>
@@ -29,7 +29,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Mapper</a>
-        <span class="label label-danger" data-toggle="tooltip" data-placement="bottom" title="Unreleased package">0.6.0</span>
+        <span class="label label-danger" data-toggle="tooltip" data-placement="bottom" title="Unreleased package">0.7.0</span>
       </span>
     </div>
 
@@ -55,7 +55,7 @@
       <a href="../articles/UsingCustomCover.html">Using a custom covering method</a>
     </li>
     <li>
-      <a href="../articles/UsingMapper.html">Using the Mapper package</a>
+      <a href="../articles/UsingMapper.html">Using the Mapper Package</a>
     </li>
   </ul>
 </li>
@@ -69,10 +69,10 @@
 <!--/.navbar -->
 
       
-      </header><script src="UsingMapper_files/htmlwidgets-1.3/htmlwidgets.js"></script><script src="UsingMapper_files/grapher-1.3.2/grapher.min.js"></script><script src="UsingMapper_files/grapher-1.3.2/zoom.min.js"></script><script src="UsingMapper_files/grapher-1.3.2/center.min.js"></script><script src="UsingMapper_files/grapher-1.3.2/target.min.js"></script><script src="UsingMapper_files/grapher-1.3.2/grapher_helpers.js"></script><script src="UsingMapper_files/grapher-1.3.2/lasso.js"></script><script src="UsingMapper_files/d3-4.9.1/d3.min.js"></script><script src="UsingMapper_files/d3-4.9.1/d3-timer.min.js"></script><script src="UsingMapper_files/lodash-4.17.10/lodash.min.js"></script><script src="UsingMapper_files/jquery-3.3.1/jquery-3.3.1.min.js"></script><script src="UsingMapper_files/grapher-binding-1.0/grapher.js"></script><div class="row">
+      </header><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
-      <h1>Using the Mapper package</h1>
+      <h1>Using the Mapper Package</h1>
                         <h4 class="author">Matt Piekenbrock</h4>
             
       
@@ -110,7 +110,12 @@
 <h2 class="hasAnchor">
 <a href="#interactively-building-the-mapper" class="anchor"></a>Interactively building the Mapper</h2>
 <!-- For most use-cases, the static method above is sufficient for getting a compact Mapper construction back. However, building the 'right' Mapper may be an interactive process, requiring parameter tuning, exploring alternative filter functions, tweaking clustering algorithms, etc. For large data sets, this iterative fitting process can be prohibitively expensive.  -->
-<p>Internally, Mapper uses <code>R6</code> classes to efficiently compute the simplicial complex. One of the nice benefits of R6 is that it allows <a href="https://adv-r.hadley.nz/R6.html#method-chaining">method chaining</a>. To demonstrate this, consider a very simplified interpretation of the Mapper pipeline: 1. “Filter” the data via a reference map 2. Equip the filter space with a cover 3. Construct the <em>k</em>-skeleton <!-- If more information is required beyond the static construction, the `return_reference` parameter may be set to `TRUE` to access the underlying `MapperRef` object. This is useful in situations where each step of the mapper framework needs fine-tuned, e.g. where the construction is requested under multiple parameter settings.   --></p>
+<p>Internally, Mapper uses <code>R6</code> classes to efficiently compute the simplicial complex. One of the nice benefits of R6 is that it allows <a href="https://adv-r.hadley.nz/R6.html#method-chaining">method chaining</a>. To demonstrate this, consider a very simplified interpretation of the Mapper pipeline:</p>
+<ol style="list-style-type: decimal">
+<li><p>“Filter” the data via a reference map</p></li>
+<li><p>Equip the filter space with a cover</p></li>
+<li><p>Construct the <em>k</em>-skeleton</p></li>
+</ol>
 <p>These steps are demonstrated below using the <code>noisy_circle</code> data set above with the <code>Mapper</code> package.</p>
 <p>The first step is to create a <em>filter</em> of the data. Below is an example of a very simple filter mentioned in the original paper that builds the mapper by looking at the distance from every point <span class="math inline">\(x\)</span> to the point with left-most coordinate, <span class="math inline">\(p\)</span>, i.e.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="co">## 1. Specify a filter function for the data </span></a>
@@ -163,17 +168,17 @@
 <h3 class="hasAnchor">
 <a href="#building-the-1-skeleton" class="anchor"></a>Building the 1-skeleton</h3>
 <p>The <span class="math inline">\(1\)</span>-skeleton is computed analogously.</p>
-<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb14-1" data-line-number="1">m<span class="op">$</span><span class="kw">compute_edges</span>()</a></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb14-1" data-line-number="1">m<span class="op">$</span><span class="kw"><a href="../reference/compute_edges.html">compute_edges</a></span>()</a></code></pre></div>
 <p>Generally, this is sufficient. However, if the user wishes too, the <span class="math inline">\(k\)</span>-skeleton for any <span class="math inline">\(k &gt; 1\)</span> can also be computed.</p>
 <div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb15-1" data-line-number="1">m<span class="op">$</span><span class="kw"><a href="../reference/compute_k_skeleton.html">compute_k_skeleton</a></span>(<span class="dt">k =</span> 1L)</a></code></pre></div>
 <p>All the methods can chained.</p>
 <div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb16-1" data-line-number="1">m &lt;-<span class="st"> </span>MapperRef<span class="op">$</span><span class="kw">new</span>(noisy_circle)<span class="op">$</span></a>
-<a class="sourceLine" id="cb16-2" data-line-number="2"><span class="st">  </span><span class="kw">use_cover</span>(<span class="dt">filter_values =</span> <span class="kw">matrix</span>(f_x), <span class="dt">type =</span> <span class="st">"fixed rectangular"</span>, </a>
+<a class="sourceLine" id="cb16-2" data-line-number="2"><span class="st">  </span><span class="kw"><a href="../reference/use_cover.html">use_cover</a></span>(<span class="dt">filter_values =</span> <span class="kw">matrix</span>(f_x), <span class="dt">type =</span> <span class="st">"fixed rectangular"</span>, </a>
 <a class="sourceLine" id="cb16-3" data-line-number="3">            <span class="dt">number_intervals =</span> 5L, <span class="dt">percent_overlap =</span> <span class="fl">0.20</span>)<span class="op">$</span></a>
 <a class="sourceLine" id="cb16-4" data-line-number="4"><span class="st">  </span><span class="kw"><a href="../reference/use_clustering_algorithm.html">use_clustering_algorithm</a></span>(<span class="dt">cl =</span> <span class="st">"single"</span>, <span class="dt">num_bins =</span> <span class="dv">10</span>)<span class="op">$</span></a>
 <a class="sourceLine" id="cb16-5" data-line-number="5"><span class="st">  </span><span class="kw">use_distance_measure</span>(<span class="dt">measure =</span> <span class="st">"euclidean"</span>)<span class="op">$</span></a>
 <a class="sourceLine" id="cb16-6" data-line-number="6"><span class="st">  </span><span class="kw"><a href="../reference/compute_vertices.html">compute_vertices</a></span>()<span class="op">$</span></a>
-<a class="sourceLine" id="cb16-7" data-line-number="7"><span class="st">  </span><span class="kw">compute_edges</span>()</a></code></pre></div>
+<a class="sourceLine" id="cb16-7" data-line-number="7"><span class="st">  </span><span class="kw"><a href="../reference/compute_edges.html">compute_edges</a></span>()</a></code></pre></div>
 <p>The output of Mapper is a simplicial complex, or in the simplest case (when <span class="math inline">\(k = 1\)</span>), a topological graph. Internally, the complex is stored in a <a href="https://hal.inria.fr/hal-00707901v1/document">Simplex Tree</a>. The underlying simplex tree is exported as an <a href="https://cran.r-project.org/web/packages/Rcpp/vignettes/Rcpp-modules.pdf">Rcpp Module</a>, and is accessible via the <code>$simplicial_complex</code> member.</p>
 <div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb17-1" data-line-number="1">m<span class="op">$</span>simplicial_complex</a></code></pre></div>
 <pre><code>## Simplex Tree with (8, 1) (0, 1)-simplices</code></pre>
@@ -193,7 +198,7 @@
 <p>The <code>grapher</code> package provides a <a href="https://www.htmlwidgets.org/">htmlwidget</a> implementation of Ayasdi’s Apache-licensed <a href="https://github.com/ayasdi/grapher">grapher</a> library, which can be used to visualize the Mapper network, with options to support nice things like <a href="https://github.com/d3/d3-force">D3 force</a>. The <code>$as_grapher</code> function provides a few default coloring and sizing options.</p>
 <div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb21-1" data-line-number="1"><span class="kw">library</span>(<span class="st">"grapher"</span>)</a>
 <a class="sourceLine" id="cb21-2" data-line-number="2">m<span class="op">$</span><span class="kw"><a href="../reference/as_grapher.html">as_grapher</a></span>()</a></code></pre></div>
-<canvas id="htmlwidget-4f26eefa72a7f0d30d01" class="grapher html-widget" style="width:700px;height:432.632880098888px;"></canvas><script type="application/json" data-for="htmlwidget-4f26eefa72a7f0d30d01">{"x":{"net":{"nodes":[{"id":0,"x":0.7271,"y":0,"r":15,"color":"rgba(0,0,255,255.00)"},{"id":1,"x":0,"y":0.7014,"r":10.7277,"color":"rgba(0,255,252,255.00)"},{"id":2,"x":0.5477,"y":0.531,"r":10.7558,"color":"rgba(0,255,252,255.00)"},{"id":3,"x":0.2436,"y":0.0452,"r":10.6708,"color":"rgba(0,255,15,255.00)"},{"id":4,"x":0.833,"y":0.8846,"r":10,"color":"rgba(5,255,0,255.00)"},{"id":5,"x":0.3531,"y":1,"r":10.7277,"color":"rgba(242,255,0,255.00)"},{"id":6,"x":0.0698,"y":0.2148,"r":10.6128,"color":"rgba(232,255,0,255.00)"},{"id":7,"x":1,"y":0.3956,"r":14.9786,"color":"rgba(255,0,0,255.00)"}],"links":[{"from":3,"to":6,"color":"#6CFF00"}]},"api":[],"use_webgl":true},"evals":[],"jsHooks":[]}</script><p>To customize the visualization, refer to graphers <a href="">documentation</a>.</p>
+<p>To customize the visualization, refer to graphers <a href="">documentation</a>.</p>
 </div>
 <div id="accessing-other-members" class="section level3">
 <h3 class="hasAnchor">

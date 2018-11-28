@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Mapper Package — Mapper • Mapper</title>
+<title>mapper — mapper • Mapper</title>
 
 <!-- jquery -->
 <script src="https://code.jquery.com/jquery-3.1.0.min.js" integrity="sha384-nrOSfDHtoPMzJHjVTdCopGqIqeYETSXhZDFyniQ8ZHcVy08QesyHcnOUpMpqnmWq" crossorigin="anonymous"></script>
@@ -30,10 +30,11 @@
 
 
 
-<meta property="og:title" content="Mapper Package — Mapper" />
+<meta property="og:title" content="mapper — mapper" />
 
-<meta property="og:description" content="Provides an R/Rcpp implementation of Mapper and its related tools. 
-The main documentation for the package can be found here: https://peekxc.github.io/mapper/." />
+<meta property="og:description" content="Computes the mapper graph. Mapper is a tool for summarizing topological information from datasets and
+maps defined on them. It takes as input a set of 'point cloud' data, a (possibly lower dimensional) map defined on the data,
+and produces a topological summary of the data expressed through a cover equipped to the codomain of the map." />
 <meta name="twitter:card" content="summary" />
 
 
@@ -62,7 +63,7 @@ The main documentation for the package can be found here: https://peekxc.github.
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Mapper</a>
-        <span class="label label-danger" data-toggle="tooltip" data-placement="bottom" title="Unreleased package">0.6.0</span>
+        <span class="label label-danger" data-toggle="tooltip" data-placement="bottom" title="Unreleased package">0.7.0</span>
       </span>
     </div>
 
@@ -73,6 +74,9 @@ The main documentation for the package can be found here: https://peekxc.github.
     <span class="fa fa-home fa-lg"></span>
      
   </a>
+</li>
+<li>
+  <a href="../articles/Mapper.html">Get started</a>
 </li>
 <li>
   <a href="../reference/index.html">Reference</a>
@@ -86,9 +90,6 @@ The main documentation for the package can be found here: https://peekxc.github.
   <ul class="dropdown-menu" role="menu">
     <li>
       <a href="../articles/UsingCustomCover.html">Using a custom covering method</a>
-    </li>
-    <li>
-      <a href="../articles/UsingMapper.html">Using the Mapper package</a>
     </li>
   </ul>
 </li>
@@ -108,29 +109,111 @@ The main documentation for the package can be found here: https://peekxc.github.
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Mapper Package</h1>
+    <h1>mapper</h1>
     
     <div class="hidden name"><code>Mapper.Rd</code></div>
     </div>
 
     <div class="ref-description">
     
-    <p>Provides an R/Rcpp implementation of Mapper and its related tools. 
-The main documentation for the package can be found here: <a href='https://peekxc.github.io/mapper/'>https://peekxc.github.io/mapper/</a>.</p>
+    <p>Computes the mapper graph. Mapper is a tool for summarizing topological information from datasets and
+maps defined on them. It takes as input a set of 'point cloud' data, a (possibly lower dimensional) map defined on the data,
+and produces a topological summary of the data expressed through a cover equipped to the codomain of the map.</p>
     
     </div>
 
-        
+    <pre class="usage"><span class='fu'>mapper</span>(<span class='no'>X</span>, <span class='no'>filter_values</span>, <span class='kw'>cover_params</span> <span class='kw'>=</span> <span class='fu'>c</span>(<span class='kw'>typename</span> <span class='kw'>=</span> <span class='st'>"fixed rectangular"</span>,
+  <span class='kw'>number_intervals</span> <span class='kw'>=</span> <span class='fl'>10L</span>, <span class='kw'>percent_overlap</span> <span class='kw'>=</span> <span class='fl'>35</span>), <span class='kw'>measure</span> <span class='kw'>=</span> <span class='st'>"euclidean"</span>,
+  <span class='kw'>cluster_params</span> <span class='kw'>=</span> <span class='fu'>c</span>(<span class='kw'>cl</span> <span class='kw'>=</span> <span class='st'>"single"</span>, <span class='kw'>num_bins</span> <span class='kw'>=</span> <span class='fl'>10L</span>),
+  <span class='kw'>return_reference</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>)</pre>
+    
+    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
+    <table class="ref-arguments">
+    <colgroup><col class="name" /><col class="desc" /></colgroup>
+    <tr>
+      <th>X</th>
+      <td><p>Either an \(n x D\) data matrix.</p></td>
+    </tr>
+    <tr>
+      <th>filter_values</th>
+      <td><p>An \(n x d\) data matrix.</p></td>
+    </tr>
+    <tr>
+      <th>cover_params</th>
+      <td><p>Named list of cover parameters. See details.</p></td>
+    </tr>
+    <tr>
+      <th>measure</th>
+      <td><p>String indicating the measure in the data space. Accepts any in <a href='http://www.rdocumentation.org/packages/proxy/topics/registry'>pr_DB</a>.</p></td>
+    </tr>
+    <tr>
+      <th>cluster_params</th>
+      <td><p>Named list of clustering parameters. See details.</p></td>
+    </tr>
+    <tr>
+      <th>return_reference</th>
+      <td><p>Boolean whether or not to return the reference class used to construct Mapper. See <a href='MapperRef.html'>MapperRef</a>.</p></td>
+    </tr>
+    </table>
+    
+    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
+    <p>By default, returns a <code>mapper</code> object, which is a named list with members <code>adjacency</code> (adjacency matrix for the edges),
+<code>vertices</code> (list with point membership indices), and list <code>level_sets</code> (list with vertex indices).
+Each vertex in <code>vertices</code> also records the flat index of the level set that vertex intersects, recorded as an attribute.</p>
+<p>If <code>return_reference</code> is TRUE, the <code>MapperRef</code> object is returned. This object can be used to fine-tune parts of the mapper construction.</p>
+    
+    <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
+
+    <p><code>mapper</code> is a generic function that concisely parameterizes the Mapper framework into a single function definition.
+This function serves as a convenience wrapper around the <a href='MapperRef.html'>MapperRef</a> R6 generator for users used to functional programming. 
+For finer control over the mapper construction, use <a href='MapperRef.html'>MapperRef</a> instead. If <code>return_reference</code> is TRUE, the 
+<a href='MapperRef.html'>MapperRef</a> instance used by this function is returned.</p>
+<p>The <code>cover_params</code> must be a named list of all of the parameters needed by the cover. 
+It must have a <code>typename</code> member matching one of the typenames listed in <a href='covers_available.html'>covers_available</a>, along with all of the 
+corresponding parameters for that cover type.</p>
+<p>The <code>cluster_params</code> must be a named list containing members <code>cl</code> (string) and <code>num_bins</code> (integer), where 
+<code>cl</code> is one of the linkage criterion used by <a href='http://www.rdocumentation.org/packages/stats/topics/hclust'>hclust</a>, and <code>num_bins</code> corresponds the binning argument in 
+the cutting heuristic <a href='cutoff_first_bin.html'>cutoff_first_bin</a>.</p>
+    
+    <h2 class="hasAnchor" id="references"><a class="anchor" href="#references"></a>References</h2>
+
+    <p>Singh, Gurjeet, Facundo Memoli, and Gunnar E. Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.</p>
+    
+    <h2 class="hasAnchor" id="see-also"><a class="anchor" href="#see-also"></a>See also</h2>
+
+    <div class='dont-index'><p><code><a href='http://www.rdocumentation.org/packages/stats/topics/hclust'>hclust</a></code> <code><a href='cutoff_first_bin.html'>cutoff_first_bin</a></code></p></div>
+    
+
+    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
+    <pre class="examples"><div class='input'><span class='fu'>data</span>(<span class='st'>"noisy_circle"</span>, <span class='kw'>package</span><span class='kw'>=</span><span class='st'>"Mapper"</span>)
+<span class='no'>left_pt</span> <span class='kw'>&lt;-</span> <span class='no'>noisy_circle</span>[<span class='fu'>which.min</span>(<span class='no'>noisy_circle</span>[, <span class='fl'>1</span>]),]
+<span class='no'>f_x</span> <span class='kw'>&lt;-</span> <span class='fu'>matrix</span>(<span class='fu'>apply</span>(<span class='no'>noisy_circle</span>, <span class='fl'>1</span>, <span class='kw'>function</span>(<span class='no'>pt</span>) (<span class='no'>pt</span> - <span class='no'>left_pt</span>)[<span class='fl'>1</span>]))
+
+<span class='no'>m</span> <span class='kw'>&lt;-</span> <span class='kw pkg'>Mapper</span><span class='kw ns'>::</span><span class='fu'><a href='http://www.rdocumentation.org/packages/Mapper/topics/Mapper'>mapper</a></span>(<span class='kw'>X</span> <span class='kw'>=</span> <span class='no'>noisy_circle</span>, <span class='kw'>filter_values</span> <span class='kw'>=</span> <span class='no'>f_x</span>,
+                    <span class='kw'>cover_params</span> <span class='kw'>=</span> <span class='fu'>list</span>(<span class='kw'>typename</span><span class='kw'>=</span><span class='st'>"restrained rectangular"</span>, <span class='kw'>number_intervals</span><span class='kw'>=</span><span class='fl'>10L</span>, <span class='kw'>percent_overlap</span><span class='kw'>=</span><span class='fl'>50</span>),
+                    <span class='kw'>measure</span> <span class='kw'>=</span> <span class='st'>"euclidean"</span>,
+                    <span class='kw'>cluster_params</span> <span class='kw'>=</span> <span class='fu'>list</span>(<span class='kw'>cl</span><span class='kw'>=</span><span class='st'>"single"</span>, <span class='kw'>num_bins</span><span class='kw'>=</span><span class='fl'>10L</span>))</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <h2>Contents</h2>
     <ul class="nav nav-pills nav-stacked">
-                </ul>
+      <li><a href="#arguments">Arguments</a></li>
+      
+      <li><a href="#value">Value</a></li>
+
+      <li><a href="#details">Details</a></li>
+
+      <li><a href="#references">References</a></li>
+
+      <li><a href="#see-also">See also</a></li>
+      
+      <li><a href="#examples">Examples</a></li>
+    </ul>
 
     <h2>Author</h2>
     
-Matt Piekenbrock
+Matt Piekenbrock, <a href='mailto:matt.piekenbrock@gmail.com'>matt.piekenbrock@gmail.com</a>
 
   </div>
 </div>

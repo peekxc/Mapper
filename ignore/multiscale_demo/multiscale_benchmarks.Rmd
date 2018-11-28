@@ -308,7 +308,8 @@ torus_bench_umap <- readRDS(file = "~/mapper/ignore/multiscale_demo/torus_bench_
 
 ## For d > 1, the sequence of overlaps is a vector, which in unamenable to plot as coordinate axis. 
 ## However, the linear combination of the values in the sequence is monotonically increasing.
-type <- "set"
+type <- "pair"
+# type <- "set"
 type_idx <- ifelse(type=="set", 1L, 2L)
 fpairs_diab_ecc <- format_data(normalize_overlap(do.call(rbind, diab_bench_ecc[, type_idx]), type), type)
 fpairs_diab_kde <- format_data(normalize_overlap(do.call(rbind, diab_bench_kde[, type_idx]), type), type)
@@ -326,7 +327,7 @@ make_line_plot <- function(x, title, sub_title){
   # y_breaks <- with(x, { seq(min(pairs), max(pairs)+0.5, by = 0.5) })
   # legend_title2 <- expression(paste(n^th, "-approximation:")
   legend_title2 <- "Approximation:"
-  y_breaks <- ceiling(with(x, { seq(0, max(counts), length.out = 10) }))
+  y_breaks <- ceiling(with(x, { seq(0, max(counts), length.out = 8) }))
   ggplot(data = x, aes(x=percent_overlap, group=approx_type, fill=approx_degree, color=method)) +
   geom_line(mapping = aes(y=counts, linetype=approx_degree, color=method), size=0.70) + 
   scale_linetype_manual(values=c("11", "twodash", "solid"), name=legend_title2) +
@@ -334,7 +335,7 @@ make_line_plot <- function(x, title, sub_title){
   scale_y_continuous(breaks = y_breaks, position="left") + 
   theme_bw() +
   theme(legend.title = element_text(face="bold")) + 
-  xlab("Percent Overlap") + ylab(label = "Cum. # Intersection Comparisons\n") + 
+  xlab("Percent Overlap") + ylab(label = "Cum. # operations (log-scale)") + 
   theme(axis.title=element_text(size=11))+
   ggtitle(title, subtitle = as.expression(parse(text=sprintf("italic('%s')", sub_title)))) +
   ## Legend Positions 
@@ -352,8 +353,8 @@ make_line_plot <- function(x, title, sub_title){
   #   legend.box.background = element_rect(colour = "black"), legend.margin=margin(0.01, 0.03, 0.01, 0.03, unit = "pt"))
   # Bottom, horizontal 
   theme(legend.position = "bottom", legend.direction = "horizontal", legend.box = "horizontal",
-  legend.title = element_text(size=10), legend.text = element_text(size=8), 
-  legend.key.width = unit(25.5, "pt"), 
+  legend.title = element_text(size=8), legend.text = element_text(size=6), 
+  legend.key.width = unit(19.5, "pt"), 
   legend.box.margin = margin(1.5, 2.5, 1.5, 2.5, unit = "pt"),
   legend.spacing = unit(2.25, "pt"), legend.justification = "center", legend.box.spacing = unit(5, "pt"),
   legend.box.background = element_rect(colour = "black"), legend.margin=margin(1, 2, 1, 2, unit = "pt"))
@@ -371,10 +372,10 @@ g6 <- make_line_plot(fpairs_torus_umap, title = data_names[3], sub_title = "UMAP
 ## Save as PDF, per SIAM and ACM recommendations 
 local({
   { page_width <- 390; page_height <- 592 } ## LaTeX inner body page width/height
-  wh_ratio <- (page_height*0.23)/page_width ## To get figure aspect ratio to whatever percentage height of page
-  res <- 4 ## to increase/decrease resolution
+  wh_ratio <- (page_height*0.33)/page_width ## To get figure aspect ratio to whatever percentage height of page
+  res <- 3 ## to increase/decrease resolution
   { pt_width <- page_width*res; pt_height <- wh_ratio*pt_width } 
-  pdf(file = "set_results.pdf", width = pt_width/72, height = pt_height/72, compress = TRUE)
+  pdf(file = paste0(type, "_results.pdf"), width = pt_width/72, height = pt_height/72, compress = TRUE)
   gridExtra::grid.arrange(g1, g3, g5, g2, g4, g6, nrow = 2, ncol = 3)
   dev.off()
 })

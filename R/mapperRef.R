@@ -289,6 +289,37 @@ MapperRef$set("public", "format", function(...){
   return(message)
 })
 
+#' @name as_igraph 
+#' @title Exports the 1-skeleton as an igraph object.
+#' @description uses the igraph library. 
+MapperRef$set("public", "as_igraph", function(){
+  requireNamespace("igraph", quietly = TRUE)
+  am <- private$.simplicial_complex$as_adjacency_matrix()
+  G <- igraph::graph_from_adjacency_matrix(am, mode = "undirected", add.colnames = NA) 
+  
+  ## Color nodes and edges by a default rainbow palette
+  rbw_pal <- rev(rainbow(100, start = 0, end = 4/6))
+  agg_node_val <- sapply(sapply(private$.vertices, function(v_idx){ 
+    apply(as.matrix(self$cover$filter_values[v_idx,]), 1, mean)
+  }), mean)
+  igraph::vertex_attr(G, name = "color") <- rbw_pal[cut(agg_node_val, breaks = 100, labels = F)]
+  
+  ## Normalize between 0-1, unless all the same
+  normalize <- function(x) { 
+    if (all(x == x[1])){ return(rep(1, length(x))) }
+    else {  (x - min(x))/(max(x) - min(x)) }
+  }
+  vertex_sizes <- sapply(private$.vertices, length) 
+  igraph::vertex_attr(G, "size") <- (15L - 10L)*normalize(log(vertex_sizes)) + 10L
+
+  ## Fill in labels with id:size
+  igraph::vertex_attr(G, "label") <- apply(cbind(names(private$.vertices), vertex_sizes), 1, function(x){
+    paste0(x, collapse = ":")
+  })
+  
+  return(G)
+})
+
 #' @name as_grapher
 #' @title Exports the 1-skeleton as a grapher object.
 #' @param construct_widget whether to construct the htmlwidget or just the grapher configuration.
@@ -369,24 +400,32 @@ MapperRef$set("public", "as_grapher", function(construct_widget=TRUE, ...){
 #   )
 # })
 
-## Exports the internal mapper core structures to a Mapper object, which is a list containing:
-## 1. nodes member := list of integer vectors representing the indices of the original data the current node intersects with. Also
-##                    contains attribute data storing the level set flat index of the level set the node is in.
-## 2. adjacency := adjacency matrix of the resulting graph.
-# MapperRef$methods(exportMapper = function(){
-  # result <- self$
-  # node_lsfi <- sapply(result$nodes, function(node) attr(node, "level_set"))
-  # result$level_sets <- lapply(1:length(cover$level_sets), function(lsfi){ which(node_lsfi == lsfi) })
-  # names(result$level_sets) <- apply(cover$index_set, 1, function(lsmi) paste0("(", paste(lsmi, collapse = ","), ")"))
-  # cover_type <- paste0(toupper(substr(cover$type, start = 1, stop = 1)), tolower(substr(cover$type, start = 2, stop = nchar(cover$type))))
-  # z_d <- ncol(cover$filter_values)
-  # attr(result, ".summary") <- c(sprintf("Mapper object with filter function f: %s -> %s",
-  #                                       ifelse(is(X, "dist"), "dist(X)",
-  #                                              ifelse(ncol(X) > 1, sprintf("X^%d", ncol(X)), "X")),
-  #                                       ifelse(z_d > 1, sprintf("Z^%d", z_d), "Z")),
-  #                               sprintf("Configured with a %s cover comprising %d open sets", cover$type, length(cover$level_sets)),
-  #                               sprintf("The 1-skeleton contains %d nodes and %d edges", length(G$nodes), sum(G$adjacency == 1L)/2L))
-  # class(result) <- "Mapper"
-  # return(result)
-# })
+#' @name exportMapper
+#' @title Exports the essential mapper graph information 
+#' @param graph_type export preference on the structure the graph output.
+#' @return list with the following members: 
+#' \itemize{
+#' \item vertices list of the indices of the original data the current vertex intersects with.
+#' \item graph some adjacency representation of the mapper graph.
+#' \item level_sets map connecting the which vertices belong to the preimage of the sets in the cover. 
+#' }
+MapperRef$set("public", "exportMapper", function(graph_type=c("adjacency_matrix", "adjacency_list", "edgelist")){
+  result <- list(level_sets = private$.cl_map, vertices = private$.vertices)
+  if (missing(graph_type)){ graph_type <- "adjacency_matrix" }
+  result$graph <- switch(graph_type, 
+                         "adjacency_matrix"=self$simplicial_complex$as_adjacency_matrix(),
+                         "adjacency_list"=self$simplicial_complex$as_adjacency_list(), 
+                         "edgelist"=self$simplicial_complex$as_edge_list(), 
+                         stop("'graph_type' must be one of: 'adjacency_matrix', 'adjacency_list', 'edgelist'"))
+  n_simplices <- self$simplicial_complex$n_simplexes
+  z_d <- ncol(self$cover$filter_values)
+  attr(result, ".summary") <- c(sprintf("Mapper with filter f: %s -> %s",
+                                        ifelse(is(self$X, "dist"), "dist(X)",
+                                               ifelse(ncol(self$X) > 1, sprintf("X^%d", ncol(self$X)), "X")),
+                                        ifelse(z_d > 1, sprintf("Z^%d", z_d), "Z")),
+                                sprintf("Configured with a %s cover comprising %d open sets", self$cover$typename, length(self$cover$level_sets)),
+                                sprintf("The graph contains %d vertices and %d edges", n_simplices[[1]], n_simplices[[2]]))
+  class(result) <- "Mapper"
+  return(result)
+})
 

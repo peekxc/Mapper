@@ -58,7 +58,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Mapper</a>
-        <span class="label label-danger" data-toggle="tooltip" data-placement="bottom" title="Unreleased package">0.6.0</span>
+        <span class="label label-danger" data-toggle="tooltip" data-placement="bottom" title="Unreleased package">0.7.0</span>
       </span>
     </div>
 
@@ -69,6 +69,9 @@
     <span class="fa fa-home fa-lg"></span>
      
   </a>
+</li>
+<li>
+  <a href="../articles/Mapper.html">Get started</a>
 </li>
 <li>
   <a href="../reference/index.html">Reference</a>
@@ -82,9 +85,6 @@
   <ul class="dropdown-menu" role="menu">
     <li>
       <a href="../articles/UsingCustomCover.html">Using a custom covering method</a>
-    </li>
-    <li>
-      <a href="../articles/UsingMapper.html">Using the Mapper package</a>
     </li>
   </ul>
 </li>
@@ -118,6 +118,124 @@
     <tbody>
       <tr>
         <th colspan="2">
+          <h2 id="section-general-package-functions" class="hasAnchor"><a href="#section-general-package-functions" class="anchor"></a>General package functions</h2>
+          <p class="section-desc"><p>General package utility functions, or related topological algorithms.</p></p>
+        </th>
+      </tr>
+      <tr>
+        
+        <td>
+          <p><code><a href="Mapper.html">mapper()</a></code> </p>
+        </td>
+        <td><p>mapper</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="plot.Mapper.html">plot(<i>&lt;Mapper&gt;</i>)</a></code> </p>
+        </td>
+        <td><p>S3 method for default plotting</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="print.Mapper.html">print(<i>&lt;Mapper&gt;</i>)</a></code> </p>
+        </td>
+        <td><p>S3 method for default printing</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="covers_available.html">covers_available()</a></code> </p>
+        </td>
+        <td><p>Print available covers</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="cutoff_first_bin.html">cutoff_first_bin()</a></code> </p>
+        </td>
+        <td><p>cutoff_first_bin function</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="bin_color.html">bin_color()</a></code> </p>
+        </td>
+        <td><p>bin_color</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="dashboard.html">dashboard()</a></code> </p>
+        </td>
+        <td><p>Mapper dashboard</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="hausdorff_distance.html">hausdorff_distance()</a></code> </p>
+        </td>
+        <td><p>Hausdorff Distance</p></td>
+      </tr>
+    </tbody><tbody>
+      <tr>
+        <th colspan="2">
+          <h2 id="section-mapperref-methods" class="hasAnchor"><a href="#section-mapperref-methods" class="anchor"></a>MapperRef methods</h2>
+          <p class="section-desc"><p>Member functions associated with the MapperRef R6 class.</p></p>
+        </th>
+      </tr>
+      <tr>
+        
+        <td>
+          <p><code><a href="MapperRef.html">MapperRef</a></code> </p>
+        </td>
+        <td><p>Mapper Reference Class (R6) implementation</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="as_grapher.html">as_grapher</a></code> </p>
+        </td>
+        <td><p>Exports the 1-skeleton as a grapher object.</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="as_igraph.html">as_igraph</a></code> </p>
+        </td>
+        <td><p>Exports the 1-skeleton as an igraph object.</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="compute_vertices.html">compute_vertices</a></code> </p>
+        </td>
+        <td><p>Computes the vertices of mapper.</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="compute_edges.html">compute_edges</a></code> </p>
+        </td>
+        <td><p>Computes the edges of the mapper.</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="compute_k_skeleton.html">compute_k_skeleton</a></code> </p>
+        </td>
+        <td><p>Computes the K-skeleton</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="use_cover.html">use_cover</a></code> </p>
+        </td>
+        <td><p>Selects one of the available covering methods to use.</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="use_clustering_algorithm.html">use_clustering_algorithm</a></code> </p>
+        </td>
+        <td><p>Sets the clustering algorithm</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="exportMapper.html">exportMapper</a></code> </p>
+        </td>
+        <td><p>Exports the essential mapper graph information</p></td>
+      </tr>
+    </tbody><tbody>
+      <tr>
+        <th colspan="2">
           <h2 id="section-cover-generators" class="hasAnchor"><a href="#section-cover-generators" class="anchor"></a>Cover generators</h2>
           <p class="section-desc"><p>R6 generators which can be used to construct covers over the filter space.</p></p>
         </th>
@@ -140,64 +258,18 @@
           <p><code><a href="RestrainedRectangularCover.html">RestrainedRectangularCover</a></code> </p>
         </td>
         <td><p>Fixed Rectangular Cover</p></td>
-      </tr>
-    </tbody><tbody>
-      <tr>
-        <th colspan="2">
-          <h2 id="section-mapperref-methods" class="hasAnchor"><a href="#section-mapperref-methods" class="anchor"></a>MapperRef methods</h2>
-          <p class="section-desc"><p>R6 generators which can be used to construct covers over the filter space.</p></p>
-        </th>
-      </tr>
-      <tr>
-        
-        <td>
-          <p><code><a href="MapperRef.html">MapperRef</a></code> </p>
-        </td>
-        <td><p>Mapper Reference Class (R6) implementation</p></td>
       </tr><tr>
         
         <td>
-          <p><code><a href="as_grapher.html">as_grapher</a></code> </p>
+          <p><code><a href="AdaptiveCover.html">AdaptiveCover</a></code> </p>
         </td>
-        <td><p>Exports the 1-skeleton as a grapher object.</p></td>
+        <td><p>Adaptive Cover</p></td>
       </tr><tr>
         
         <td>
-          <p><code><a href="compute_k_skeleton.html">compute_k_skeleton</a></code> </p>
+          <p><code><a href="BallCover.html">BallCover</a></code> </p>
         </td>
-        <td><p>Computes the K-skeleton</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="compute_vertices.html">compute_vertices</a></code> </p>
-        </td>
-        <td><p>Computes the vertices of mapper.</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="use_clustering_algorithm.html">use_clustering_algorithm</a></code> </p>
-        </td>
-        <td><p>Sets the clustering algorithm</p></td>
-      </tr>
-    </tbody><tbody>
-      <tr>
-        <th colspan="2">
-          <h2 id="section-general-package-functions" class="hasAnchor"><a href="#section-general-package-functions" class="anchor"></a>General package functions</h2>
-          <p class="section-desc"><p>R6 generators which can be used to construct covers over the filter space.</p></p>
-        </th>
-      </tr>
-      <tr>
-        
-        <td>
-          <p><code><a href="cutoff_first_bin.html">cutoff_first_bin()</a></code> </p>
-        </td>
-        <td><p>cutoff_first_bin function</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="dashboard.html">dashboard()</a></code> </p>
-        </td>
-        <td><p>Mapper dashboard</p></td>
+        <td><p>Ball Cover</p></td>
       </tr>
     </tbody><tbody>
       <tr>
@@ -232,9 +304,9 @@
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <h2>Contents</h2>
     <ul class="nav nav-pills nav-stacked">
-      <li><a href="#section-cover-generators">Cover generators</a></li>
-      <li><a href="#section-mapperref-methods">MapperRef methods</a></li>
       <li><a href="#section-general-package-functions">General package functions</a></li>
+      <li><a href="#section-mapperref-methods">MapperRef methods</a></li>
+      <li><a href="#section-cover-generators">Cover generators</a></li>
       <li><a href="#section-data-structures">Data structures</a></li>
     </ul>
   </div>

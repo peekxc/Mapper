@@ -13,7 +13,7 @@ var registerHandlers = function(){
     var fxns = [
       'insertNodes', 'removeNodes', 'setNodeColor', 'setNodeSize', 'setNodes',                // Manipulating nodes
       'insertLinks', 'removeLinks', 'setLinkColor', 'setLinks',                              // Manipulating edges
-      'enableForce', 'setForce', 'update',                            // Manipulating the network
+      'enableForce', 'setForce', 'replaceNetwork', 'disableForce', 'enableCola',   // Manipulating the network
       'center', 'splitByLabel', 'groupSingletons', 'logNetwork',      // Utility/misc. 
       'enableLasso', 'toggleLasso', 'getNetwork'                                                // shiny only 
     ];
@@ -260,7 +260,7 @@ HTMLWidgets.widget({
         		  canvas: document.getElementById(elementId), 
         		  width: el.offsetWidth, height: el.offsetHeight, 
         		  resolution: 1.5 
-        		})
+        		});
 					} else {
 					  console.log("Using canvas renderer");
 					  grapher = new Grapher({ 
@@ -674,6 +674,11 @@ HTMLWidgets.widget({
 				grapher.play();
 				force_sim.alpha(1).restart();
 			},
+			disableForce: function(){
+				if (force_sim) { force_sim.stop(); } 
+				force_sim = null;
+				grapher.play();
+			},
 		  addLasso: function(params){
 		    var lasso_svg = document.getElementById("lasso_svg");
 		    
@@ -747,12 +752,32 @@ HTMLWidgets.widget({
 		      else if (lasso_svg.css("visibility") == "visible"){ lasso_svg.css("visibility", "hidden"); }
 		    }
 		  }, 
+		  replaceNetwork: function(params){
+		    // TODO 
+		    network = params.net;
+				grapher.data(network).render(); 
+		  },
 		  // Shiny-only
 		  getNetwork: function(params){
   		  if (HTMLWidgets.shinyMode) { 
   		    console.log("Sending back the network...")
 				  Shiny.onInputChange("network", network); // Send the network back was selected to shiny
 				} 
+		  },
+		  enableCola: function(params){
+		    if (force_sim) { force_sim.stop(); } 
+				force_sim = null;
+				var d3cola = cola.d3adaptor()
+          .linkDistance(30)
+          .size([width, height]);
+        console.log(d3cola);
+        force_sim = d3cola
+          .distanceMatrix(params.dist_matrix)
+          .nodes(network.nodes)
+          .links(network.links)
+          .on("tick", onTick)
+          .start(100);
+        grapher.play();
 		  }
 		}
 	} // factory

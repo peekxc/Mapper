@@ -61,7 +61,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Mapper</a>
-        <span class="label label-danger" data-toggle="tooltip" data-placement="bottom" title="Unreleased package">0.6.0</span>
+        <span class="label label-danger" data-toggle="tooltip" data-placement="bottom" title="Unreleased package">0.7.0</span>
       </span>
     </div>
 
@@ -72,6 +72,9 @@
     <span class="fa fa-home fa-lg"></span>
      
   </a>
+</li>
+<li>
+  <a href="../articles/Mapper.html">Get started</a>
 </li>
 <li>
   <a href="../reference/index.html">Reference</a>
@@ -85,9 +88,6 @@
   <ul class="dropdown-menu" role="menu">
     <li>
       <a href="../articles/UsingCustomCover.html">Using a custom covering method</a>
-    </li>
-    <li>
-      <a href="../articles/UsingMapper.html">Using the Mapper package</a>
     </li>
   </ul>
 </li>
@@ -118,34 +118,39 @@
     
     </div>
 
-    <pre class="usage"><span class='fu'>dashboard</span>(<span class='no'>mapper_obj</span>, <span class='kw'>X</span> <span class='kw'>=</span> <span class='no'>mapper_obj</span>$<span class='no'>X</span>, <span class='kw'>node_color_f</span> <span class='kw'>=</span> <span class='st'>"default"</span>)</pre>
+    <pre class="usage"><span class='fu'>dashboard</span>(<span class='no'>M</span>, <span class='no'>X</span>, <span class='kw'>node_color_f</span> <span class='kw'>=</span> <span class='st'>"default"</span>, <span class='kw'>dash_config</span> <span class='kw'>=</span> <span class='fu'>list</span>(<span class='kw'>node_min</span> <span class='kw'>=</span>
+  <span class='fl'>5L</span>, <span class='kw'>node_max</span> <span class='kw'>=</span> <span class='fl'>10L</span>))</pre>
     
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>mapper_obj</th>
+      <th>M</th>
       <td><p>MapperRef object.</p></td>
     </tr>
     <tr>
       <th>X</th>
-      <td><p>data.frame to display in lower table and subset on node selection.</p></td>
+      <td><p>data.frame to display in an interactive table. See details.</p></td>
     </tr>
     <tr>
       <th>node_color_f</th>
-      <td><p>List of color functions. See details.</p></td>
+      <td><p>Named list of color functions. See details.</p></td>
+    </tr>
+    <tr>
+      <th>dash_config</th>
+      <td><p>Dashboard configuration. See details.</p></td>
     </tr>
     </table>
     
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>The data.frame supplied by the <code>X</code> argument is displayed in an interactive table in the dashboard.
-By default, if <code>X</code> is not supplied it is assigned the original data the Mapper object was constructed with.
-Supplying a data.frame with named columns may be helpful in situations where the point cloud data the mapper was constructed with required 
+    <p><strong>WARNING: THIS APP IS EXPERIMENTAL</strong> <br />
+<br />  
+The data.frame supplied by the <code>X</code> argument is displayed in an interactive table in the dashboard.
+Supplying the original data as a data.frame with named columns may be helpful in situations where the actual <code>X</code> mapper was constructed with required 
 preprocessing (such as feature scaling), whereas the original, unprocessed data.frame is better suited for direct analysis.</p>
-<p>If supplied, <code>node_color_f</code> must be a named list of functions which accepts as input a MapperRef object and returns as output a vector of numerical values, one per node.
-These values are automatically converted to color hex codes based on the current palette.</p>
-<p>If this isn't supplied, a few default color functions are supplied.</p>
+<p>If supplied, <code>node_color_f</code> must be a named list of functions which accepts as input a MapperRef object as the <code>M</code> argument and returns as output a vector of numerical values, one per vertex.
+These values are automatically converted to color hex codes based on the current palette. If <code>node_color_f</code> isn't supplied, a few default color functions are supplied.</p>
     
 
   </div>
