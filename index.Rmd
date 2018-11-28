@@ -174,7 +174,7 @@ By default, the vertices are sized logarithmically according to how many points 
 plot(m$as_igraph())
 ```
 
-<img src="man/figures/igraph_ex.png" width=100% height=70% />
+<img src="man/figures/igraph_ex.png" width=70% style="text-align: center;"/>
 
 More more interactive plotting methods, the __mapper__ can be converted to a [grapher]() object.  
 ```{r, eval=FALSE, echo=TRUE}
