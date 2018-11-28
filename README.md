@@ -1,6 +1,6 @@
 
 # Mapper 
-This package provides a set of tools written in R/Rcpp for computing the _mapper_ construction, and other related algorithms. Mapper was originally introduced in the article below: 
+This package provides a set of tools written in R/Rcpp for computing the _mapper_ construction, and other related algorithms. Mapper was originally introduced in the article 
 
 > Singh, Gurjeet, Facundo Mémoli, and Gunnar E. Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.
 
@@ -95,5 +95,5 @@ m$as_grapher()
 ## Additional Information 
 
 More comprehensive documentation is available [here](https://peekxc.github.io/mapper/).
-There's also a [vignette on using the package](https://peekxc.github.io/mapper/articles/UsingMapper.html)
+There's also a [vignette on using the package](https://peekxc.github.io/mapper/articles/Mapper.html) that is more-depth.
 
