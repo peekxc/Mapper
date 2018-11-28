@@ -95,5 +95,5 @@ m$as_grapher()
 ## Additional Information 
 
 More comprehensive documentation is available [here](https://peekxc.github.io/mapper/).
-There's also a [vignette on using the package](https://peekxc.github.io/mapper/articles/Mapper.html) that is more-depth.
+There's also a [vignette on using the package](https://peekxc.github.io/Mapper/articles/Mapper.html) that is more-depth.
 
