@@ -20,11 +20,11 @@ cover for details.
 \section{Fields}{
 
 \describe{
-\item{\code{\strong{filter_values}}}{(n x d) matrix of filter values}
+\item{\code{filter_values}}{(n x d) matrix of filter values}
 
-\item{\code{\strong{typename}}}{Unique string identifier for the covering.}
+\item{\code{typename}}{Unique string identifier for the covering.}
 
-\item{\code{\strong{index_set}}}{character vector used to index the 'level_sets' list}
+\item{\code{index_set}}{character vector used to index the 'level_sets' list}
 
 \item{\code{level_sets}}{list of the}
 }}

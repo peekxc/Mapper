@@ -135,81 +135,88 @@ enable_multiscale_int <- function(M){
   #Rcpp:::externalptr_address
   current_env <- M$.__enclos_env__
   
-  ## Add a function to update the mapper dynamically 
-  update_mapper <- function(percent_overlap, stats=FALSE){
-    stopifnot(all(percent_overlap >= 0 && percent_overlap < 100))
-    stopifnot(length(percent_overlap) == ncol(self$cover$filter_values))
+  ## Use closure to ensure parent environment isn't copied
+  createUpdateFunction <- function(M){
+    self <- M$.__enclos_env__[["self"]]
+    private <- M$.__enclos_env__[["private"]]
     
-    ## Get the index of the requested parameterization
-    R <- self$cover$overlap_to_interval_len(percent_overlap)
-    idx <- private$.multiscale$get_nearest_filtration_index(R)
-    
-    ## Update the segments 
-    segment_res <- private$.multiscale$update_segments(idx)
-    
-    ## Extract the simplex tree 
-    stree_ptr <- private$.simplicial_complex$as_XPtr()
-    
-    ## Detect the edges between level sets affected by the change
-    connected_ls <- lapply(segment_res$ls_to_update, function(ls){
-      adj_lsfis <- check_connected(ls, private$.cl_map, self$vertices, stree_ptr)
-      if (length(adj_lsfis) > 0){
-        cbind(pmin(ls, adj_lsfis-1L), pmax(ls, adj_lsfis-1L))
-      } else { NULL }
-    })
-    
-    ## Collect statistics if requested 
-    if (stats){
-      old_vertices <- self$ls_vertex_map[(segment_res$ls_to_update+1L)]
-      old_ls_map <- self$ls_vertex_map
-    }
-    
-    ## Update the vertices directly, without storing the level sets explicitly. 
-    ## All connected edges to the vertices in the updated level sets are invalidated. 
-    if (length(segment_res$ls_to_update) > 0){
-      self$multiscale$update_vertices(
-        which_levels = segment_res$ls_to_update,
-        X = private$.X,
-        f = self$clustering_algorithm, 
-        ls_vertex_map = private$.cl_map,
-        stree = stree_ptr
-      )
-    }
-    ## ASSERT all(unname(unlist(m$ls_vertex_map)) == as.integer(names(m$vertices)))
-    
-    ## The pairs to update
-    ls_pairs_to_update <- unique(rbind(segment_res$ls_pairs_to_update, do.call(rbind, connected_ls)))
-    
-    ## Update the 1-skeleton
-    if (nrow(ls_pairs_to_update) > 0){
-      ls_pair_idx <- apply(ls_pairs_to_update, 2, function(idx){
-        self$cover$index_set[idx+1]
+    ## Add a function to update the mapper dynamically 
+    update_mapper <- function(percent_overlap, stats=FALSE){
+      stopifnot(all(percent_overlap >= 0 && percent_overlap < 100))
+      stopifnot(length(percent_overlap) == ncol(self$cover$filter_values))
+      
+      ## Get the index of the requested parameterization
+      R <- self$cover$overlap_to_interval_len(percent_overlap)
+      idx <- private$.multiscale$get_nearest_filtration_index(R)
+      
+      ## Update the segments 
+      segment_res <- private$.multiscale$update_segments(idx)
+      
+      ## Extract the simplex tree 
+      stree_ptr <- private$.simplicial_complex$as_XPtr()
+      
+      ## Detect the edges between level sets affected by the change
+      connected_ls <- lapply(segment_res$ls_to_update, function(ls){
+        adj_lsfis <- check_connected(ls, private$.cl_map, self$vertices, stree_ptr)
+        if (length(adj_lsfis) > 0){
+          cbind(pmin(ls, adj_lsfis-1L), pmax(ls, adj_lsfis-1L))
+        } else { NULL }
       })
-      ls_pair_idx <- matrix(ls_pair_idx, ncol = 2)
-      self$compute_edges(ls_pair_idx)
-    }
+      
+      ## Collect statistics if requested 
+      if (stats){
+        old_vertices <- self$ls_vertex_map[(segment_res$ls_to_update+1L)]
+        old_ls_map <- self$ls_vertex_map
+      }
+      
+      ## Update the vertices directly, without storing the level sets explicitly. 
+      ## All connected edges to the vertices in the updated level sets are invalidated. 
+      if (length(segment_res$ls_to_update) > 0){
+        self$multiscale$update_vertices(
+          which_levels = segment_res$ls_to_update,
+          X = private$.X,
+          f = self$clustering_algorithm, 
+          ls_vertex_map = private$.cl_map,
+          stree = stree_ptr
+        )
+      }
+      ## ASSERT all(unname(unlist(m$ls_vertex_map)) == as.integer(names(m$vertices)))
+      
+      ## The pairs to update
+      ls_pairs_to_update <- unique(rbind(segment_res$ls_pairs_to_update, do.call(rbind, connected_ls)))
+      
+      ## Update the 1-skeleton
+      if (nrow(ls_pairs_to_update) > 0){
+        ls_pair_idx <- apply(ls_pairs_to_update, 2, function(idx){
+          self$cover$index_set[idx+1]
+        })
+        ls_pair_idx <- matrix(ls_pair_idx, ncol = 2)
+        self$compute_edges(ls_pair_idx)
+      }
+      
+      ## Update the percent overlap of the cover
+      self$cover$percent_overlap <- percent_overlap
+      
+      ## Returns statistics about how the Mapper changed if requested, self otherwise
+      if (stats){ 
+        res_stats <- list(
+          old_vertices=unname(unlist(old_vertices)), 
+          new_vertices=unname(unlist(self$ls_vertex_map[(segment_res$ls_to_update+1L)])), 
+          old_ls_map = old_ls_map, 
+          new_ls_map = self$ls_vertex_map, 
+          updated_ls = segment_res$ls_to_update, 
+          updated_ls_pairs = ls_pairs_to_update
+        )
+        return(res_stats)
+      } 
+      else { return(self) }
+      
+    } # update_mapper
     
-    ## Update the percent overlap of the cover
-    self$cover$percent_overlap <- percent_overlap
-    
-    ## Returns statistics about how the Mapper changed if requested, self otherwise
-    if (stats){ 
-      res_stats <- list(
-        old_vertices=unname(unlist(old_vertices)), 
-        new_vertices=unname(unlist(self$ls_vertex_map[(segment_res$ls_to_update+1L)])), 
-        old_ls_map = old_ls_map, 
-        new_ls_map = self$ls_vertex_map, 
-        updated_ls = segment_res$ls_to_update, 
-        updated_ls_pairs = ls_pairs_to_update
-      )
-      return(res_stats)
-    } 
-    else { return(self) }
-    
-  } # update_mapper
-  
+  }
+
   ## Add as a public function 
-  current_env[["self"]]$add_function("update_mapper", FUN = update_mapper)
+  current_env[["self"]]$add_function("update_mapper", FUN = createUpdateFunction(M))
 }
 
 

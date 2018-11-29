@@ -16,6 +16,7 @@ mapper_graph <- reactive({
 ## Makes the default configuration depend on M
 json_config <- reactive({
   MG <- mapper_graph()
+  requireNamespace("grapher")
   grapher::getDefaultJsonConfig(network=MG)
 })
 

@@ -3,8 +3,9 @@ output: html_document
 ---
 # R implementation of Mapper 
 [![CRAN\_Status\_Badge](https://www.r-pkg.org/badges/version/mapper)](https://cran.r-project.org/packge=mapper)
-[![Travis-CI Build Status](https://travis-ci.com/peekxc/mapper.svg?token=Hx3A92eGgRqqiu1NfKUb&branch=master)](https://travis-ci.com/peekxc/mapper) 
-<!-- [![Appveyor Build Status](https://ci.appveyor.com/api/projects/status/github/rstudio/reticulate?svg=true)](https://ci.appveyor.com/project/rstudio/reticulate)   -->
+[![Appveyor Windows Build status](https://img.shields.io/appveyor/ci/peekxc/Mapper.svg?logo=windows&logoColor=DDDDDD)](https://ci.appveyor.com/project/peekxc/mapper)
+[![Travis OS X Build status](https://img.shields.io/travis/com/peekxc/Mapper.svg?logo=Apple&logoColor=DDDDDD&env=BADGE=osx&label=build&branch=master)](https://travis-ci.com/peekxc/Mapper)
+[![Travis Linux X Build status](https://img.shields.io/travis/com/peekxc/Mapper.svg?logo=linux&logoColor=DDDDDD&env=BADGE=linux&label=build&branch=master)](https://travis-ci.com/peekxc/Mapper)
 
 ```{r setup, eval=TRUE, include=FALSE}
 library("Mapper")
@@ -14,15 +15,15 @@ The **Mapper** package provides a configurable implementation of the Mapper fram
 
 <img src="man/figures/mapper_logo.png" width=150 style="margin-left: 15px;" align="right" />
 
-- Efficient [R6 class generators](https://github.com/r-lib/R6) for several of Mappers components
+- Efficient implementation of the Mapper framework
 
-- An expressive interface to customize Mapper components via [method chaining](https://adv-r.hadley.nz/r6.html#method-chaining) 
+- Multiple options for visualizing and interacting with _mappers_
 
-- Pre-configured defaults and built-in tools for people unfamiliar with Mapper
+- Practical defaults for those unfamiliar with Mapper
 
-- Several choices for visualizing and interacting with _mappers_
+- Expressive parameterization interface through [method chaining](https://adv-r.hadley.nz/r6.html#method-chaining) 
 
-- Options to export the $1$-skeleton to any graph-based representation
+- Portable [R6 generators](https://github.com/r-lib/R6) for Mappers components
 
 The package was designed to make modifying or extending the Mapper method simple and efficient, without limiting its generality. 
 

@@ -1,5 +1,10 @@
 
 # Mapper 
+
+[![Appveyor Windows Build status](https://img.shields.io/appveyor/ci/peekxc/Mapper.svg?logo=windows&logoColor=DDDDDD)](https://ci.appveyor.com/project/peekxc/mapper)
+[![Travis OS X Build status](https://img.shields.io/travis/com/peekxc/Mapper.svg?logo=Apple&logoColor=DDDDDD&env=BADGE=osx&label=build&branch=master)](https://travis-ci.com/peekxc/Mapper)
+[![Travis Linux X Build status](https://img.shields.io/travis/com/peekxc/Mapper.svg?logo=linux&logoColor=DDDDDD&env=BADGE=linux&label=build&branch=master)](https://travis-ci.com/peekxc/Mapper)
+
 This package provides a set of tools written in R/Rcpp for computing the _mapper_ construction, and other related algorithms. Mapper was originally introduced in the article 
 
 > Singh, Gurjeet, Facundo Mémoli, and Gunnar E. Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.

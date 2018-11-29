@@ -21,9 +21,9 @@
 #'  
 #'    
 #' @docType class
-#' @field \strong{filter_values} (n x d) matrix of filter values
-#' @field \strong{typename} Unique string identifier for the covering. 
-#' @field \strong{index_set} character vector used to index the 'level_sets' list 
+#' @field filter_values (n x d) matrix of filter values
+#' @field typename Unique string identifier for the covering. 
+#' @field index_set character vector used to index the 'level_sets' list 
 #' @field level_sets list of the 
 #' @format An \code{\link{R6Class}} generator object
 #' 
