@@ -2,7 +2,10 @@ template:
   params:
     bootswatch: simplex
 development:
-  mode: unreleased
+  mode: devel
+  destination: docs
+  version_label: danger
+  version_tooltip: "Package under development"
 reference:
 - title: General package functions
   desc: >

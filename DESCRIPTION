@@ -2,7 +2,7 @@ Package: Mapper
 Type: Package
 Title: Topological Data Analysis using Mapper
 Version: 0.8.0
-Date: 2018-10-29
+Date: 2018-11-29
 Authors@R: c(person("Matt", "Piekenbrock", email = "matt.piekenbrock@gmail.com", role = c("aut", "cre", "cph")), 
              person("Gurjeet","Singh", role = c("ctb","cph")))
 Author: Matt Piekenbrock [aut, cre, ctb],

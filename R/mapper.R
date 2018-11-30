@@ -33,7 +33,7 @@
 #'
 #' @seealso \code{\link[stats]{hclust}} \code{\link[Mapper]{cutoff_first_bin}}
 #' @useDynLib Mapper
-#' @import methods proxy
+#' @import methods
 #' @importFrom Rcpp sourceCpp
 #'
 #' @author Matt Piekenbrock, \email{matt.piekenbrock@@gmail.com}

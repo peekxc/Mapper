@@ -1,0 +1,4 @@
+* linguist-vendored
+*.R linguist-vendored=false
+*.cpp linguist-vendored=false
+*.h linguist-vendored=false

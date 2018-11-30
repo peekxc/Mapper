@@ -149,9 +149,11 @@ Although the above solution is nice, what if the clustering function depends on 
 
 ```{r, eval = FALSE, echo = TRUE}
 m$measure <- "euclidean"
-...
-dist_x <- parallelDist::parallelDist(X[idx,], method = self$measure)
-...
+custom_clustering_f <- function(){ 
+  ...
+  dist_x <- parallelDist::parallelDist(X[idx,], method = self$measure)
+  ...
+}
 ```
 
 This will return an evaluation error upon executing, both from the user side and internally. 
@@ -244,7 +246,8 @@ If the Mapper is constantly being reparameterized, this interface is preferred o
 ```{r}
 all_params <- list(
   X = noisy_circle, filter_values = f_x, 
-  cover_params = list(typename="restrained rectangular", number_intervals=10L, percent_overlap=50), 
+  cover_params = list(typename="restrained rectangular", 
+                      number_intervals=10L, percent_overlap=50), 
   cluster_params = list(cl="single", num_bins=10L)
 )
 

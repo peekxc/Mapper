@@ -116,9 +116,10 @@ MapperRef$set("active", "measure",
     function(value){
       if (missing(value)){ private$.measure }
       else {
-        available_measures <- toupper(proxy::pr_DB$get_entry_names())
-        stopifnot(is.character(value))
-        stopifnot(toupper(value) %in% available_measures)
+        has_proxy <- requireNamespace("proxy", quietly = TRUE)
+        available_measures <- if (has_proxy) proxy::pr_DB$get_entry_names() else c("euclidean", "maximum", "manhattan", "canberra", "binary", "minkowski")
+        stopifnot(is.character(value), toupper(value) %in% toupper(available_measures))
+        dist_f <- ifelse(has_proxy, parallelDist::parallelDist, stats::dist)
         private$.measure <- value
       }
     }
