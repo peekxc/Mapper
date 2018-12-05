@@ -158,13 +158,11 @@ MapperRef$set("public", "use_clustering_algorithm",
       self$clustering_algorithm <- create_cl(cl = cl, num_bins.default = force(num_bins))
     } else if (is.function(cl)){
       self$clustering_algorithm <- cl
-      parent.env(environment(self$clustering_algorithm)) <- environment(self$initialize)
+      environment(self$clustering_algorithm) <- environment(self$initialize)
     } else { stop("Invalid parameter type 'cl'") }
     invisible(self)
   }
 )
-
-
 
 ## Sets the distance measure to use
 ## Supports any measure in proxy::pr_DB$get_entry_names()

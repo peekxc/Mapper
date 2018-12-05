@@ -46,7 +46,7 @@ Mapper takes as input a point cloud $X$ and a reference map $f : X \to Z$, and r
 Here's an example where points are sampled from an 'eight-curve' in $\mathbb{R}^2$: 
 
 $$g(t) = [\cos(t), \sin(t)\cos(t)],\; t \in \Big(-\frac{1}{2}\pi, \frac{3}{2}\pi\Big)$$
-In the example below, $X$ is created from equally spaced samples over $t$, and the map chosen is simply the $x$-coordinate of the shape, $Z = f(X) = x_1$.
+In the example below, $X$ is created from equally spaced samples over $t$, and the map chosen is simply the $x$-coordinate of the shape, i.e. $f(X) = Z = x_1$.
 ```{r, echo=TRUE, fig.keep='none'}
 t <- seq(-0.5*pi, (3/2)*pi, length.out = 100)
 eight <- cbind(x1=cos(t), x2=sin(t)*cos(t))
@@ -65,8 +65,8 @@ points(cbind(f_x, 1), pch = "|", col = col, cex = 2)
 
 <img src="man/figures/figure_eight.png" width=100% />
 
-Below is a possible way to construct a _mapper_. 
-```{r, echo=TRUE, eval=TRUE, include=FALSE}
+Below is one possible way to construct a _mapper_. 
+```{r, echo=TRUE, eval=TRUE}
 m <- MapperRef$
   new(X = eight)$                                             
   use_cover(filter_values = f_x, 
@@ -75,6 +75,7 @@ m <- MapperRef$
   use_distance_measure(measure = "euclidean")$
   use_clustering_algorithm(cl = "single")$
   compute_k_skeleton(k = 1L)
+print(m)
 ```
 
 ```R
@@ -86,56 +87,65 @@ There are multiple options one may use to visualize __mapper__. The easiest is t
 ```{r, eval=FALSE}
 am <- m$simplicial_complex$as_adjacency_matrix()
 g <- igraph::graph_from_adjacency_matrix(am, mode = "undirected", add.colnames = NA)
-plot(g, vertex.size = 8L, vertex.color = bin_color(), label.cex = 0.3)
+avg_filter_val <- sapply(m$vertices, function(idx) mean(f_x[idx,]))
+plot(g, layout=igraph::layout_with_fr(g, niter = 5500),
+     vertex.size = 18L, vertex.color = bin_color(avg_filter_val), label.cex = 0.3)
 ```
 
-For more interactive options, see the section below. 
+For other visualization options, see the section below. 
 
 #### Customizing Mapper
 
 Almost any component of the Mapper method can be customized. 
 
-Want to change the metric? Pass any measure used in the [proxy](https://cran.r-project.org/web/packages/proxy/index.html) package.
+Want to change the metric? Pass the name of any proximity measure used in the [proxy](https://cran.r-project.org/web/packages/proxy/index.html) package.
 ```{r}
 ## See ?proxy::pr_DB for more details.
-m$use_distance_measure("Mahalanobis")
+m$use_distance_measure("manhattan") ## This is stored as m$measure
 ```
 
-Or just replace the clustering algorithm entirely
+Prefer a different linkage criteria to cluster over? Any of the criteria used by [hclust](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/hclust.html) can be swapped in.
 ```{r}
+m$use_clustering_algorithm(cl = "average", num_bins = 10L)
+```
+
+Or, just replace the clustering algorithm entirely
+```{r, eval=TRUE, echo=TRUE, results='hide'}
 ## If using a custom metric, just compute the distance matrix 
-m$clustering_algorithm <- function(X, idx, num_bins=10){
-  dist_x <- dist(X[idx,], method = "manhattan")
+m$use_clustering_algorithm(cl = function(X, idx, num_bins=10){
+  dist_x <- dist(X[idx,], method = self$measure)
   hc <- hclust(dist_x, method = "average")
   cutoff_first_bin(hc, diam = max(dist_x), num_bins)
-}
+})
 ```
 
 If you prefer a different covering, just assign a valid object inheriting from `CoverRef`. 
 ```{r}
-## Below is equivalent to m$use_cover(filter_values = f_x, typename="fixed rectangular", <parameters>)
-f_cover <- FixedRectangularCover$new(filter_values = f_x)
-f_cover$number_intervals <- 10
-f_cover$percent_overlap <- 50
-m$cover <- f_cover$construct_cover()
+m$use_cover(filter_values = f_x, 
+            typename="fixed rectangular", 
+            number_intervals = 10L, percent_overlap=50)
 ```
 
-A list of available covering methods can be printed as follows: 
+A list of available covering methods, their correspondings parameters, and their generators can be printed as follows: 
 ```{r}
 covers_available()
 ```
 Alternatively, you can create your own cover. See the article on [how to make custom cover](articles/UsingCustomCover.html). 
 
-The cover is composed of subsets of the data indexed by an __index set__, which can be used as keys into the cover itself
+The cover is composed of subsets of the data indexed by an __index set__
 ```{r}
 print(m$cover$index_set)
+```
+<!-- These indices naturally act as keys into the collection of sets comprising the cover -->
+These indices can be used as keys into the collection of sets comprising the cover. 
+```{r}
 all(m$cover$index_set %in% names(m$cover$level_sets))
 ```
 
-This can be useful if you want to only update only part of the complex for some reason, e.g. recluster part of the data with different clustering parameters. For example, to recluster the subsets of the data associated with the first five indices, you can do:
+This can be useful if you want to only update only part of the complex for some reason, e.g. re-cluster part of the data with different clustering parameters. For example, to re-cluster the data associated with the preimages the first two indices, you can do:
 ```{r}
-clustering_parameters <- list(num_bins=5L)
-m$compute_vertices(which_levels = m$cover$index_set[1:5], clustering_parameters)
+clustering_params <- list(num_bins=5L)
+m$compute_vertices(which_levels = m$cover$index_set[1:2], clustering_params)
 ```
 
 The same rule applies to computing the edges. 
@@ -157,7 +167,7 @@ m$simplicial_complex
 head(m$vertices, 2)
 ```
 
-As shown above, the complex is stored in a [Simplex Tree](?simplex_tree) (see 2), and the vertices are stored as a list. Each vertex also has an attribute "level_set" denoting the index in the index set of the cover its associated with.  
+The complex is stored in a [Simplex Tree](?simplex_tree) (see 2), and the vertices are stored as a list. Each vertex also has an attribute "level_set" denoting the index in the index set of the cover its associated with.  
 
 The $1$-skeleton can be exported to any of the usual graph-type data structures.
 ```{r, eval=FALSE}
@@ -175,15 +185,15 @@ By default, the vertices are sized logarithmically according to how many points 
 plot(m$as_igraph())
 ```
 
-<img src="man/figures/igraph_ex.png" width=70% style="text-align: center;"/>
+<img src="man/figures/igraph_ex.png" width=50% style="text-align: center;"/>
 
-More more interactive plotting methods, the __mapper__ can be converted to a [grapher]() object.  
+More more interactive plotting methods, the __mapper__ can be converted to a [grapher](https://github.com/peekxc/grapher) object.  
 ```{r, eval=FALSE, echo=TRUE}
 ## Visualize interactively w/ grapher
 library("grapher")
 m$as_grapher(construct_widget = TRUE) %>% center()
 ```
-<img src="man/figures/figure_eight_grapher.png" width=90% height=50% />
+<img src="man/figures/figure_eight_grapher.png" width=70% />
 
 
 ## References 
