@@ -3,7 +3,7 @@ template:
     bootswatch: simplex
 development:
   mode: devel
-  destination: docs
+  destination: /
   version_label: danger
   version_tooltip: "Package under development"
 reference:
