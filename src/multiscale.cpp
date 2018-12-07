@@ -258,7 +258,7 @@ List MultiScale::update_segments(const IntegerVector target_idx){
       // Rcout << "LS Path: " << tmp1 << std::endl;
       
       // Get the source and target level sets
-      u_int8_t next_idx = expanding ? c_path.c_idx+1 : c_path.c_idx-1;
+      uint8_t next_idx = expanding ? c_path.c_idx+1 : c_path.c_idx-1;
       uint8_t source_ls = ls_path.at(c_path.c_idx);
       uint8_t target_ls = ls_path.at(next_idx);
       c_path.c_idx = next_idx;  // Update the points position 

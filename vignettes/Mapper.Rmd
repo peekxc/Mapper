@@ -8,7 +8,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-This document contains a quick overview of how to use the interface in the _Mapper_ package to fully customize the _mapper_ construction. The focus on this document is on package functionality and usage, as opposed the theory the _Mapper_ framework was founded on, and as such discusses _Mapper_ from an algorithmic or computational perspective. 
+This document contains a quick overview of how to use the interface in the _Mapper_ package to fully customize the _mapper_ construction. The focus on this document is on package functionality and usage, as opposed the theory the _Mapper_ framework was founded on, and as such discusses _Mapper_ from a strictly algorithmic or computational perspective. 
 
 # Quickstart 
 
@@ -68,7 +68,7 @@ To demonstrate some of these benefits, consider a simplified interpretation of t
   
 These steps are demonstrated below using the `noisy_circle` data set below. 
 
-The first step is to create a _filter_ of the data. Below is an example of a very simple filter that calculates distance from every points first coordinate to the point with left-most coordinate, $p$, i.e. 
+Below is an example of a very simple filter that calculates distance from every points first coordinate to the point with left-most coordinate, $p$, i.e. 
 
 ```{r}
 ## 1. Specify a filter function for the data 
@@ -91,17 +91,17 @@ m <- MapperRef$new(X = noisy_circle)
 
 ## Building the cover
 
-Once the filter has been applied, step (2) calls to construct a cover over the function values. Here, a simple rectangular cover with fixed centers is used. 
+Once the filter has been applied, a cover must be chosen to discretize the space. Here, a simple rectangular cover with fixed centers is used. 
 ```{r}
 ## 2. Create cover of the filter space
 rec_cover <- FixedRectangularCover$new(filter_values = f_x)
 ```
-The only required argument is the filter point values themselves; cover-specific parameters may optionally be supplied at initialization, or set via assignment. 
+The only required argument is the filter point values themselves; cover-specific parameters may optionally be supplied at initialization, or set via the assignment operator. 
 ```{r}
 rec_cover$number_intervals <- 5L
 rec_cover$percent_overlap <- 20
 ```
-If you supply a single value when the filter dimensionality $> 1$, the argument is recycled. The cover summary can be printed as follows: 
+If you supply a single value when the filter dimensionality $> 1$, the argument is recycled across the dimensions. The cover summary can be printed as follows: 
 
 ```{r}
 print(rec_cover)
@@ -110,8 +110,8 @@ print(rec_cover)
 Once parameterized, the cover may be explicitly constructed via the `construct_cover` member, before sending to Mapper. The `construct_cover` function uses the given set of parameters to populate the intersection between the open sets in the cover and the given filter data.
 
 ```{r}
-## Now the level sets are populated
-m$cover <- rec_cover$construct_cover()
+rec_cover$construct_cover() ## Now the level sets are populated
+m$cover <- rec_cover
 ```
 
 `Mapper` accepts any cover that derives from the abstract `CoverRef` R6 class. To see a list of the `covers_available` method. 
@@ -122,13 +122,10 @@ Mapper::covers_available()
 
 If you want to use a cover outside of the ones offers by the package, feel free to derive a new type cover class (and consider submitting a pull request!).
 
-The final step to create a Mapper is to construct the _k_-skeleton. This step requires a different set of procedures, based on _k_.
-
 ## Building the 0-skeleton 
+The final step to create a Mapper is to construct the _k_-skeleton, which requires a different set of procedures, based on _k_. Since the definition of a _k_-skeleton is inductive, the $0$-skeleton is constructed first. This amounts to applying a partial clustering over data intersecting the preimages of the sets comprising the cover. The choice of clustering algorithm, metric, hyper-parameters, etc. is completely customizable--the only requirement is that the [clustering] function take as input at least the data `X` and a vector of indices `idx`$\subset \{1, 2, \dots, n\}$ and return an integer vector giving a partitioning on that subset. 
 
-Since the definition of a _k_-skeleton is inductive, the first step is to construct the $0$-skeleton. This amounts to applying a partial clustering over preimages of data in some metric space, indexed by the sets comprising the cover. The choice of clustering algorithm, metric, hyper-parameters, etc. is completely customizable--the only requirement is that the [clustering] function take as input at least the data `X` and a vector of indices `idx`$\subset \{1, 2, \dots, n\}$ and return an integer vector giving a partitioning on that subset. 
-
-And example of how one might construct a custom clustering function using the `parallelDist` and `fastcluster` packages is given below, wherein the _single linkage criterion_ is used to build a cluster hierarchy, and then a histogram-based heuristic similar the idea discussed in Section 3.1 of the original Mapper paper is used to set the [cut value](?stats::cutree). 
+An example of how one might construct a custom clustering function using the `parallelDist` and `fastcluster` packages is given below, wherein the _single linkage criterion_ is used to build a cluster hierarchy, and then a histogram-based heuristic similar the idea discussed in Section 3.1 of the original Mapper paper is used to set the [cut value](?stats::cutree). 
 
 ```{r}
 custom_clustering_f <- function(){
@@ -143,9 +140,9 @@ custom_clustering_f <- function(){
 m$clustering_algorithm <- custom_clustering_f()
 ```
 
-Since functions [capture their enclosing environments](http://adv-r.had.co.nz/Functional-programming.html#functional-programming), the assigned clustering function is created as a closure. This is good practice, since most functions in R are closures, and since they store their parent environment as their execution environments, which is a common cause for [memory leaks](http://adv-r.had.co.nz/memory.html#gc).
+The clustering function in this example was created as a closure. This can be useful to e.g. store auxiliary parameters option needed by the algorithm, check for package dependencies (like above), cache precomputed information, etc. Since closures [capture their enclosing environments](http://adv-r.had.co.nz/Functional-programming.html#functional-programming), which is a common cause of a form of [memory leaking](http://adv-r.had.co.nz/memory.html#gc), they must be used with caution.
 
-Although the above solution is nice, what if the clustering function depends on components of the `MapperRef` class? For example, assume a valid metric is assigned to the instance. To access that metric requires access to the _self_ environment. Consider the exact same code as above, but this time parameterized by a field of the `MapperRef` instance.
+If the clustering function depends on internal components of the `MapperRef` class instance, the function will error when it is first called. Consider the exact same code as above, but this time parameterized by a field of the `MapperRef` instance.
 
 ```{r, eval = FALSE, echo = TRUE}
 m$measure <- "euclidean"
@@ -156,27 +153,15 @@ custom_clustering_f <- function(){
 }
 ```
 
+
 This will return an evaluation error upon executing, both from the user side and internally. 
 ```{r, eval = FALSE}
 m$clustering_algorithm(X = noisy_circle, idx = 1:10)
 ## Error in pmatch(method, METHODS) : object 'self' not found 
 ```
 
-The problem is that the execution environment of the closure only captured the `dependencies_met`, and since its parent environment is the global environment, the lookup process never acccesses the internal environment of the instance object.
+The search path of the execution environment of the closure doesn't traverse the binding environment of either the _self_ or _private_ environments associated with the instance. If access to these environments is needed, pass the clustering function via the `cl` argument of the `use_clustering_algorithm` member. 
 
-```{r}
-ls(environment(m$clustering_algorithm))
-parent.env(environment(m$clustering_algorithm))
-```
-
-One way to fix this is to adjust the parent environment of the closures execution environment with the environment of the `MapperRef` instance. Since all public functions are [enclosured in their instance environment](https://github.com/r-lib/R6/blob/master/doc_extra/R6.pdf), the `initialize` members environment will do.
-
-```{r}
-parent.env(environment(m$clustering_algorithm)) <- environment(m$initialize)
-m$clustering_algorithm(X = noisy_circle, idx = 1:10)
-```
-
-This lookup process may be abstracted by simply passing the function as normal with the `use_clustering_algorithm` member function. Here's an example that captures default linkage and clustering hyper-parameters while maintaining access to the objects internal bindings.
 ```{r}
 custom_clustering_f <- function(linkage="single", nbins = 10L){
   return(function(X, idx) {
@@ -188,9 +173,9 @@ custom_clustering_f <- function(linkage="single", nbins = 10L){
 m$use_clustering_algorithm(cl = custom_clustering_f())
 ```
 
-This effectively allows the user to use any clustering algorithm they wish, even algorithms that depend on the parameters of the _mapper_ itself. 
+This effectively allows the user to use any clustering algorithm they wish, even algorithms that depend on the internal parameters of the _mapper_ itself. 
 
-Alternatively, for people do not have much experience in clustering, the `cl` argument to `set_clustering_algorithm` can also be one of the widely-supported linkage criteria and distance measures used in hierarchical clustering, to which a default cutting heuristic is assumed. The distance measure may also be any 1 of the 49 (at this time of writing) proximity measures widely available in from the `proxy` package. 
+Alternatively, for people do not have much experience in clustering, the `cl` argument to `use_clustering_algorithm` can also be one of the widely-supported linkage criteria and distance measures used in hierarchical clustering, to which a default cutting heuristic is assumed. The distance measure may also be any 1 of the 49 (at this time of writing) proximity measures widely available in from the `proxy` package. 
 ```{r}
 m$use_distance_measure(measure = "euclidean")
 m$use_clustering_algorithm(cl = "single")
