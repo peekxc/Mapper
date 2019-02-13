@@ -140,4 +140,7 @@ plot.Mapper <- function(x, ...){
   # { params[["x"]] <- edges; do.call(lines, params) }
 }
 
+# Empty environment to allow passing parameters to dashboard
+.dash_env <- new.env(parent = emptyenv())
+
 

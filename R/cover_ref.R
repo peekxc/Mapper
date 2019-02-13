@@ -136,3 +136,6 @@ covers_available <- function(){
   ))
 }
 
+# TODO: add ability to convert cover to new type to preserve copying the filter points multiple times, or 
+# move the filter points to the MapperRef object 
+

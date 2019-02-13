@@ -282,7 +282,7 @@ List MultiScale::update_segments(const IntegerVector target_idx){
       if (element != update_list.end()){
         (*element).second.at(d_i) = target_segment;
       } else {
-        update_list[pt_idx] = std::vector< uint8_t >(d, 255); // initialize to -1 to signal the segment hasn't changed
+        update_list[pt_idx] = std::vector< uint8_t >(d, 255); // initialize to 255 to signal the segment hasn't changed
         update_list[pt_idx].at(d_i) = target_segment;
       }
       

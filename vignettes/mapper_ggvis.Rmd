@@ -1,0 +1,45 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+
+data("noisy_circle", package = "Mapper")
+X <- as.data.frame(noisy_circle)
+colnames(X) <- c("x", "y")
+
+## Filter 
+f_x <- 
+  
+## Main plot 
+plot(noisy_circle, pch = 20, asp = 1, xlab = "X", ylab = "Y", main = "Circle")
+ggplot2::ggp
+
+## Filter plot
+left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
+f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
+
+
+## Mapper 
+m <- mapper(X = noisy_circle, filter_values = f_x, 
+            cover_params = list(typename="restrained rectangular", 
+                                number_intervals=10L, percent_overlap=50),
+            measure = "euclidean", 
+            cluster_params = list(cl="single", num_bins=10L))
+
+
+## 
+```
+
+```{r}
+library("ggvis")
+f_x <- as.data.frame(f_x)
+f_x <- cbind(f_x, runif(nrow(f_x)))
+colnames(f_x) <- c("f(X)", "Jitter")
+ggvis::ggvis(f_x) %>% 
+  ggvis::layer_points(x=~`f(X)`, y=~Jitter) %>% 
+  ggvis::scale_numeric("")
+```
+

@@ -211,12 +211,14 @@ IntegerVector which_cpp(const IntegerVector& x, int value) {
 }
 
 // Finds the first index (1-based) of x which equals the integer value given.
-// For some reason, I couldn't find this in R, and Position/Find is slow.
+// For some reason, I couldn't find an efficient version of this in R, and Position/Find is slow.
 // [[Rcpp::export]]
 int findFirstEqual(const IntegerVector& x, int value){
   IntegerVector::const_iterator start = x.begin();
   return(std::distance(start, std::find(start, x.end(), value)) + 1);
 }
+
+
 
 // Creates an adjacency list representing the simplicial mapping
 // [[Rcpp::export]]

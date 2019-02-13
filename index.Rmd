@@ -71,7 +71,7 @@ m <- MapperRef$
   new(X = eight)$                                             
   use_cover(filter_values = f_x, 
             typename = "restrained rectangular", 
-            number_intervals = 10, percent_overlap = 50)$
+            number_intervals = 5, percent_overlap = 20)$
   use_distance_measure(measure = "euclidean")$
   use_clustering_algorithm(cl = "single")$
   compute_k_skeleton(k = 1L)

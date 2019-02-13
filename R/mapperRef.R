@@ -128,18 +128,37 @@ MapperRef$set("active", "measure",
 #' @name use_clustering_algorithm 
 #' @title Sets the clustering algorithm 
 #' @description Sets a default hierarchical clustering algorithm.
+#' @param cl Either one of \code{\link[stats]{hclust}}s linkage criterions (string) or a function. See details.
+#' @param cutoff_method Type of heuristic to determine cut value. See details. Ignored is \code{cl} is a function.
+#' @param run_internal Whether to run the clustering within the \code{MapperRef} instance environment.
+#' @param ... Additional parameters passed as defaults to the cutoff method. See details. 
+#' @details If \code{cl} is a linkage criterion, a default clustering function is made. If it is a function, it 
+#' must have a signature compatible with \code{function(X, idx, ...)} where \code{X} is the data matrix and \code{idx}
+#' is a vector of integer indices giving which subset of \code{X} to cluster over. \cr
+#' If \code{run_internal} is set to TRUE, \code{MapperRef}, the instances environment is imported, such that field members
+#' may be used inside \code{cl}s definition. Defaults to FALSE. \cr
+#' Additional named parameters passed via \code{...} act as defaults to the cutting method chosen. If not chosen, 
+#' reasonable defaults are used. Additional named parameters passed via the dots in \code{$clustering_algorithm} 
+#' will taken precedence and override all previously set default settings. 
 MapperRef$set("public", "use_clustering_algorithm", 
-  function(cl = c("single", "ward.D", "ward.D2", "complete", "average", "mcquitty", "median", "centroid"), num_bins = 10L){
+  function(cl = c("single", "ward.D", "ward.D2", "complete", "average", "mcquitty", "median", "centroid"), 
+           cutoff_method = c("histogram", "continuous"),
+           run_internal = FALSE,
+           ...){
     ## Use a linkage criterion + cutting rule
+    default_cutting_params <- list(...)
     if (missing(cl)) { cl <- "single" }
+    if (missing(cutoff_method)){ cutoff_method <- "histogram" } 
     if (class(cl) == "character"){
       hclust_opts <- c("single", "ward.D", "ward.D2", "complete", "average", "mcquitty", "median", "centroid")
       if (!cl %in% hclust_opts){ stop(sprint("Unknown linkage method passed. Please use one of (%s). See ?hclust for details.", paste0(hclust_opts, collapse = ", "))) }
-      
+      stopifnot(is.character(self$measure))
       ## Closured representation to substitute default parameters. 
-      create_cl <- function(cl, num_bins.default){
-        function(X, idx, num_bins = num_bins.default){
+      create_cl <- function(cl, cutoff_method, cut_defaults){
+        cutoff_f <- switch(cutoff_method, "histogram"=cutoff_first_bin, "continuous"=cutoff_first_threshold)
+        function(X, idx = seq(nrow(X)), ...){
           if (length(idx) <= 1){ return(1L); }
+          override_params <- list(...)
           
           ## Use parallelDist package if available
           has_pd <- requireNamespace("parallelDist", quietly = TRUE)
@@ -150,15 +169,27 @@ MapperRef$set("public", "use_clustering_algorithm",
           has_fc <- requireNamespace("fastcluster", quietly = TRUE)
           cl_f <- ifelse(has_fc, fastcluster::hclust, stats::hclust)
           hcl <- do.call(cl_f, list(d=dist_x, method=cl))
+          
+          cutoff_params <- if (cutoff_method == "histogram"){ 
+            list(hcl = hcl, num_bins = 10L) 
+          } else { list(hcl = hcl, threshold = 0.0) }
+          cutoff_params <- modifyList(modifyList(cutoff_params, cut_defaults), override_params)
         
-          ## Use the histogram binning heuristic to produce the partitioning
-          cutoff_first_bin(hcl, diam = max(dist_x), num_bins)
+          ## Use heuristic cutting value to produce the partitioning
+          do.call(cutoff_f, cutoff_params)
         }
       }
-      self$clustering_algorithm <- create_cl(cl = cl, num_bins.default = force(num_bins))
+      cl_f <- create_cl(cl, cutoff_method, default_cutting_params)
+      parent.env(environment(cl_f)) <- environment(self$initialize)
+      self$clustering_algorithm <- cl_f
+      # environment(self$clustering_algorithm) <- environment(self$initialize)
     } else if (is.function(cl)){
       self$clustering_algorithm <- cl
-      environment(self$clustering_algorithm) <- environment(self$initialize)
+      ## If internal objects are requested
+      if (run_internal){
+        parent.env(environment(self$clustering_algorithm)) <- environment(self$initialize)
+        # environment(self$clustering_algorithm) <- environment(self$initialize)
+      }
     } else { stop("Invalid parameter type 'cl'") }
     invisible(self)
   }
@@ -351,7 +382,7 @@ MapperRef$set("public", "as_grapher", function(construct_widget=TRUE, ...){
     
   ## Create the vertices. By default, color them on a rainbow palette according to their mean filter value.
   if (length(igraph::V(G)) > 0){
-    vertex_radii <- (15L - 10L)*normalize(log(vertex_sizes)) + 10L
+    vertex_radii <- (10L - 3L)*normalize(vertex_sizes) + 10L
     vertex_xy <- apply(igraph::layout.auto(G), 2, normalize)
     json_config$nodes$x <- vertex_xy[, 1]
     json_config$nodes$y <- vertex_xy[, 2]

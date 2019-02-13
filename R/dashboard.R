@@ -20,34 +20,75 @@ dashboard <- function(M, X, node_color_f = "default", dash_config=list(node_min=
   requireNamespace("grapher", quietly = TRUE)
   
   ## Make sure shorthand 'M' is defined
+  # stopifnot(nrow(M$X) == nrow(X))
   if (!"MapperRef" %in% class(M)){ stop("'dashboard' must take as input a MapperRef instance.") }
-  G <- grapher::enableForce(M$as_grapher(construct_widget = TRUE))
 
   ## Node color functions
   if (missing(node_color_f) || node_color_f == "default"){
     if (is(X, "dist")){ stop("Default color functions cannot be applied when 'X' is given as a dist object.") }
     if (is.null(colnames(X))) { colnames(X) <- paste0("dim", 1:dim(X)[2]) }
-    color_funcs <- new.env(parent = .BaseNamespaceEnv)
-    color_file <- system.file(file.path("dashboard", "components", "default_color_functions.R"), package = "Mapper")
-    source(color_file, local = color_funcs)
-    sapply(colnames(X), function(dim_name){ color_funcs[[dim_name]] <- make_Dim_f(dim_name) })
+    color_funcs <- make_default_color_f(X)
   } else {
-    color_funcs <- node_color_f
+    color_funcs <- as.environment(node_color_f)
   }
-
-  ## Return the shiny app
-  # shiny::shinyApp(ui = ui, server = server)
-  shiny::runApp(system.file("dashboard", package = "Mapper"))
+  
+  ## Get the app directory
+  appDir <- system.file("dashboard_module", package = "Mapper")
+  if (appDir == "") { stop("Could not find dashboard directory. Try re-installing `Mapper`.", call. = FALSE) }
+  
+  .dash_env[["test"]] <- 1L
+  
+  ## Make sure these are available to the app
+  # mapply(assign, x=c("M", "X", "color_funcs", "dash_config"), value=list(M, X, color_funcs, dash_config), envir = .GlobalEnv)
+  .GlobalEnv$M <- M
+  .GlobalEnv$X <- X
+  .GlobalEnv$color_funcs <- color_funcs
+  .GlobalEnv$dash_config <- dash_config
+  on.exit(rm(list=c("M", "X", "color_funcs", "dash_config"), envir=.GlobalEnv))
+  
+  ## Run the shiny app
+  shiny::runApp(appDir, display.mode = "normal", launch.browser = TRUE)
 }
 
-## Auxillary function to make a closure for each dimension of X
-make_Dim_f <- function(dim_name){
-  function(M, X, ...){
-    agg_dim_val <- sapply(M$vertices, function(n_idx){
-      tmp <- as.matrix(X[n_idx, which(dim_name == colnames(X))])
-      apply(tmp, 1, mean)
-    })
-    agg_node_val <- sapply(agg_dim_val, mean)
+## Generates a set of default functions for coloring the mapper
+make_default_color_f <- function(X){
+  ## The current environment passed in
+  c_env <- new.env(parent = emptyenv())
+  
+  ## Computes the mean filter value for each node
+  c_env[["Mean filter value"]] <- function(M, ...){
+    agg_pt_fv <- sapply(M$vertices, function(n_idx){ apply(as.matrix(M$cover$filter_values[n_idx,]), 1, mean)})
+    agg_node_val <- sapply(agg_pt_fv, mean)
     return(agg_node_val)
   }
+  
+  ## Computes the mean data value for each node
+  c_env[["Mean data value"]] <- function(M, ...){
+    agg_pt_x <- sapply(M$vertices, function(n_idx){ apply(as.matrix(M$X[n_idx,]), 1, mean) })
+    agg_node_x <- sapply(agg_pt_x, mean)
+    return(agg_node_x)
+  }
+  
+  ## Density of nodes
+  c_env[["Density"]] <- function(M, ...){
+    return(sapply(M$vertices, length))
+  }
+  
+  ## Auxillary function to make a closure for each averaging each dimension of a given data.frame X
+  make_Dim_f <- function(dim_name){
+    function(M, X, ...){
+      agg_dim_val <- sapply(M$vertices, function(n_idx){
+        tmp <- as.matrix(X[n_idx, which(dim_name == colnames(X))])
+        apply(tmp, 1, mean)
+      })
+      agg_node_val <- sapply(agg_dim_val, mean)
+      return(agg_node_val)
+    }
+  }
+  
+  ## Make one function per column
+  for (dim_name in colnames(X)){
+    c_env[[dim_name]] <- make_Dim_f(dim_name)
+  }
+  return(c_env)
 }

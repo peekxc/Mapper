@@ -184,6 +184,67 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// gh_make_A
+IntegerMatrix gh_make_A(const IntegerMatrix& idx);
+RcppExport SEXP _Mapper_gh_make_A(SEXP idxSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const IntegerMatrix& >::type idx(idxSEXP);
+    rcpp_result_gen = Rcpp::wrap(gh_make_A(idx));
+    return rcpp_result_gen;
+END_RCPP
+}
+// gh_make_Q
+NumericMatrix gh_make_Q(const NumericMatrix& x_dist, const NumericMatrix& y_dist);
+RcppExport SEXP _Mapper_gh_make_Q(SEXP x_distSEXP, SEXP y_distSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type x_dist(x_distSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type y_dist(y_distSEXP);
+    rcpp_result_gen = Rcpp::wrap(gh_make_Q(x_dist, y_dist));
+    return rcpp_result_gen;
+END_RCPP
+}
+// all_correspondences
+NumericMatrix all_correspondences(const NumericVector& X, const NumericVector& Y);
+RcppExport SEXP _Mapper_all_correspondences(SEXP XSEXP, SEXP YSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const NumericVector& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type Y(YSEXP);
+    rcpp_result_gen = Rcpp::wrap(all_correspondences(X, Y));
+    return rcpp_result_gen;
+END_RCPP
+}
+// landmark_maxmin
+IntegerVector landmark_maxmin(const NumericMatrix& x, const int n, const int seed);
+RcppExport SEXP _Mapper_landmark_maxmin(SEXP xSEXP, SEXP nSEXP, SEXP seedSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< const int >::type seed(seedSEXP);
+    rcpp_result_gen = Rcpp::wrap(landmark_maxmin(x, n, seed));
+    return rcpp_result_gen;
+END_RCPP
+}
+// construct_merge_tree2
+List construct_merge_tree2(SEXP smesh, const NumericVector& h, SEXP merge_tree_res);
+RcppExport SEXP _Mapper_construct_merge_tree2(SEXP smeshSEXP, SEXP hSEXP, SEXP merge_tree_resSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type smesh(smeshSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type h(hSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type merge_tree_res(merge_tree_resSEXP);
+    rcpp_result_gen = Rcpp::wrap(construct_merge_tree2(smesh, h, merge_tree_res));
+    return rcpp_result_gen;
+END_RCPP
+}
 // nondecreasing_matrix
 NumericMatrix nondecreasing_matrix(const NumericMatrix& mat);
 RcppExport SEXP _Mapper_nondecreasing_matrix(SEXP matSEXP) {
@@ -276,7 +337,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// run_rcpp_tests
+void run_rcpp_tests();
+RcppExport SEXP _Mapper_run_rcpp_tests() {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    run_rcpp_tests();
+    return R_NilValue;
+END_RCPP
+}
 
+RcppExport SEXP _rcpp_module_boot_gh_module();
 RcppExport SEXP _rcpp_module_boot_multiscale_module();
 RcppExport SEXP _rcpp_module_boot_segment_tree_module();
 RcppExport SEXP _rcpp_module_boot_simplex_tree_module();
@@ -297,6 +368,11 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Mapper_concatDist", (DL_FUNC) &_Mapper_concatDist, 3},
     {"_Mapper_dist_from_to", (DL_FUNC) &_Mapper_dist_from_to, 2},
     {"_Mapper_index_test", (DL_FUNC) &_Mapper_index_test, 1},
+    {"_Mapper_gh_make_A", (DL_FUNC) &_Mapper_gh_make_A, 1},
+    {"_Mapper_gh_make_Q", (DL_FUNC) &_Mapper_gh_make_Q, 2},
+    {"_Mapper_all_correspondences", (DL_FUNC) &_Mapper_all_correspondences, 2},
+    {"_Mapper_landmark_maxmin", (DL_FUNC) &_Mapper_landmark_maxmin, 3},
+    {"_Mapper_construct_merge_tree2", (DL_FUNC) &_Mapper_construct_merge_tree2, 3},
     {"_Mapper_nondecreasing_matrix", (DL_FUNC) &_Mapper_nondecreasing_matrix, 1},
     {"_Mapper_test_merge", (DL_FUNC) &_Mapper_test_merge, 1},
     {"_Mapper_test_merge2", (DL_FUNC) &_Mapper_test_merge2, 1},
@@ -304,6 +380,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Mapper_build_0_skeleton", (DL_FUNC) &_Mapper_build_0_skeleton, 7},
     {"_Mapper_build_1_skeleton", (DL_FUNC) &_Mapper_build_1_skeleton, 5},
     {"_Mapper_intersectNodes", (DL_FUNC) &_Mapper_intersectNodes, 4},
+    {"_Mapper_run_rcpp_tests", (DL_FUNC) &_Mapper_run_rcpp_tests, 0},
+    {"_rcpp_module_boot_gh_module", (DL_FUNC) &_rcpp_module_boot_gh_module, 0},
     {"_rcpp_module_boot_multiscale_module", (DL_FUNC) &_rcpp_module_boot_multiscale_module, 0},
     {"_rcpp_module_boot_segment_tree_module", (DL_FUNC) &_rcpp_module_boot_segment_tree_module, 0},
     {"_rcpp_module_boot_simplex_tree_module", (DL_FUNC) &_rcpp_module_boot_simplex_tree_module, 0},

@@ -10,18 +10,28 @@
 #include <Rcpp.h>
 using namespace Rcpp;
 
+using std::size_t;
+using std::vector;
+
 struct UnionFind {
-  const int size; 
-  Rcpp::IntegerVector parent;
-  Rcpp::IntegerVector rank;
+  size_t size; 
+  vector< size_t > parent, rank;
   
-  UnionFind(const int _size);
+  // Ctor and Dtor + Rcpp XPtr handle
+  UnionFind(const size_t _size);
   ~UnionFind();
   SEXP as_XPtr();
-  void Union(const int x, const int y); 
-  void UnionAll(const IntegerVector idx);
-  const int Find(const int x); 
-  IntegerVector FindAll(const IntegerVector idx);
+  
+  // Universal operations
+  const size_t Find(const size_t x); 
+  void AddSets(const size_t n_sets);
+  void Union(const size_t x, const size_t y); 
+  
+  // Overloads for internal convenience functions
+  void UnionAll(const vector< size_t >& idx);
+  vector< size_t > FindAll(const vector< size_t >& idx);
+  
+  // Auxilliary 
   IntegerVector getCC();
   void printCC();
 }; // class UnionFind

@@ -3,13 +3,11 @@ Type: Package
 Title: Topological Data Analysis using Mapper
 Version: 0.8.0
 Date: 2018-11-29
-Authors@R: c(person("Matt", "Piekenbrock", email = "matt.piekenbrock@gmail.com", role = c("aut", "cre", "cph")), 
-             person("Gurjeet","Singh", role = c("ctb","cph")))
-Author: Matt Piekenbrock [aut, cre, ctb],
-        Gurjeet Singh [ctb, cph]
+Authors@R: c(person("Matt", "Piekenbrock", email = "matt.piekenbrock@gmail.com", role = c("aut", "cre", "cph")))
+Author: Matt Piekenbrock [aut, cre, ctb]
 Maintainer: Matt Piekenbrock <matt.piekenbrock@gmail.com>
 Description: An efficient implementation of the Mapper algorithm, and other related algorithms and tools used in Topological Data Analysis. 
-Imports: R6, Rcpp, stats, methods 
+Imports: R6, Rcpp, stats, methods
 LinkingTo: Rcpp
 RcppModules: segment_tree_module, simplex_tree_module, union_find_module
 License: file LICENSE

@@ -57,6 +57,26 @@ index_test <- function(sizes) {
     .Call(`_Mapper_index_test`, sizes)
 }
 
+gh_make_A <- function(idx) {
+    .Call(`_Mapper_gh_make_A`, idx)
+}
+
+gh_make_Q <- function(x_dist, y_dist) {
+    .Call(`_Mapper_gh_make_Q`, x_dist, y_dist)
+}
+
+all_correspondences <- function(X, Y) {
+    .Call(`_Mapper_all_correspondences`, X, Y)
+}
+
+landmark_maxmin <- function(x, n, seed = 0L) {
+    .Call(`_Mapper_landmark_maxmin`, x, n, seed)
+}
+
+construct_merge_tree2 <- function(smesh, h, merge_tree_res) {
+    .Call(`_Mapper_construct_merge_tree2`, smesh, h, merge_tree_res)
+}
+
 nondecreasing_matrix <- function(mat) {
     .Call(`_Mapper_nondecreasing_matrix`, mat)
 }
@@ -83,5 +103,9 @@ build_1_skeleton <- function(ls_pairs, min_sz, vertices, ls_vertex_map, stree) {
 
 intersectNodes <- function(nodes1, nodes2, node_ids1, node_ids2) {
     .Call(`_Mapper_intersectNodes`, nodes1, nodes2, node_ids1, node_ids2)
+}
+
+run_rcpp_tests <- function() {
+    invisible(.Call(`_Mapper_run_rcpp_tests`))
 }
 

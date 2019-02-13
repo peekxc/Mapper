@@ -51,7 +51,7 @@ void update_level_set(const int ls_flat_index, const IntegerVector level_set, co
     
     // Update the simplex tree by inserting the 0-simplices
     std::for_each(new_0_simplexes.begin(), new_0_simplexes.end(), [&stree_ptr](const int v_i){
-      std::vector<uint> v = { static_cast<uint>(v_i) };
+      std::vector< size_t > v = { static_cast< size_t >(v_i) };
       stree_ptr->insert_simplex(v);
     });
     
@@ -171,7 +171,7 @@ void build_1_skeleton(const IntegerMatrix& ls_pairs, const int min_sz, const Lis
             return(std::find(n2_idx.begin(), n2_idx.end(), k) != n2_idx.end());
           });
           if (intersect_size >= min_sz){
-            std::vector<uint> simplex = { uint(*n1), uint(*n2) };
+            std::vector< size_t > simplex = { size_t(*n1), size_t(*n2) };
             stree_ptr->insert_simplex(simplex);
           } 
         } else {
@@ -180,7 +180,7 @@ void build_1_skeleton(const IntegerMatrix& ls_pairs, const int min_sz, const Lis
             return(std::find(n2_idx.begin(), n2_idx.end(), k) != n2_idx.end());
           });
           if (intersect_check){
-            std::vector<uint> simplex = { uint(*n1), uint(*n2) };
+            std::vector<size_t> simplex = { size_t(*n1), size_t(*n2) };
             stree_ptr->insert_simplex(simplex);
           } 
         }

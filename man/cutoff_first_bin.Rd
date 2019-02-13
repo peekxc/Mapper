@@ -2,7 +2,7 @@
 % Please edit documentation in R/cutoff_methods.R
 \name{cutoff_first_bin}
 \alias{cutoff_first_bin}
-\title{cutoff_first_bin function}
+\title{cutoff_first_bin}
 \usage{
 cutoff_first_bin(hcl, diam, num_bins)
 }
@@ -14,6 +14,6 @@ cutoff_first_bin(hcl, diam, num_bins)
 \item{num_bins}{Controls how many bins there are in the histogram used to determine cutoff.}
 }
 \description{
-Uses the heuristic from the original Mapper paper to cut a given hierarchical cluster tree at the
-threshold corresponding to the first empty of a histogram of the linkage distances.
+Uses the heuristic described in Section 3.1 of the original Mapper paper to cut a given hierarchical tree to produce a partitioning of the data.
+The cut value is chosen as the lowest break point corresponding to the first empty bin of a histogram of the linkage distances.
 }

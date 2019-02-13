@@ -3,6 +3,25 @@
 \name{use_clustering_algorithm}
 \alias{use_clustering_algorithm}
 \title{Sets the clustering algorithm}
+\arguments{
+\item{cl}{Either one of \code{\link[stats]{hclust}}s linkage criterions (string) or a function. See details.}
+
+\item{cutoff_method}{Type of heuristic to determine cut value. See details. Ignored is \code{cl} is a function.}
+
+\item{run_internal}{Whether to run the clustering within the \code{MapperRef} instance environment.}
+
+\item{...}{Additional parameters passed as defaults to the cutoff method. See details.}
+}
 \description{
 Sets a default hierarchical clustering algorithm.
+}
+\details{
+If \code{cl} is a linkage criterion, a default clustering function is made. If it is a function, it 
+must have a signature compatible with \code{function(X, idx, ...)} where \code{X} is the data matrix and \code{idx}
+is a vector of integer indices giving which subset of \code{X} to cluster over. \cr
+If \code{run_internal} is set to TRUE, \code{MapperRef}, the instances environment is imported, such that field members
+may be used inside \code{cl}s definition. Defaults to FALSE. \cr
+Additional named parameters passed via \code{...} act as defaults to the cutting method chosen. If not chosen, 
+reasonable defaults are used. Additional named parameters passed via the dots in \code{$clustering_algorithm} 
+will taken precedence and override all previously set default settings.
 }

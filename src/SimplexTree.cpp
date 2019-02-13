@@ -9,11 +9,11 @@
 SimplexTree::SimplexTree() {  
   root = node_ptr(new node(0, nullptr));
   level_map = std::unordered_map< std::string, std::vector<node_ptr> >();
-  n_simplexes = std::vector<uint>(); 
+  n_simplexes = std::vector<idx_t>(); 
 }
 
 SimplexTree::~SimplexTree() { 
-  std::vector<uint>().swap(n_simplexes);
+  std::vector<idx_t>().swap(n_simplexes);
   // delete_tree(root);
 }
 
@@ -41,10 +41,10 @@ IntegerVector SimplexTree::adjacent_vertices(const int v){
   }
   
   // Then get the vertices with labels < v
-  std::map< uint, node_ptr > top_vertices = root->children;
+  std::map< idx_t, node_ptr > top_vertices = root->children;
   if (top_vertices.find(v) != top_vertices.end()){
     node_ptr vertex = top_vertices.at(v);
-    std::map< uint, node_ptr > v_children = vertex->children;
+    std::map< idx_t, node_ptr > v_children = vertex->children;
     for (auto& kv: v_children){
       res.push_back(kv.first);
     }
@@ -54,7 +54,7 @@ IntegerVector SimplexTree::adjacent_vertices(const int v){
   return(unique(res));
 }
 
-void SimplexTree::record_new_simplexes(const uint k, const uint n){
+void SimplexTree::record_new_simplexes(const idx_t k, const idx_t n){
   if (n_simplexes.size() < k+1){
     n_simplexes.resize(k+1);
   }
@@ -63,7 +63,7 @@ void SimplexTree::record_new_simplexes(const uint k, const uint n){
 
 // Finds the 0-based index of the vertex in the top nodes, or -1 otherwise.
 int SimplexTree::find_vertex(const int v_id){
-  std::map< uint, node_ptr > top_vertices = root->children;
+  std::map< idx_t, node_ptr > top_vertices = root->children;
   auto it = top_vertices.find(v_id); 
   if (it != top_vertices.end()){ 
     return(std::distance(top_vertices.begin(), it));
@@ -72,11 +72,11 @@ int SimplexTree::find_vertex(const int v_id){
 }
   
 // Returns a 0-based integer vector of the first ids available to allocate new vertices
-IntegerVector SimplexTree::vertex_available(uint n_vertices){
-  std::map< uint, node_ptr > top_vertices = root->children;
-  uint max = top_vertices.size() + n_vertices;
+IntegerVector SimplexTree::vertex_available(idx_t n_vertices){
+  std::map< idx_t, node_ptr > top_vertices = root->children;
+  idx_t max = top_vertices.size() + n_vertices;
   IntegerVector new_idx = IntegerVector();
-  for (uint cc = 0; cc < max; ++cc){
+  for (idx_t cc = 0; cc < max; ++cc){
     if (top_vertices.find(cc) == top_vertices.end()){
       new_idx.push_back(cc);
       if (new_idx.size() == n_vertices){ break; }
@@ -86,7 +86,7 @@ IntegerVector SimplexTree::vertex_available(uint n_vertices){
 }
   
 // Emplace v_i new 0-simplices. Ids are automatically assigned. 
-void SimplexTree::add_vertices(const uint v_i){
+void SimplexTree::add_vertices(const idx_t v_i){
   const size_t n = root->children.size();
   for (size_t i = 0; i < v_i; ++i){ 
     size_t v_id = n+i+1;
@@ -98,7 +98,7 @@ void SimplexTree::add_vertices(const uint v_i){
 // Removes a vertex from the simplex tree, including all edges connected to it.
 void SimplexTree::remove_vertices(IntegerVector vertex_ids){
   if (vertex_ids.size() == 0){ return; }
-  std::map< uint, s_ptr<node> > top_vertices = root->children;
+  std::map< idx_t, s_ptr<node> > top_vertices = root->children;
   IntegerVector edge_to_remove = IntegerVector::create(0, 0);
   for (IntegerVector::const_iterator vid = vertex_ids.begin(); vid != vertex_ids.end(); ++vid){
     
@@ -130,7 +130,7 @@ void SimplexTree::remove_vertices(IntegerVector vertex_ids){
 
 // Removes all cofaces containing vertex v
 void SimplexTree::remove_vertex_cofaces(const int v){
-  using simplices = std::map< uint, s_ptr<node> >;
+  using simplices = std::map< idx_t, s_ptr<node> >;
   simplices top_nodes = root->children;
   simplices::iterator it = top_nodes.find(v);
   if (it != top_nodes.end()){
@@ -145,12 +145,11 @@ void SimplexTree::remove_vertex_cofaces(const int v){
         std::vector< node_ptr >& adj_vertices = level_map[key];
         
         // If the query vertex is the parent of any such vertices, remove it 
-        adj_vertices.erase(
-          std::remove_if(adj_vertices.begin(), adj_vertices.end(), [&v](node_ptr vi){
-            return(vi->parent->label == v);
-          }), 
-          adj_vertices.end()
-        );
+        std::vector< node_ptr >::iterator c_node; 
+        c_node = std::find_if(adj_vertices.begin(), adj_vertices.end(), [&v](node_ptr vi){
+          return(vi->parent->label == v);
+        });
+        if (c_node != adj_vertices.end()){ adj_vertices.erase(c_node); }
       }
     }
   }
@@ -167,57 +166,91 @@ void SimplexTree::remove_edge(IntegerVector edge){
     remove_child(v_ptr, edge[1], 1);
   }
 }
+
+void SimplexTree::remove_simplex(const IntegerVector& simplex){
+  if (n_simplexes.size() == 0 || simplex.size() == 0){ return; }
+  if (!find_simplex(simplex)){ return; }
+}
+
+// Recursive helper 
+node_ptr remove(idx_t* labels, const size_t i, const size_t n_keys, node_ptr c_node, const idx_t depth){
+  if (i >= n_keys || labels == nullptr || c_node == nullptr){ return nullptr; } // base case + safety checks
+  // Base case: If arrived at the largest k-simplex to remove
+  if (depth == n_keys){
+    // std::string key = std::to_string(labels[j]) + "-" + std::to_string(depth);
+    // size_t has_children = c_node->children.size();
+    // if (!bool(j_exists)){
+    //   // Rcout << "Creating new node " << labels[j] << ", parent: " << c_node->label << std::endl;
+    //   node_ptr new_node = node_ptr(new node(labels[j], c_node));
+    //   insert_child(c_node, new_node, depth);
+    //   if (depth > 0){ // keep track of nodes which share ids at the same depth
+    //     std::string key = std::to_string(labels[j]) + "-" + std::to_string(depth);
+    //     if level_map[key] push_back(new_node);
+    //   }
+    // }
+  }
   
+  // for (int j = i; j < n_keys; ++j){
+  //   // Rcout << "Recursing with child node: " << labels[j] <<  " of parent: " << c_node->label << " and grandparent: " << (c_node->parent == nullptr ? 0 : c_node->parent->label)  << std::endl;
+  //   node_ptr child_node = c_node->children.at(labels[j]);
+  //   remove(labels, j + 1, n_keys, child_node, depth + 1);
+  // }
+}  
 
 // Remove a child node directly to the parent if it exists
-void SimplexTree::remove_child(node_ptr c_parent, uint child_label, uint depth){
+void SimplexTree::remove_child(node_ptr c_parent, idx_t child_label, idx_t depth){
   //Rcout << c_parent << std::endl;
   if (c_parent == nullptr){ return; }
-  std::map<uint, node_ptr>& parents_children = c_parent->children;
-  std::map<uint, node_ptr>::iterator key_lb = parents_children.find(child_label);
+  std::map<idx_t, node_ptr>& parents_children = c_parent->children;
+  std::map<idx_t, node_ptr>::iterator key_lb = parents_children.find(child_label);
   if (key_lb == parents_children.end()) { return; }
   else {
     // TODO: Remove the for_each loop and call .clear() instead, crashing because of iterator invalidation
     // node_ptr& c_node = key_lb->second;
     // if (c_node->children.size() > 0){
-    //   std::for_each(c_node->children.begin(), c_node->children.end(), [&](std::map<uint, node_ptr>::value_type& pair)   {
+    //   std::for_each(c_node->children.begin(), c_node->children.end(), [&](std::map<idx_t, node_ptr>::value_type& pair)   {
     //     remove_child(c_node, pair.first, depth+1);
     //   });
     // }
-    // uint key = key_lb->first; 
+    // idx_t key = key_lb->first; 
     // Finally, remove the intended node
     parents_children.erase(key_lb);
   }
   record_new_simplexes(depth, -1);
 }
   
-// Attachs a child node directly to the parent if it doesn't exist
-void SimplexTree::add_child(node_ptr c_parent, uint child_label, uint depth){
-  std::map<uint, node_ptr>& parents_children = c_parent->children;
-  std::map<uint, node_ptr>::iterator key_lb = parents_children.find(child_label); 
+// Inserts a child directly to the parent if the child doesn't already exist.
+// Also records the addition of the simplex if the child is indeed created. Otherwise, does nothing. 
+node_ptr SimplexTree::insert_child(node_ptr c_parent, node_ptr new_child, idx_t depth){
+  if (new_child == nullptr){ return nullptr; }
+  std::map<idx_t, node_ptr>& parents_children = c_parent->children;
+  std::map<idx_t, node_ptr>::iterator key_lb = parents_children.find(new_child->label); 
   if (key_lb == parents_children.end()) { 
-    node_ptr new_child = node_ptr(new node(child_label, c_parent));
-    parents_children.insert(key_lb, std::map<uint, node_ptr>::value_type(child_label, new_child));
+    // node_ptr new_child = node_ptr(new node(child_label, c_parent));
+    parents_children.insert(key_lb, std::map<idx_t, node_ptr>::value_type(new_child->label, new_child));
+    record_new_simplexes(depth, 1);
+    return(new_child);
   }
-  record_new_simplexes(depth, 1);
+  return(key_lb->second);// change?
 }
 
 // Creates a new set of child nodes for the given parent. createChild check for redundancy with insert. 
 // Returns all of the children of the node upon completion. 
-void SimplexTree::add_children(node_ptr c_parent, const std::vector<uint>& new_children, uint depth){
-  std::for_each(new_children.begin(), new_children.end(), [&](const uint& id){
-    add_child(c_parent, id, depth);
+void SimplexTree::add_children(node_ptr c_parent, const std::vector<idx_t>& new_children, idx_t depth){
+  std::for_each(new_children.begin(), new_children.end(), [&](const idx_t& id){
+    node_ptr new_child = node_ptr(new node(id, c_parent));
+    insert_child(c_parent, new_child, depth);
   });
 }
   
 // Rcpp wrapper needs STL for API access
-inline void SimplexTree::insert_simplex(std::vector<uint> labels){
+inline void SimplexTree::insert_simplex(std::vector<idx_t> labels){
   std::sort(labels.begin(), labels.end()); // Demand that labels are sorted on insertion! 
-  insert((uint*) &labels[0], 0, labels.size(), root, 0); // start the recursion from the root
+  insert((idx_t*) &labels[0], 0, labels.size(), root, 0); // start the recursion from the root
 }
 
 
-void SimplexTree::insert(uint* labels, const size_t i, const size_t n_keys, node_ptr c_node, const uint depth){
+void SimplexTree::insert(idx_t* labels, const size_t i, const size_t n_keys, node_ptr c_node, const idx_t depth){
   if (i >= n_keys || labels == nullptr || c_node == nullptr){ return; } // base case + safety checks
   // Create a set of (i)-simplexes as children of the current node, if they don't already exist
   for (int j = i; j < n_keys; ++j){
@@ -225,7 +258,7 @@ void SimplexTree::insert(uint* labels, const size_t i, const size_t n_keys, node
     if (!bool(j_exists)){
       // Rcout << "Creating new node " << labels[j] << ", parent: " << c_node->label << std::endl;
       node_ptr new_node = node_ptr(new node(labels[j], c_node));
-      add_child(c_node, labels[j], depth);
+      insert_child(c_node, new_node, depth);
       if (depth > 0){ // keep track of nodes which share ids at the same depth
         std::string key = std::to_string(labels[j]) + "-" + std::to_string(depth);
         level_map[key].push_back(new_node);
@@ -249,13 +282,13 @@ bool SimplexTree::find_simplex(const IntegerVector& simplex){
   else {
     std::vector<int> simplex_query = as< std::vector<int> >(simplex);
     node_ptr res = find(simplex_query);
-    return(bool(res));
+    return(bool(res)); // nullptr conversion to bool guarenteed to be false
   }
 }
   
 // Overload to get the top node 
-node_ptr SimplexTree::find (uint label){
-  std::map<uint, node_ptr>::iterator it = root->children.find(label);
+node_ptr SimplexTree::find (idx_t label){
+  std::map<idx_t, node_ptr>::iterator it = root->children.find(label);
   if (it != root->children.end()){
     return(it->second); 
   } else { return(nullptr); }
@@ -265,7 +298,7 @@ node_ptr SimplexTree::find (uint label){
 // (node) is returned, else a nullptr is returned.
 node_ptr SimplexTree::find (std::vector<int> simplex){
   node_ptr c_node = root;
-  std::map<uint,node_ptr>::iterator node_it;
+  std::map<idx_t,node_ptr>::iterator node_it;
   for (size_t i = 0; i < simplex.size(); ++i){
     if ((node_it = c_node->children.find(simplex[i])) != c_node->children.end()){
       c_node = node_it->second;
@@ -276,22 +309,22 @@ node_ptr SimplexTree::find (std::vector<int> simplex){
   
 
 // utility to get the maximumheight /longest path any a given node.
-uint SimplexTree::get_dfs_height(node_ptr cnode, uint c_height){
-  std::map<uint, node_ptr>::iterator it; 
-  uint max_height = 0; 
+idx_t SimplexTree::get_dfs_height(node_ptr cnode, idx_t c_height){
+  std::map<idx_t, node_ptr>::iterator it; 
+  idx_t max_height = 0; 
   for (it = cnode->children.begin(); it != cnode->children.end(); ++it){ 
     int tmp = get_dfs_height(it->second, c_height + 1); 
     if (tmp > max_height){ max_height = tmp; }
   }
-  return((uint) std::max(c_height, max_height));
+  return((idx_t) std::max(c_height, max_height));
 }
   
-void SimplexTree::print_level(node_ptr cnode, uint level){
+void SimplexTree::print_level(node_ptr cnode, idx_t level){
   if (cnode == nullptr || cnode == NULL) return;
   if (level == 0) Rprintf(" %d", cnode->label);
   else if (level > 0)
   {
-    std::map<uint, node_ptr>::iterator it;
+    std::map<idx_t, node_ptr>::iterator it;
     for (it = cnode->children.begin(); it != cnode->children.end(); ++it){ 
       print_level(it->second, level-1);
     }
@@ -301,9 +334,9 @@ void SimplexTree::print_level(node_ptr cnode, uint level){
 // Basic breadth-first printing. Each level is prefixed with '.' <level> number of times, followed by the 
 // the ids of the nodes at that breadth-level enclosed within parenthesis, i.e. ..( 2 3 4 ) 
 void SimplexTree::print_tree(){
-  std::map<uint, node_ptr>::iterator it;
+  std::map<idx_t, node_ptr>::iterator it;
   for (it = root->children.begin(); it != root->children.end(); ++it){ 
-    uint h = get_dfs_height(it->second, 0); 
+    idx_t h = get_dfs_height(it->second, 0); 
     Rcout << it->first << " (h = " << h << "): ";
     for (int i = 1; i <= h; ++i){ 
       for (int j = 1; j <= i; ++j){  Rcout << "."; }
@@ -327,47 +360,47 @@ void SimplexTree::print_cofaces(int depth){
   }
 }
   
-std::vector<uint> SimplexTree::getLabels(const std::map<uint, node_ptr>& level, const uint offset){
+std::vector<idx_t> SimplexTree::getLabels(const std::map<idx_t, node_ptr>& level, const idx_t offset){
   // return from iterator begin to end labels as vector
-  std::vector<uint> labels;
+  std::vector<idx_t> labels;
   labels.reserve(level.size() - offset);
-  std::map<uint, node_ptr>::const_iterator it = level.begin(); 
+  std::map<idx_t, node_ptr>::const_iterator it = level.begin(); 
   std::advance(it, offset);
   std::transform (it, level.end(), back_inserter(labels), 
-    [&](std::pair<uint, node_ptr> const& pair) { return pair.first; });
+    [&](std::pair<idx_t, node_ptr> const& pair) { return pair.first; });
   return(labels);
 }
   
-uint SimplexTree::intersection_size(std::vector<uint> v1, std::vector<uint> v2){
-  std::unordered_set<uint> s(v1.begin(), v1.end());
-  uint res = count_if(v2.begin(), v2.end(), [&](uint k) {return s.find(k) != s.end(); });
+idx_t SimplexTree::intersection_size(std::vector<idx_t> v1, std::vector<idx_t> v2){
+  std::unordered_set<idx_t> s(v1.begin(), v1.end());
+  idx_t res = count_if(v2.begin(), v2.end(), [&](idx_t k) {return s.find(k) != s.end(); });
   return(res);
 }
 
 // v1 and v2 should already by sorted!!
-std::vector<uint> SimplexTree::intersection(std::vector<uint> v1, std::vector<uint> v2){
-  std::vector<uint> v3;
+std::vector<idx_t> SimplexTree::intersection(std::vector<idx_t> v1, std::vector<idx_t> v2){
+  std::vector<idx_t> v3;
   std::set_intersection(v1.begin(), v1.end(), v2.begin(), v2.end(), back_inserter(v3));
   return(v3);
 }
 
 // Experimental k-expansion algorithm.
 // Performs an expansion of order k, thus reconstructing a k-skeleton from the 1-skeleton alone.
-void SimplexTree::expansion(const uint k){
-  std::for_each(root->children.begin(), root->children.end(), [&](const std::pair<uint, node_ptr>& c_node){
-    //uint simplex[k];
+void SimplexTree::expansion(const idx_t k){
+  std::for_each(root->children.begin(), root->children.end(), [&](const std::pair<idx_t, node_ptr>& c_node){
+    //idx_t simplex[k];
     //expand(c_node.second->children, k, 0, simplex);
   });
 }
   
 // Expand operation compares a given 'head' nodes children to its siblings. 
 // If they have a non-empty intersection, then the intersection is added as a child to the head node. 
-void SimplexTree::expand(std::map<uint, node_ptr>& v, const uint k, uint depth, uint* simplex){
+void SimplexTree::expand(std::map<idx_t, node_ptr>& v, const idx_t k, idx_t depth, idx_t* simplex){
   
   if (v.size() <= 1){ return; } // Current level only has one node; intersection will be empty
   
   // For each child node
-  std::map<uint, node_ptr>::const_iterator v_it = v.begin(); 
+  std::map<idx_t, node_ptr>::const_iterator v_it = v.begin(); 
   for (v_it = v.begin(); v_it != v.end(); ++v_it){
     
     // Get the 'head' nodes 
@@ -378,9 +411,9 @@ void SimplexTree::expand(std::map<uint, node_ptr>& v, const uint k, uint depth, 
     if (root_head->children.size() == 0){ return; }
     
     // Get the (1-offset) siblings of the relative head, and the labels of the children of root head
-    std::vector<uint> siblings = getLabels(v, 1);
-    std::vector<uint> children = getLabels(root_head->children, 0);
-    std::vector<uint> sc_int = intersection(children, siblings);
+    std::vector<idx_t> siblings = getLabels(v, 1);
+    std::vector<idx_t> children = getLabels(root_head->children, 0);
+    std::vector<idx_t> sc_int = intersection(children, siblings);
     
     IntegerVector sib1 = wrap(siblings);
     IntegerVector children1 = wrap(children);
@@ -399,9 +432,9 @@ void SimplexTree::expand(std::map<uint, node_ptr>& v, const uint k, uint depth, 
 IntegerMatrix SimplexTree::as_adjacency_matrix(){
   const size_t n = root->children.size();
   IntegerMatrix res = IntegerMatrix(n, n);
-  std::for_each(root->children.begin(), root->children.end(), [&](std::pair<uint, node_ptr> v){
-    const std::map<uint, node_ptr> vc = v.second->children;
-    std::for_each(vc.begin(), vc.end(), [&](std::pair<uint, node_ptr> child){
+  std::for_each(root->children.begin(), root->children.end(), [&](std::pair<idx_t, node_ptr> v){
+    const std::map<idx_t, node_ptr> vc = v.second->children;
+    std::for_each(vc.begin(), vc.end(), [&](std::pair<idx_t, node_ptr> child){
       const int i = find_vertex(v.first), j = find_vertex(child.first);
       res.at(i, j) = 1; 
       res.at(j, i) = 1; 
@@ -413,11 +446,11 @@ IntegerMatrix SimplexTree::as_adjacency_matrix(){
 // Exports the 1-skeleton as an adjacency matrix 
 List SimplexTree::as_adjacency_list(){
   const size_t n = root->children.size();
-  std::unordered_map< std::string, std::vector<uint> > res(n); // output
-  std::for_each(root->children.begin(), root->children.end(), [&](std::pair<uint, node_ptr> v){
-    const std::map<uint, node_ptr> vc = v.second->children;
-    std::vector<uint> adjacencies = std::vector<uint>();
-    std::for_each(vc.begin(), vc.end(), [&](std::pair<uint, node_ptr> child){
+  std::unordered_map< std::string, std::vector<idx_t> > res(n); // output
+  std::for_each(root->children.begin(), root->children.end(), [&](std::pair<idx_t, node_ptr> v){
+    const std::map<idx_t, node_ptr> vc = v.second->children;
+    std::vector<idx_t> adjacencies = std::vector<idx_t>();
+    std::for_each(vc.begin(), vc.end(), [&](std::pair<idx_t, node_ptr> child){
       res[std::to_string(v.first)].push_back(child.first);
       res[std::to_string(child.first)].push_back(v.first);
     });
@@ -428,18 +461,27 @@ List SimplexTree::as_adjacency_list(){
 // Exports the 1-skeleton as an edgelist 
 IntegerMatrix SimplexTree::as_edge_list(){
   // const size_t n = root->children.size();
-  uint n_edges = 0; 
-  std::for_each(root->children.begin(), root->children.end(), [&](std::pair<uint, node_ptr> v){
+  idx_t n_edges = 0; 
+  std::for_each(root->children.begin(), root->children.end(), [&](std::pair<idx_t, node_ptr> v){
     n_edges += v.second->children.size();
   });
   
   int i = 0; 
   IntegerMatrix res = no_init_matrix(n_edges, 2);
-  std::for_each(root->children.begin(), root->children.end(), [&](std::pair<uint, node_ptr> v){
-    const std::map<uint, node_ptr> vc = v.second->children;
-    std::for_each(vc.begin(), vc.end(), [&](std::pair<uint, node_ptr> child){
+  std::for_each(root->children.begin(), root->children.end(), [&](std::pair<idx_t, node_ptr> v){
+    const std::map<idx_t, node_ptr> vc = v.second->children;
+    std::for_each(vc.begin(), vc.end(), [&](std::pair<idx_t, node_ptr> child){
       res.row(i++) = IntegerVector::create(v.first, child.first); 
     });
+  });
+  return(res);
+}
+
+IntegerVector SimplexTree::get_vertices(){
+  if (n_simplexes.size() == 0){ return(IntegerVector::create()); }
+  IntegerVector res = no_init_vector(n_simplexes[0]);
+  std::transform(root->children.begin(), root->children.end(), res.begin(), [](std::pair<idx_t, node_ptr> v){
+    return(v.first);
   });
   return(res);
 }
@@ -453,7 +495,7 @@ IntegerMatrix SimplexTree::as_edge_list(){
 //   
 // }
 // 
-// void SimplexTree::as_list_helper(List& res, node_ptr c_node, uint depth, uint* simplex, const size_t n_keys){
+// void SimplexTree::as_list_helper(List& res, node_ptr c_node, idx_t depth, idx_t* simplex, const size_t n_keys){
 //   
 //   // Base case
 //   if (c_node->children.size() == 0){
@@ -484,5 +526,6 @@ RCPP_MODULE(simplex_tree_module) {
   .method( "as_adjacency_matrix", &SimplexTree::as_adjacency_matrix )
   .method( "as_adjacency_list", &SimplexTree::as_adjacency_list)
   .method( "as_edge_list", &SimplexTree::as_edge_list)
+  .method( "get_vertices", &SimplexTree::get_vertices)
   ;
 }
