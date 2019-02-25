@@ -1,7 +1,6 @@
 
 # Mapper 
-
-[![Appveyor Windows Build status](https://img.shields.io/appveyor/ci/peekxc/Mapper/master.svg?logo=windows&logoColor=DDDDDD](https://ci.appveyor.com/project/peekxc/mapper)
+[![Appveyor Windows Build status](https://img.shields.io/appveyor/ci/peekxc/Mapper/master.svg?logo=windows&logoColor=DDDDDD)](https://ci.appveyor.com/project/peekxc/mapper)
 [![Travis OS X Build status](https://img.shields.io/travis/com/peekxc/Mapper/master.svg?logo=Apple&logoColor=DDDDDD&env=BADGE=osx&label=build)](https://travis-ci.com/peekxc/Mapper)
 [![Travis Linux X Build status](https://img.shields.io/travis/com/peekxc/Mapper/master.svg?logo=linux&logoColor=DDDDDD&env=BADGE=linux&label=build&branch=master)](https://travis-ci.com/peekxc/Mapper)
 
