@@ -1,6 +1,6 @@
 
 
-
+invisible(sapply(c("ROI", "ROI.plugin.glpk", "nloptr"), function(lib) { library(lib, character.only = TRUE) }))
 rotate <- function(X, theta){
   theta <- theta*pi/180 # radians
   r <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), nrow = 2)
@@ -11,10 +11,16 @@ reflect <- function(X, r_axis=0){
   if (r_axis == 1){ return(cbind(-X[,1], X[,2])) }
 }
 
+add_noise <- FALSE
 n <- 45L
 X <- replicate(2, rnorm(n))
 eps <- min(dist(X))
-Y <- rotate(X, 45) + runif(n, min = 1.5*eps, max = eps*2.5)
+if (add_noise){
+  Y <- rotate(X, 45) + runif(n, min = 1.5*eps, max = eps*2.5)
+} else {
+  Y <- rotate(X, 45)
+}
+
 { d_X <- as.matrix(dist(X)); d_Y <- as.matrix(dist(Y)) }
 mu_X <- rep(1/nrow(X), nrow(X))
 mu_Y <- rep(1/nrow(Y), nrow(Y))
@@ -30,10 +36,13 @@ text(X, labels = 1L:n, col = "black", pos = 1)
 text(translated_Y, labels = seq(nrow(Y)), col = "red", pos = 1)
 
 idx <- matrix(seq(nrow(X) * nrow(Y)), nrow = nrow(X), ncol = nrow(Y))
-correspondence <- res$lop_res$correspondences$xy
-for (i in 1:nrow(X)){
+smpl <- sample(1:nrow(X), size = 15L)
+correspondence <- res$qop_res$correspondences$xy
+for ( i in smpl){
   segments(X[i,1], X[i,2], translated_Y[correspondence[i],1], translated_Y[correspondence[i],2], col = "blue")
 }
+
+
 
 
 ## Mix up Y 

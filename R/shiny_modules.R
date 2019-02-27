@@ -1,19 +1,27 @@
 ## Re-useable shiny modules for interacting with a Mapper visualization.  
 
-#' @title mapperVis - shiny UI module 
-#' @description Module for configuring the visualization options for Mapper.
-#' @export
-mapperVisOutput <- function(id, output_type=c("grapher")){
+# title mapperVis - shiny UI module 
+# description Module for configuring the visualization options for Mapper.
+# export
+mapperVisOutput <- function(id, output_type=c("grapher"), modules=list("node_sizing")){
   ns <- NS(id)
   if (output_type == "grapher"){
-    # browser()
     grapher::grapherOutput(outputId = ns("widget_out"), width = "100%", height = "100%")
   }
+  
+  
+  ## Node sizing
+  node_min_rng = c(1, 25), node_max_rng = c(1, 50), node_scaling = c("linear", "logarithmic")
+  tagList(
+    numericInput(inputId = ns("node_min"), label = "Node min size", value = diff(node_min_rng)/2, min = node_min_rng[[1]], max = node_min_rng[[2]], width = '100%', step = 1L),
+    numericInput(inputId = ns("node_max"), label = "Node max size", value = diff(node_max_rng)/2, min = node_max_rng[[1]], max = node_max_rng[[2]], width = '100%', step = 1L),
+    selectInput(inputId = ns("scale"), label = "Node scaling", selected = "Logarithmic", choices = c("Linear", "Logarithmic"), width = "100%")
+  )
 }
 
-#' @title mapperVis - shiny server module
-#' @description Returns a set of reactiveValues for configuring the mapper visualization
-#' @export
+# title mapperVis - shiny server module
+# description Returns a set of reactiveValues for configuring the mapper visualization
+# export
 mapperVis <- function(input, output, session, mapper, X, output_type){
   # browser()
   rv <- reactiveValues()
@@ -34,19 +42,8 @@ mapperVis <- function(input, output, session, mapper, X, output_type){
   return(rv) ## Return the reactive values
 }
 
-#' @title Node sizing input/UI module
-#' @export
-nodeSizingInput <- function(id, node_min_rng = c(1, 25), node_max_rng = c(1, 50), node_scaling = c("linear", "logarithmic")) {
-  ns <- NS(id)
-  tagList(
-    numericInput(inputId = ns("node_min"), label = "Node min size", value = diff(node_min_rng)/2, min = node_min_rng[[1]], max = node_min_rng[[2]], width = '100%', step = 1L),
-    numericInput(inputId = ns("node_max"), label = "Node max size", value = diff(node_max_rng)/2, min = node_max_rng[[1]], max = node_max_rng[[2]], width = '100%', step = 1L),
-    selectInput(inputId = ns("scale"), label = "Node scaling", selected = "Logarithmic", choices = c("Linear", "Logarithmic"), width = "100%")
-  )
-}
-
-#' @title Node sizing server function 
-#' @export
+# title Node sizing server function 
+# export
 nodeSizing <- function(input, output, session, mapper_vis, v_f){
   ## Get reactive node sizes 
   normalize <- function(x) { (x - min(x))/(diff(range(x))) }
@@ -71,8 +68,7 @@ nodeSizing <- function(input, output, session, mapper_vis, v_f){
   return(vertex_radii)
 }
 
-#' @title Node coloring input/UI module
-#' @export
+# title Node coloring input/UI module
 nodeColorInput <- function(id, color_f){
   stopifnot(is.list(color_f))
   stopifnot(all(sapply(color_f, is.function)))
@@ -81,8 +77,7 @@ nodeColorInput <- function(id, color_f){
   selectInput(ns("node_color_f"), label = "node_color_f", choices = f_names, selected = f_names[[1]], width = "100%")
 }
 
-#' @title Node coloring associated server module
-#' @export
+# title Node coloring associated server module
 nodeColor <- function(input, output, session, mapper_vis, color_f){
   # browser()
   ## Bin the node colors 
@@ -103,11 +98,11 @@ nodeColor <- function(input, output, session, mapper_vis, color_f){
 #   ns("highlighted")
 # }
 
-#' @title nodeHighlight shiny server module
-#' @description Server-only function to 'highlight' nodes. This does the equivalent of changing the nodes colors, 
-#' but adjusts low values to have lower opacity, and registers a reactive expression to to reset when 
-#' no data points are selected. Takes as input a boolean vector indicated which _points_ should be highlighted. 
-#' @export
+# title nodeHighlight shiny server module
+# description Server-only function to 'highlight' nodes. This does the equivalent of changing the nodes colors, 
+# but adjusts low values to have lower opacity, and registers a reactive expression to to reset when 
+# sno data points are selected. Takes as input a boolean vector indicated which _points_ should be highlighted. 
+# export
 nodeHighlight <- function(mapper_vis, reset){
   ## Register observers
   observeEvent(mapper_vis$selected_points, { ## Enact the highlighting
@@ -127,14 +122,14 @@ nodeHighlight <- function(mapper_vis, reset){
 }
 
 
-#' @title Mapper input options - shiny UI module
-#' @export
+# title Mapper input options - shiny UI module
+# export
 mapperOptionsInput <- function(id, mapper){
   # shiny::numericInput()
 }
 
-#' @title Mapper input options - shiny server module
-#' @export
+# title Mapper input options - shiny server module
+# export
 mapperOptions <- function(input, output, session, mapper){
   # Mapper cover parameter observer
   observeEvent({ input$num_intervals; input$overlap }, {
@@ -149,15 +144,15 @@ mapperOptions <- function(input, output, session, mapper){
   })
 }
 
-#' @title brushScatterOutput - shiny UI module
-#' @export
+# title brushScatterOutput - shiny UI module
+# export
 brushScatterOutput <- function(id) {
   ns <- NS(id)
   plotOutput(ns("plot"), brush = ns("brush"))
 }
 
-#' @title brushScatter - shiny server module
-#' @export
+# title brushScatter - shiny server module
+# export
 brushScatter <- function(input, output, session, mapper_vis, X, xvar, yvar, reset) {
   
   ## Yields the data frame with an additional column "selected_" that indicates whether that observation is brushed
@@ -195,16 +190,16 @@ brushScatter <- function(input, output, session, mapper_vis, X, xvar, yvar, rese
   # return(dataWithSelection)
 }
 
-#' @title linkedTableOutput - shiny UI module
-#' @export
+# title linkedTableOutput - shiny UI module
+# export
 linkedTableOutput <- function(id){
   ns <- NS(id)
   DT::DTOutput(ns("data_table")) 
 }
 
-#' @title linkedTableOutput - shiny server module
-#' @description Utility function to make a datatables object with nice default extensions.
-#' @export
+# title linkedTableOutput - shiny server module
+# description Utility function to make a datatables object with nice default extensions.
+# export
 linkedTable <- function(input, output, session, dt, config=NULL, options=NULL){
   
   ## Make default config 

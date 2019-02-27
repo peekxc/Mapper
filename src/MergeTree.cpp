@@ -103,7 +103,7 @@ List construct_merge_tree2(SEXP smesh, const NumericVector& h, SEXP merge_tree_r
     Rprintf("v_i: %d, height: %lf\n", v_i, vi_h);
   
     // Union all lower adjacent vertices
-    IntegerVector v_adj = adj_v(v_i);
+    IntegerVector v_adj = wrap(adj_v(v_i));
     IntegerVector::const_iterator v_it;
     for (v_it = v_adj.begin(); v_it != v_adj.end(); ++v_it){
       const size_t v_j = size_t(*v_it);

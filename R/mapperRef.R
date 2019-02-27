@@ -25,7 +25,7 @@
 #'
 #' @author Matt Piekenbrock, \email{matt.piekenbrock@@gmail.com}
 #' @encoding UTF-8
-#' @references Singh, Gurjeet, Facundo Memoli, and Gunnar E. Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.
+#' @references Singh, Gurjeet, Facundo Mémoli, and Gunnar E. Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.
 #' @useDynLib Mapper
 #' @export
 MapperRef <- R6::R6Class("MapperRef", 
@@ -157,7 +157,8 @@ MapperRef$set("public", "use_clustering_algorithm",
       create_cl <- function(cl, cutoff_method, cut_defaults){
         cutoff_f <- switch(cutoff_method, "histogram"=cutoff_first_bin, "continuous"=cutoff_first_threshold)
         function(X, idx = seq(nrow(X)), ...){
-          if (length(idx) <= 1){ return(1L); }
+          if (is.null(idx) || length(idx) == 0){ return(NULL) }
+          if (length(idx) <= 2L){ return(rep(1L, length(idx))); }
           override_params <- list(...)
           
           ## Use parallelDist package if available
@@ -382,7 +383,7 @@ MapperRef$set("public", "as_grapher", function(construct_widget=TRUE, ...){
     
   ## Create the vertices. By default, color them on a rainbow palette according to their mean filter value.
   if (length(igraph::V(G)) > 0){
-    vertex_radii <- (10L - 3L)*normalize(vertex_sizes) + 10L
+    vertex_radii <- (7L - 2L)*normalize(vertex_sizes) + 2L
     vertex_xy <- apply(igraph::layout.auto(G), 2, normalize)
     json_config$nodes$x <- vertex_xy[, 1]
     json_config$nodes$y <- vertex_xy[, 2]

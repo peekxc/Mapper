@@ -22,6 +22,11 @@ std::vector< IntegerVector > apply_clustering(const NumericMatrix& X, const Inte
 }
 
 
+// void compare_simplices(){
+//   
+// }
+
+
 // Updates a single level set.
 void update_level_set(const int ls_flat_index, const IntegerVector level_set, const NumericMatrix& X, const Function f, std::map< int, IntegerVector >& v_map, List& ls_vertex_map, SEXP stree){
   Rcpp::XPtr<SimplexTree> stree_ptr(stree); // Collect the simplex tree
@@ -36,7 +41,7 @@ void update_level_set(const int ls_flat_index, const IntegerVector level_set, co
     v_map.erase(std::map<int, IntegerVector>::key_type(v_id));
     // Rprintf("Removing vertex id=%d\n", v_id);
   });
-  stree_ptr->remove_vertices(c_vertices); // remove them from the simplex tree
+  stree_ptr->remove_vertices(stree_ptr->to_vec(c_vertices)); // remove them from the simplex tree
   ls_vertex_map.at(ls_flat_index) = IntegerVector::create(); // Remove from the level set map
     
   if (level_set.size() > 0){
@@ -45,7 +50,7 @@ void update_level_set(const int ls_flat_index, const IntegerVector level_set, co
     const std::size_t n_new_v = new_vertices.size(); 
       
     // Update the map with new vertex map with the new indices
-    IntegerVector new_0_simplexes = stree_ptr->vertex_available(n_new_v);
+    IntegerVector new_0_simplexes = stree_ptr->to_ivec(stree_ptr->vertex_available(n_new_v));
     // Rcout << "Adding new simplexes: " << new_0_simplexes << " to map for ls: " << ls_flat_index << std::endl; 
     ls_vertex_map.at(ls_flat_index) = new_0_simplexes;
     
@@ -78,7 +83,7 @@ IntegerVector check_connected(const IntegerVector ls_to_check, const List& ls_ve
   std::for_each(ls_to_check.begin(), ls_to_check.end(), [&](const int c_ls){
     const IntegerVector c_vertices = ls_vertex_map.at(c_ls); // vertex ids
     std::for_each(c_vertices.begin(), c_vertices.end(), [&](const int v_i){
-      const IntegerVector adj_vertices = stree_ptr->adjacent_vertices(v_i);
+      const IntegerVector adj_vertices = stree_ptr->to_ivec(stree_ptr->adjacent_vertices(v_i));
       // Rcout << "Checking adjacent vertices: " << adj_vertices << std::endl; 
       std::for_each(adj_vertices.begin(), adj_vertices.end(), [&]( const int adj_v ){
         const IntegerVector& tmp = vertices[ std::to_string(adj_v) ];

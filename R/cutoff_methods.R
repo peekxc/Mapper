@@ -54,7 +54,8 @@ cutoff_first_bin <- function(hcl, num_bins, check_skew=TRUE) {
 #' @importFrom stats cutree
 #' @export
 cutoff_first_threshold <- function(hcl, threshold = 0.0, ...){
-  n <- nrow(hcl$merge) + 1
+  if (!is(hcl, "hclust")){ stop("'cutoff_first_bin' expects an 'hclust' object as input.") }
+  n <- nrow(hcl$merge)+1L
   density_params <- list(...)
   if (is.null(density_params$n)){ density_params$n <- min(c(2^ceiling(log(n)/log(2)), 512L)) }
   density_params$x <- hcl$height
