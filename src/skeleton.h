@@ -8,7 +8,9 @@
 using namespace Rcpp;
 #include <unordered_map>
 
-#include "SimplexTree.h"
+// Shim to get the simplextree definitions exposed 
+// [[Rcpp::depends(simplextree)]]
+#include "simplextree.h"
 
 // Updates a single level set, whose flat index is given. This updates all of the corresponding vertices. 
 void update_level_set(

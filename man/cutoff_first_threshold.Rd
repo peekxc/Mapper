@@ -15,6 +15,9 @@ cutoff_first_threshold(hcl, threshold = 0, ...)
 }
 \description{
 Uses a heuristic similar to the one described in Section 3.1 of the original Mapper paper to cut a given hierarchical tree to produce a partitioning of the data.
+}
+\details{
 The cut value is chosen as the lowest (interpolated) height value where the density of linkage distances is lower than or equal to 
-a given threshold value.
+a given threshold value. Note that while this method offers a smooth alternative to \code{\link{cutoff_first_bin}} and may provide empirically better 
+clusterings, it's noticeably slower due to the call the \code{\link[stats]{density}}.
 }

@@ -1,21 +1,21 @@
 #' Mapper Reference Class (R6) implementation
 #' @docType class
-#' @description Composes a set of classes to perform Mapper efficiently.
+#' @description R6 utility class that enables computing mappers efficiently.
 #' @format An \code{\link{R6Class}} generator object
 #' @keywords keyword
 #' @return Instance object of the \code{\link{MapperRef}} class with methods for building the mapper.
 #' 
 #' @field X The data matrix.
 #' @field cover The cover. 
-#' @field clustering_algorithm The clustering algorithm to use. 
-#' @field measure String value of the measure to use to compute distances in ambient space. Read-only. See \code{use_distance_measure} for more details.  
-#' @field vertices The vertices. 
-#' @field ls_vertex_map Map where the level set (by index) are keys and the vertices (by id) are the values.  
-#' @field simplicial_complex A simplex tree object.
+#' @field clustering_algorithm The clustering algorithm to use in the pullback. 
+#' @field measure String value of the distance measure to use to compute distances in ambient space. Read-only. See \code{use_distance_measure} for more details.  
+#' @field pullback Mapping between the sets in the cover (by index) and the vertices (by id).  
+#' @field vertices The mapper vertices. 
+#' @field simplicial_complex A \code{\link[simplextree:simplextree]{simplex tree}} object.
 #' 
 #' @section Methods:
 #' \describe{
-#'   \item{Documentation}{ For full documentation see.}
+#'   \item{Documentation}{ For full documentation see \href{https://peekxc.github.io/Mapper/}.}
 #'   \item{\code{new(X)}}{This method uses \code{parameter_1} to ...}
 #'   \item{\code{new(X)}}{This method uses \code{parameter_1} to ...}
 #' }
@@ -29,7 +29,7 @@
 #' @useDynLib Mapper
 #' @export
 MapperRef <- R6::R6Class("MapperRef", 
-  private = list(.X=NA, .cover=NA, .clustering_algorithm=NA, .measure=NA, .simplicial_complex = NA, .vertices=list(), .cl_map=list(), .config=NA),
+  private = list(.X=NA, .cover=NA, .clustering_algorithm=NA, .measure="euclidean", .simplicial_complex = NA, .vertices=list(), .cl_map=list(), .config=NA),
   lock_class = FALSE,  ## Feel free to add your own members
   lock_objects = FALSE ## Or change existing ones 
 )
@@ -38,26 +38,34 @@ MapperRef$set("public", "initialize", function(X){
   stopifnot(is.numeric(X))
   if (is.null(dim(X)) && !is(X, "dist")){ X <- as.matrix(X) }
   private$.X <- X
-  private$.simplicial_complex <- simplex_tree()
+  private$.simplicial_complex <- simplextree::simplex_tree()
   return(self)
 })
 
-## To add a public memebr function 
+## To add a public member function 
 MapperRef$set("public", "add_function", function(name, FUN) {
   self[[name]] <- FUN
   environment(self[[name]]) <- environment(self$add_function)
 })
 
 
-## The level_set -> vertex mapping is available to view, but read-only
-MapperRef$set("active", "ls_vertex_map", 
+## The set index -> (vertex) decomposition mapping. Read-only
+MapperRef$set("active", "pullback", 
   function(value){ 
-    if (missing(value)){ private$.cl_map } 
-    else { stop("'ls_vertex_map' is read-only.") }
+    if (missing(value)){ private$.pullback } 
+    else { stop("'pullback' is read-only.") }
   }
 )
 
-## The cover stores the filter values
+#' @title Mapper cover
+#' @name cover
+#' @description Every \code{\link{MapperRef}} object requires a \code{\link{CoverRef}} object as 
+#' is \code{cover} member field. In the context of Mapper, a cover is used to discretize the filter 
+#' space into a partition, which is then used via a \emph{pullback} operation to construct the vertices. \cr 
+#' \cr 
+#' The \code{\link{MapperRef}} class makes no restrictions on the cover that is used; only that it fulfills the 
+#' requirements of being a valid \code{\link{CoverRef}} instance.
+#' @seealso \code{\link{CoverRef}} 
 MapperRef$set("active", "cover", 
   function(value){ #function(fv, type = c("restrained rectangular"), ...)
     if (missing(value)){ private$.cover } 
@@ -80,7 +88,15 @@ MapperRef$set("active", "vertices",
   }  
 )
 
-## Mapper stores the simplicial complex as a simplex tree.
+#' @title Simplicial Complex 
+#' @name simplicial_complex 
+#' @description The relational information of the Mapper construction. 
+#' @details The primary output of the Mapper method is a simplicial complex. With \code{\link{MapperRef}} objects, 
+#' the simplicial complex is stored as a \code{\link[simplextree]{simplextree}}. 
+#' \cr 
+#' The underlying complex is completely maintained by \code{\link{MapperRef}} methods 
+#' (e.g. \code{\link{compute_vertices}}, etc.). The complex may also be modified directly
+#' via \code{\link[simplextree]{simplextree}} methods, however this is not recommended.
 MapperRef$set("active", "simplicial_complex", 
   function(value){
     if (missing(value)){ private$.simplicial_complex }
@@ -127,18 +143,23 @@ MapperRef$set("active", "measure",
 
 #' @name use_clustering_algorithm 
 #' @title Sets the clustering algorithm 
-#' @description Sets a default hierarchical clustering algorithm.
-#' @param cl Either one of \code{\link[stats]{hclust}}s linkage criterions (string) or a function. See details.
+#' @description Sets the clustering algorithm used to construct the connected components in the pullback cover.
+#' @param cl Either one of the link criteria used in the \code{\link[stats]{hclust}} function (string) or a function. See details.
 #' @param cutoff_method Type of heuristic to determine cut value. See details. Ignored is \code{cl} is a function.
 #' @param run_internal Whether to run the clustering within the \code{MapperRef} instance environment.
 #' @param ... Additional parameters passed as defaults to the cutoff method. See details. 
-#' @details If \code{cl} is a linkage criterion, a default clustering function is made. If it is a function, it 
-#' must have a signature compatible with \code{function(X, idx, ...)} where \code{X} is the data matrix and \code{idx}
-#' is a vector of integer indices giving which subset of \code{X} to cluster over. \cr
-#' If \code{run_internal} is set to TRUE, \code{MapperRef}, the instances environment is imported, such that field members
-#' may be used inside \code{cl}s definition. Defaults to FALSE. \cr
-#' Additional named parameters passed via \code{...} act as defaults to the cutting method chosen. If not chosen, 
-#' reasonable defaults are used. Additional named parameters passed via the dots in \code{$clustering_algorithm} 
+#' @details If \code{cl} is a linkage criterion, a standard hierarchical clustering algorithm is used with suitable default parameters. 
+#' If it is a function, it must have a signature compatible with \code{function(X, idx, ...)} where \code{X} is the data matrix and \code{idx}
+#' is a vector of integer indices giving which subset of \code{X} to cluster over. \cr 
+#' \cr
+#' The cutoff method may be one of either c("histogram", "continuous"). See \code{\link{cutoff_first_bin}} and \code{\link{cutoff_first_threshold}}
+#' for what they each correspond to, respectively. Additional named parameters passed via \code{...} act as defaults to the cutting method chosen. 
+#' If not chosen, reasonable defaults are used. \cr 
+#' \cr 
+#' If \code{run_internal} is set to TRUE, the \code{MapperRef} instance environment is imported, such that field members
+#' may be used inside \code{cl}s definition. Defaults to FALSE. 
+#' \cr
+#' Additional named parameters passed via the dots in \code{$clustering_algorithm} 
 #' will taken precedence and override all previously set default settings. 
 MapperRef$set("public", "use_clustering_algorithm", 
   function(cl = c("single", "ward.D", "ward.D2", "complete", "average", "mcquitty", "median", "centroid"), 
@@ -229,12 +250,12 @@ MapperRef$set("public", "use_cover", function(filter_values, typename="fixed rec
 #' @name compute_k_skeleton 
 #' @title Computes the K-skeleton 
 #' @description For the details on how this is computed, see Singh et. al, section 3.2. 
-MapperRef$set("public", "compute_k_skeleton", function(k, ...){
+MapperRef$set("public", "compute_k_skeleton", function(k=1L, ...){
   stopifnot(k >= 0)
   if (k >= 0L){ self$compute_vertices(...) }
   if (k >= 1L){ self$compute_edges(...) }
   if (k >= 2L){
-    stop("k-skeletons for k > 1 are an experimental feature!")
+    stop("k-skeletons for k > 1 are not yet available.!")
     ## TODO: offer option to use flag complex k-expansion algorithm w/ Simplex tree or 
     ## more general brute-force intersection method. 
     
@@ -324,33 +345,41 @@ MapperRef$set("public", "format", function(...){
 })
 
 #' @name as_igraph 
-#' @title Exports the 1-skeleton as an igraph object.
-#' @description uses the igraph library. 
-MapperRef$set("public", "as_igraph", function(){
+#' @title Exports Mapper as an igraph object.
+#' @description Exports the 1-skeleton to a graph using the igraph library.
+#' @param vertex_scale scaling function for the vertex sizes. 
+#' @param vertex_min minimum vertex size. 
+#' @param vertex_min maximum vertex size. 
+#' @param col_pal color palette to color the vertices by. 
+#' @details By default, the vertices of the output graph are given "color", "size", and "label" 
+#' attributes. The vertex colors are colored according on a blue to red rainbow according 
+#' to their mean filter value (see \code{\link{bin_color}}). The vertex sizes are scaled according 
+#' to the number of points they contain, scaled by \code{vertex_scale}, and bounded between 
+#' (\code{vertex_min}, \code{vertex_max}). The vertex labels are in the format "<id>:<size>".
+MapperRef$set("public", "as_igraph", function(vertex_scale=c("linear", "log"), vertex_min=10L, vertex_max=15L, col_pal="rainbow"){
   requireNamespace("igraph", quietly = TRUE)
   am <- private$.simplicial_complex$as_adjacency_matrix()
   G <- igraph::graph_from_adjacency_matrix(am, mode = "undirected", add.colnames = NA) 
   
   ## Color nodes and edges by a default rainbow palette
-  rbw_pal <- rev(rainbow(100, start = 0, end = 4/6))
-  agg_node_val <- sapply(sapply(private$.vertices, function(v_idx){ 
-    apply(as.matrix(self$cover$filter_values[v_idx,]), 1, mean)
-  }), mean)
-  igraph::vertex_attr(G, name = "color") <- rbw_pal[cut(agg_node_val, breaks = 100, labels = F)]
+  agg_node_val <- sapply(private$.vertices, function(v_idx){ 
+    mean(rowMeans(self$cover$filter_values[v_idx,,drop=FALSE]))
+  })
+  igraph::vertex_attr(G, name = "color") <- bin_color(agg_node_val, col_pal)
   
   ## Normalize between 0-1, unless all the same
   normalize <- function(x) { 
     if (all(x == x[1])){ return(rep(1, length(x))) }
     else {  (x - min(x))/(max(x) - min(x)) }
   }
+  if (missing(vertex_scale)){ vertex_scale <- ifelse(vertex_scale == "linear", identity, log) }
   vertex_sizes <- sapply(private$.vertices, length) 
-  igraph::vertex_attr(G, "size") <- (15L - 10L)*normalize(log(vertex_sizes)) + 10L
+  igraph::vertex_attr(G, "size") <- (vertex_max - vertex_min)*normalize(vertex_scale(vertex_sizes)) + vertex_min
 
   ## Fill in labels with id:size
   igraph::vertex_attr(G, "label") <- apply(cbind(names(private$.vertices), vertex_sizes), 1, function(x){
     paste0(x, collapse = ":")
   })
-  
   return(G)
 })
 
@@ -414,34 +443,40 @@ MapperRef$set("public", "as_grapher", function(construct_widget=TRUE, ...){
   }
 })
 
-
-## Exports the internal mapper core structures to a TDAmapper output
-# MapperRef$methods(exportTDAmapper = function(){
-#   level_of_vertex <- sapply(self$k_skeleton$nodes, function(ni) attr(ni, "level_set"))
-#   structure(
-#     list(
-#       adjacency = self$k_skeleton$adjacency,
-#       num_vertices = length(self$k_skeleton$nodes),
-#       level_of_vertex = level_of_vertex,
-#       points_in_vertex = lapply(self$k_skeleton$nodes, as.vector),
-#       points_in_level = unname(lapply(self$cover$level_sets, function(ls) ls$points_in_level_set)),
-#       vertices_in_level = lapply(1:length(self$cover$level_sets), function(ls_idx) {
-#         tmp <- which(level_of_vertex == ls_idx)
-#         if (length(tmp) == 0){ return(-1) }
-#         else return(tmp)
-#       })),
-#     class = "TDAmapper"
-#   )
-# })
+#' @name as_pixiplex
+#' @title Exports the complex as a pixiplex object.
+#' @description Uses the pixiplex library. 
+MapperRef$set("public", "as_pixiplex", function(...){
+  requireNamespace("pixiplex", quietly = TRUE)
+  pp <- pixiplex::pixiplex(private$.simplicial_complex)
+  
+  ## Default styling
+  rbw_pal <- rev(rainbow(100, start = 0, end = 4/6))
+  agg_node_val <- sapply(sapply(private$.vertices, function(v_idx){ 
+    apply(as.matrix(self$cover$filter_values[v_idx,]), 1, mean)
+  }), mean)
+  binned_idx <- cut(agg_node_val, breaks = 100, labels = F)
+  vertex_colors <- rbw_pal[binned_idx]
+  vertex_sizes <- sapply(private$.vertices, length) 
+  
+  ## Normalize between 0-1, unless all the same
+  normalize <- function(x) { 
+    if (all(x == x[1])){ return(rep(1, length(x))) }
+    else {  (x - min(x))/(max(x) - min(x)) }
+  }
+  pp$nodes$color <- vertex_colors
+  pp$nodes$radius <- (15L - 5L)*normalize(vertex_sizes) + 5L
+  return(pp)
+})
 
 #' @name exportMapper
-#' @title Exports the essential mapper graph information 
+#' @title Exports mapper information 
 #' @param graph_type export preference on the structure the graph output.
 #' @return list with the following members: 
 #' \itemize{
-#' \item vertices list of the indices of the original data the current vertex intersects with.
-#' \item graph some adjacency representation of the mapper graph.
-#' \item level_sets map connecting the which vertices belong to the preimage of the sets in the cover. 
+#' \item \emph{vertices} list of the indices of the original data the current vertex intersects with.
+#' \item \emph{graph} some adjacency representation of the mapper graph.
+#' \item \emph{level_sets} map connecting the which vertices belong to the preimage of the sets in the cover. 
 #' }
 MapperRef$set("public", "exportMapper", function(graph_type=c("adjacency_matrix", "adjacency_list", "edgelist")){
   result <- list(level_sets = private$.cl_map, vertices = private$.vertices)

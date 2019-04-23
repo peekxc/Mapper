@@ -1,6 +1,8 @@
 #include <Rcpp.h>
 using namespace Rcpp;
 
+// [[Rcpp::depends(simplextree)]]
+#include "utilities.h"
 #include "utility_rcpp.h"
 #include <cmath>
 

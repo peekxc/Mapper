@@ -11,11 +11,10 @@ using namespace Rcpp;
 #include "skeleton.h" // skeleton update functions, simplex tree, etc.
 #include <memory> // smart pointers
 
-
 // Shortcut typenames
 using v_uint8_t = std::vector< uint8_t >;       // vector for compact unsigned int storage
 using v_sidx_t = std::vector< sidx_t >;         // vector for signed indexes 
-using rle = std::pair< v_sidx_t, v_uint8_t >;
+using rle = std::pair< v_sidx_t, v_uint8_t >;   // run length encoding structure
 
 // Each point requires the following 4 pieces of information
 struct path_info {
@@ -45,7 +44,7 @@ struct pt_update {
 // MultiScale class
 // The MultiScale class effectively creates a filtration of point indices per dimension. Given a Mapper is already computed, 
 // this class provides tools for extracting which components of the 0-skeleton and 1-skeleton need to be updated in order 
-// to compute a Mapper at a different parameterization.  
+// to efficiently compute a Mapper at a different parameterization.  
 struct MultiScale {
   // Constants
   const std::size_t d, n;                                 // Dimensionality of filter space + size of data      

@@ -3,13 +3,15 @@
 #' The main documentation for the package can be found here: \url{https://peekxc.github.io/mapper/}.  
 #' @author Matt Piekenbrock
 #' @name Mapper
-#' @import Rcpp
+#' @import Rcpp simplextree
 #' @importFrom Rcpp evalCpp Module cpp_object_initializer
 #' @importFrom methods new
 #' @useDynLib Mapper, .registration = TRUE
 #' @docType package
+#' @export
 NULL
 
+# simplextree <- Rcpp::Module("simplex_tree_module", PACKAGE = "simplextree", mustStart = TRUE)
 
 #' bin_color
 #' @param x A numeric vector whose magnitudes should be binned onto the color palette. 

@@ -1,6 +1,10 @@
 
 #include "GridIndex.h"
 
+// Shim to get the simplextree definitions exposed 
+// [[Rcpp::depends(simplextree)]]
+#include "utilities.h"
+
 template <typename T>
 GridIndex<T>::GridIndex(const IntegerVector idx) : d(idx.size()) {
   std::size_t d_i = 0;

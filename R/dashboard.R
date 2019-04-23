@@ -14,7 +14,6 @@
 #'
 #' If supplied, \code{node_color_f} must be a named list of functions which accepts as input a MapperRef object as the \code{M} argument and returns as output a vector of numerical values, one per vertex.
 #' These values are automatically converted to color hex codes based on the current palette. If \code{node_color_f} isn't supplied, a few default color functions are supplied.
-#' @export
 dashboard <- function(M, X, node_color_f = "default", dash_config=list(node_min=5L, node_max=10L)){
   requireNamespace("shiny", quietly = TRUE)
   requireNamespace("grapher", quietly = TRUE)

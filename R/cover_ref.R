@@ -10,13 +10,13 @@
 #' 
 #' @section Private variables:
 #' The following is a list of private variables available for derived classes. Each may be accessed 
-#' by the \code{private$} access method, see \code{?R6} for more details. 
+#' by the \code{private} environment. See \code{?R6} for more details. 
 #' \itemize{
-#'  \item{.level_sets}{names list of indices in the original data set to cluster over.}
-#'  \item{.index_set}{character vector of keys that uniquely index the level sets.}
-#'  \item{.filter_dim}{constant representing the filter dimension.}
-#'  \item{.filter_size}{constant representing the number of points in the filter space.}
-#'  \item{.typename}{string identifier of the covering method.}
+#'  \item{\emph{.level_sets}}{ named list, indexed by \code{.index_set}, whose values represent indices in the original data set to cluster over.}
+#'  \item{\emph{.index_set}}{ character vector of keys that uniquely index the level sets.}
+#'  \item{\emph{.filter_dim}}{ constant representing the filter dimension.}
+#'  \item{\emph{.filter_size}}{ constant representing the number of points in the filter space.}
+#'  \item{\emph{.typename}}{ unique string identifier of the covering method.}
 #' }
 #'  
 #'    
@@ -34,12 +34,14 @@
 CoverRef <- R6::R6Class("CoverRef", 
   public = list(filter_values=NA),
   private = list(
-    .level_sets=NA,
+    .level_sets = NA,
     .index_set = NA,
     .filter_size = NA,
     .filter_dim = NA, 
     .typename = character(0)
-  )
+  ), 
+  lock_class = FALSE,  ## Feel free to add your own members
+  lock_objects = FALSE ## Or change existing ones 
 )
 
 ## Cover initialization
@@ -94,14 +96,20 @@ CoverRef$set("active", "level_sets",
 
 ## Default cover 
 CoverRef$set("public", "construct_cover", function(){
-  stop("Base class cover construction called. This method must be overridden.")
+  stop("Base class cover construction called. This method must be overridden to be used.")
 })
+
+## Alternative, provide method which, for a given index, returns inverse image of that cover index
+CoverRef$set("public", "construct_pullback", function(){
+  stop("Base class cover construction called. This method must be overridden to be used.")
+})
+
 
 ## Which level sets (in terms of their corresponding indices in the index set) should be compared? 
 ## This can be customized based on the cover to (dramatically) reduce the number of intersection checks
 ## needed to generate the k-skeletons, where k >= 1. Defaults to every pairwise combination of level sets. 
-CoverRef$set("public", "level_sets_to_compare", function(){
-  all_combs <- t(combn(seq(length(private$.index_set)), 2))
+CoverRef$set("public", "level_sets_to_compare", function(k=1){
+  all_combs <- t(combn(seq(length(private$.index_set)), k+1L))
   apply(all_combs, 2, function(x){ private$.index_set[x] })
 })
 
@@ -129,8 +137,8 @@ covers_available <- function(){
   line_format <- " %-28s %-34s %-15s"
   writeLines(c(
     sprintf("Typename:%-20sGenerator:%-25sParameters:%-26s", "", "", ""),
-    sprintf(line_format, "fixed rectangular", "FixedRectangularCover", paste0(c("number_intervals", "percent_overlap"), collapse = ", ")), 
-    sprintf(line_format, "restrained rectangular", "RestrainedRectangularCover", paste0(c("number_intervals", "percent_overlap"), collapse = ", ")),
+    sprintf(line_format, "fixed interval", "FixedIntervalCover", paste0(c("number_intervals", "percent_overlap"), collapse = ", ")), 
+    sprintf(line_format, "restrained interval", "RestrainedIntervalCover", paste0(c("number_intervals", "percent_overlap"), collapse = ", ")),
     sprintf(line_format, "adaptive", "AdaptiveCover", paste0(c("number_intervals", "percent_overlap", "quantile_method"), collapse = ", ")),
     sprintf(line_format, "ball", "BallCover", paste0("epsilon", collapse = ", "))
   ))

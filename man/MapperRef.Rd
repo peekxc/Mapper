@@ -30,20 +30,20 @@ Composes a set of classes to perform Mapper efficiently.
 
 \item{\code{ls_vertex_map}}{Map where the level set (by index) are keys and the vertices (by id) are the values.}
 
-\item{\code{simplicial_complex}}{A simplex tree object.}
+\item{\code{simplicial_complex}}{A \code{\link[simplextree:simplextree]{simplex tree}} object.}
 }}
 
 \section{Methods}{
 
 \describe{
-  \item{Documentation}{ For full documentation see.}
+  \item{Documentation}{ For full documentation see \href{https://peekxc.github.io/Mapper/}.}
   \item{\code{new(X)}}{This method uses \code{parameter_1} to ...}
   \item{\code{new(X)}}{This method uses \code{parameter_1} to ...}
 }
 }
 
 \references{
-Singh, Gurjeet, Facundo Memoli, and Gunnar E. Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.
+Singh, Gurjeet, Facundo Mémoli, and Gunnar E. Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.
 }
 \author{
 Matt Piekenbrock, \email{matt.piekenbrock@gmail.com}

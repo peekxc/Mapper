@@ -5,10 +5,6 @@ index_test <- function(sizes) {
     .Call(`_Mapper_index_test`, sizes)
 }
 
-construct_merge_tree2 <- function(smesh, h, merge_tree_res) {
-    .Call(`_Mapper_construct_merge_tree2`, smesh, h, merge_tree_res)
-}
-
 test_merge <- function(data) {
     .Call(`_Mapper_test_merge`, data)
 }

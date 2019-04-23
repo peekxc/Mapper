@@ -4,24 +4,11 @@
 #include "utility_rcpp.h"
 
 // namespace util {
-
-  // Given two indices 'from' and 'to', each of which are between [0, 1, ..., N-1], this 
-  // function returns the corresponding 'flat' 0-based index the entry would appear in the  
-  // lower triangular portion of an (N x N) column-major matrix.
-  sidx_t index_lower_triangular(sidx_t from, sidx_t to, const sidx_t N){
-    if (from < to){ std::swap(from, to); }
-    return((N)*(to) - (to)*(to+1)/2 + (from) - (to) - (1));
+  IntegerVector to_ivec(std::vector< std::size_t > v){
+    return IntegerVector(v.begin(), v.end());
   }
-  
-  // Creates a vector with the range [i, j]
-  template <typename T>
-  std::vector<T> seq_ij(const T i, const T j){
-    static_assert(std::is_integral<T>::value, "Integral-type required as a range storage type.");
-    // static_assert(std::is_integral<C>::value, "Integral-type required as a range type.");
-    std::size_t sz = std::abs(j - i)+1;
-    std::vector<T> rng = std::vector<T>(sz);
-    std::iota(rng.begin(), rng.end(), static_cast<T>(i));
-    return(rng);
+  std::vector< std::size_t > to_vec(IntegerVector v){
+    return std::vector< std::size_t >(v.begin(), v.end());
   }
   
   template <typename T> 
@@ -59,20 +46,6 @@
       res.at(i++) = static_cast<int>(val);
     });
     return(res);
-  }
-  
-  // Fast partial-sort/binary-search check to see if the intersection between two given vectors has non-zero length
-  // Loosely based off of bugged version found here: https://stackoverflow.com/questions/21359432/a-c-version-of-the-in-operator-in-r
-  bool any_is_in(const IntegerVector& x, const IntegerVector& y){
-    std::vector<int> y_sort(y.size());
-    std::partial_sort_copy (y.begin(), y.end(), y_sort.begin(), y_sort.end()); // partial-sorted elements of y copied to y_sort
-    const std::size_t nx = x.size();
-    for (std::size_t i = 0; i < nx; ++i) {
-      if (std::binary_search(y_sort.begin(), y_sort.end(), x[i])) {
-        return(true); // end the search
-      }
-    }
-    return(false);
   }
   
   // rbindlist_int: Takes a list of integer vectors and rbind's them together.

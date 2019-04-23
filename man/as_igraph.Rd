@@ -4,5 +4,5 @@
 \alias{as_igraph}
 \title{Exports the 1-skeleton as an igraph object.}
 \description{
-uses the igraph library.
+Uses the igraph library.
 }

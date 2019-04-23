@@ -16,19 +16,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// construct_merge_tree2
-List construct_merge_tree2(SEXP smesh, const NumericVector& h, SEXP merge_tree_res);
-RcppExport SEXP _Mapper_construct_merge_tree2(SEXP smeshSEXP, SEXP hSEXP, SEXP merge_tree_resSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< SEXP >::type smesh(smeshSEXP);
-    Rcpp::traits::input_parameter< const NumericVector& >::type h(hSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type merge_tree_res(merge_tree_resSEXP);
-    rcpp_result_gen = Rcpp::wrap(construct_merge_tree2(smesh, h, merge_tree_res));
-    return rcpp_result_gen;
-END_RCPP
-}
 // test_merge
 IntegerVector test_merge(const List& data);
 RcppExport SEXP _Mapper_test_merge(SEXP dataSEXP) {
@@ -349,12 +336,10 @@ END_RCPP
 
 RcppExport SEXP _rcpp_module_boot_multiscale_module();
 RcppExport SEXP _rcpp_module_boot_segment_tree_module();
-RcppExport SEXP _rcpp_module_boot_simplex_tree_module();
 RcppExport SEXP _rcpp_module_boot_union_find_module();
 
 static const R_CallMethodDef CallEntries[] = {
     {"_Mapper_index_test", (DL_FUNC) &_Mapper_index_test, 1},
-    {"_Mapper_construct_merge_tree2", (DL_FUNC) &_Mapper_construct_merge_tree2, 3},
     {"_Mapper_test_merge", (DL_FUNC) &_Mapper_test_merge, 1},
     {"_Mapper_test_merge2", (DL_FUNC) &_Mapper_test_merge2, 1},
     {"_Mapper_valid_pairs", (DL_FUNC) &_Mapper_valid_pairs, 1},
@@ -382,7 +367,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Mapper_run_rcpp_tests", (DL_FUNC) &_Mapper_run_rcpp_tests, 0},
     {"_rcpp_module_boot_multiscale_module", (DL_FUNC) &_rcpp_module_boot_multiscale_module, 0},
     {"_rcpp_module_boot_segment_tree_module", (DL_FUNC) &_rcpp_module_boot_segment_tree_module, 0},
-    {"_rcpp_module_boot_simplex_tree_module", (DL_FUNC) &_rcpp_module_boot_simplex_tree_module, 0},
     {"_rcpp_module_boot_union_find_module", (DL_FUNC) &_rcpp_module_boot_union_find_module, 0},
     {NULL, NULL, 0}
 };

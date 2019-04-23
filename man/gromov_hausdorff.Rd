@@ -4,9 +4,9 @@
 \alias{gromov_hausdorff}
 \title{gromov hausdorff}
 \usage{
-gromov_hausdorff(d_X, d_Y, mu_X, mu_Y, flb_solver = "any",
-  flb_only = FALSE, roi_opt = "default", control = "default",
-  return_optimizer = FALSE)
+gromov_hausdorff(d_X, d_Y, mu_X, mu_Y, p = 1, flb_solver = "glpk",
+  flb_only = FALSE, options = list(localsolver = "COBYLA", localtol =
+  1e-07), control = list(maxeval = 300), return_optimizer = FALSE)
 }
 \arguments{
 \item{d_X}{either a dist object, or (n x n) numeric metric distance matrix over \code{X}.}
@@ -21,9 +21,9 @@ gromov_hausdorff(d_X, d_Y, mu_X, mu_Y, flb_solver = "any",
 
 \item{flb_only}{If only crude approximation is needed, the lower bound can be returned. See details.}
 
-\item{roi_opt}{Outer options to pass to ROI_solve}
-
 \item{control}{Inner options to pass to ROI_solves 'control' parameter.}
+
+\item{roi_opt}{Outer options to pass to ROI_solve}
 }
 \description{
 This function implements the discrete, extended version of gromov hausdorff distance proposed by 
@@ -31,11 +31,14 @@ Memoli in section 7 of (1) for comparing two measure-metric spaces.
 }
 \details{
 This function provides an implementation of the computational objective \emph{(Pp)} listed in Section 7 of (1), which 
-calculates an Lp approximition of Gromov-Hausdorff distance between two measure-metric spaces. The first lower bound (FLB)
-is first computed via an LOP, and then the solution is handed off as the starting point to the corresponding nonlinear optimization 
+calculates an Lp approximition of Gromov-Hausdorff (i.e. wasserstein relaxation) distance between two measure-metric spaces. The first lower bound (FLB)
+is first computed via an LOP, and then the solution is used as the initialization point for the corresponding quadratic optimization 
 routine. This code utilizes the \emph{R Optimization Infrastructure}(\pkg{ROI}), and relies on having available at least one plugin 
 available for to solve the initial lower bound (a linear program) and the final optimization (cast as a generic nonlinear optimization). 
-See examples.
+Both solutions are returned to the user, unless \code{flb_only} is set to true, in which case only the FLB is returned. 
+
+\strong{NOTE:} The primary quadratic optimization problem (QOP) is non-convex, and requires solving for (n^2 x m^2) variables.
+Thus, the function may be very computationally expensive to run. The FLB is an LOP of the same size.
 }
 \references{
 1. Mémoli, Facundo. "On the use of Gromov-Hausdorff distances for shape comparison." (2007).
