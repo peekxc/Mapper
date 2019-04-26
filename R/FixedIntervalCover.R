@@ -107,7 +107,7 @@ FixedIntervalCover$set("public", "construct_cover", function(...){
   self$index_set <- apply(cart_prod, 1, function(x){ sprintf("(%s)", paste0(x, collapse = " ")) })
   
   ## Retrieve the level set bounds
-  ls_bnds <- self$level_set_bounds()
+  ls_bnds <- self$interval_bounds()
   self$level_sets <- constructIsoAlignedLevelSets(self$filter_values, as.matrix(ls_bnds))
   
   ## Always return self 

@@ -126,9 +126,6 @@ wrap_roi_solution <- function(res, idx, return_opt){
   if (return_opt){ tmp$optim_status <- res[c("status", "message")] }
   return(tmp)
 }
-  
-## Gromov Hausdorff objective module (can be loaded anywhere)
-# Rcpp::loadModule("gh_module", TRUE)
 
 ## Extra code 
 # A <- outer(X = seq(n_x + n_y), Y = seq(n_x * n_y), FUN = Vectorize(function(i, j){

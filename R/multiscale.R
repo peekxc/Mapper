@@ -3,7 +3,7 @@
 ## updated in-place across multiple scales.
 MapperRef$set("public", "enable_multiscale", 
   function(){
-    if (toupper(self$cover$typename) != "FIXED RECTANGULAR"){ stop("'multiscale' is only compatible with fixed rectangular covers for now.") }
+    if (toupper(self$cover$typename) != "FIXED INTERVAL"){ stop("'multiscale' is only compatible with the fixed interval cover for now.") }
     n <- ifelse("dist" %in% class(private$.X), attr(private$.X, "Size"), nrow(private$.X))
     d <- ncol(self$cover$filter_values)
     

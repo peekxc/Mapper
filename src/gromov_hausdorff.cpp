@@ -31,7 +31,7 @@ void doColumn(const NumericVector& dist_x, const size_t n, const size_t j, Func 
   size_t i = 0; 
   std::vector<size_t> idx = std::vector<size_t>();
   idx.reserve(n);
-  std::generate_n(idx.begin(), n, [&i, &j, &n](){ return(index_lower_triangular(i++, j, n)); });
+  std::generate_n(idx.begin(), n, [&i, &j, &n](){ return(index_lt(i++, j, n)); });
   std::for_each(idx.begin(), idx.end(), [&dist_x, &f](const size_t ii){
     f(dist_x[ii]);
   });
@@ -43,7 +43,7 @@ void doRow(const NumericVector& dist_x, const size_t n, const size_t i, Func f) 
   size_t j = 0; 
   std::vector<size_t> idx = std::vector<size_t>();
   idx.reserve(n);
-  std::generate_n(idx.begin(), n, [&i, &j, &n](){ return(index_lower_triangular(i, j++, n)); });
+  std::generate_n(idx.begin(), n, [&i, &j, &n](){ return(index_lt(i, j++, n)); });
   std::for_each(idx.begin(), idx.end(), [&dist_x, &f](const size_t ii){
     f(dist_x[ii]);
   });
@@ -145,8 +145,8 @@ NumericMatrix all_correspondences(const NumericVector& X, const NumericVector& Y
         for(l = 0; l < n; ++l){
           size_t a = (i*n) + j, b = (k*n) + l;
           // Rprintf("{a:%d,b:%d}(i:%ld,j:%ld,k:%ld,l:%ld)\n", a, b, i, j, k, l);
-          const double dist1 = i == k ? 0 : X.at(index_lower_triangular(i, k, n));
-          const double dist2 = j == l ? 0 : Y.at(index_lower_triangular(j, l, n));
+          const double dist1 = i == k ? 0 : X.at(index_lt(i, k, n));
+          const double dist2 = j == l ? 0 : Y.at(index_lt(j, l, n));
           gamma.at(a, b) = std::abs(dist1 - dist2);
         }
       }
@@ -155,7 +155,7 @@ NumericMatrix all_correspondences(const NumericVector& X, const NumericVector& Y
   return(gamma);
   // Fill in diagonal
   // for (i = 0; i < n_sq; ++i){
-  //   size_t ii = index_lower_triangular(i, i, n_sq);
+  //   size_t ii = index_lt(i, i, n_sq);
   //   
   //   gamma(ii, ii) = std::abs(X.at(i) - Y.at(jj));
   // }
@@ -171,7 +171,7 @@ NumericMatrix all_correspondences(const NumericVector& X, const NumericVector& Y
   //   const size_t idx = i;
   //   const size_t to = INDEX_TO(idx, n_dist);
   //   const size_t from = INDEX_FROM(idx, n_dist, to);
-  //   const size_t idx2 = index_lower_triangular(from, to, n);
+  //   const size_t idx2 = index_lt(from, to, n);
   //   Rprintf("idx: %d, idx2: %d\n", i, idx2);
   //   i++;
   //   return(std::abs(X.at(idx2) - Y.at(idx2)));

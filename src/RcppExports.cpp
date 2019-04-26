@@ -324,15 +324,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// run_rcpp_tests
-void run_rcpp_tests();
-RcppExport SEXP _Mapper_run_rcpp_tests() {
-BEGIN_RCPP
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    run_rcpp_tests();
-    return R_NilValue;
-END_RCPP
-}
 
 RcppExport SEXP _rcpp_module_boot_multiscale_module();
 RcppExport SEXP _rcpp_module_boot_segment_tree_module();
@@ -364,7 +355,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Mapper_build_0_skeleton", (DL_FUNC) &_Mapper_build_0_skeleton, 7},
     {"_Mapper_build_1_skeleton", (DL_FUNC) &_Mapper_build_1_skeleton, 5},
     {"_Mapper_intersectNodes", (DL_FUNC) &_Mapper_intersectNodes, 4},
-    {"_Mapper_run_rcpp_tests", (DL_FUNC) &_Mapper_run_rcpp_tests, 0},
     {"_rcpp_module_boot_multiscale_module", (DL_FUNC) &_rcpp_module_boot_multiscale_module, 0},
     {"_rcpp_module_boot_segment_tree_module", (DL_FUNC) &_rcpp_module_boot_segment_tree_module, 0},
     {"_rcpp_module_boot_union_find_module", (DL_FUNC) &_rcpp_module_boot_union_find_module, 0},

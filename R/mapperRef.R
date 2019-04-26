@@ -15,7 +15,7 @@
 #' 
 #' @section Methods:
 #' \describe{
-#'   \item{Documentation}{ For full documentation see \href{https://peekxc.github.io/Mapper/}.}
+#'   \item{Documentation}{Full documentation available \href{https://peekxc.github.io/Mapper}{online}.}
 #'   \item{\code{new(X)}}{This method uses \code{parameter_1} to ...}
 #'   \item{\code{new(X)}}{This method uses \code{parameter_1} to ...}
 #' }

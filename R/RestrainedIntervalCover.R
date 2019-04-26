@@ -1,29 +1,29 @@
-#' Fixed Rectangular Cover
+#' Restrained Interval Cover
 #'
 #' @docType class
-#' @description The rectangular cover is multidimensional, two-parameter family of covers. Given the number of
+#' @description The interval cover is multidimensional, two-parameter family of covers. Given the number of
 #' intervals and the overlap percentage between these intervals, this class constructs hyper-rectangular cover of the
 #' given filter space, where individual level sets are distributed uniformly along a rectangular grid.
-#' @field number_intervals := vector of number of bins to cover the Z with (per dimension)
-#' @field percent_overlap := vector of overlap percentages
+#' @field number_intervals vector of number of bins to cover the Z with (per dimension)
+#' @field percent_overlap vector of overlap percentages
 #' @author Matt Piekenbrock
 #' @export
-RestrainedRectangularCover <- R6::R6Class("RestrainedRectangularCover",
+RestrainedIntervalCover <- R6::R6Class("RestrainedIntervalCover",
   inherit = CoverRef,
   private = list(.number_intervals=NA, .percent_overlap=NA), 
   lock_objects = TRUE
 )
 
 #' @export
-RestrainedRectangularCover$set("public", "initialize", function(filter_values, ...){
-  super$initialize(filter_values, typename="Restrained Rectangular")
+RestrainedIntervalCover$set("public", "initialize", function(filter_values, ...){
+  super$initialize(filter_values, typename="Restrained Interval")
   params <- list(...)
   if ("number_intervals" %in% names(params)){ self$number_intervals <- params[["number_intervals"]] }
   if ("percent_overlap" %in% names(params)){ self$percent_overlap <- params[["percent_overlap"]] }
 })
 
 ## Set overlap/gain threshold
-RestrainedRectangularCover$set("active", "percent_overlap",
+RestrainedIntervalCover$set("active", "percent_overlap",
   function(value){
     if (missing(value)){ private$.percent_overlap }
     else {
@@ -39,7 +39,7 @@ RestrainedRectangularCover$set("active", "percent_overlap",
 ## Active binding to set the number of intervals to distribute along each dimension. 
 ## By default, if a scalar is given and the filter dimensionality is > 1, the scalar is 
 ## repeated along each dimension. 
-RestrainedRectangularCover$set("active", "number_intervals",
+RestrainedIntervalCover$set("active", "number_intervals",
   function(value){
     if (missing(value)){ private$.number_intervals }
     else {
@@ -52,7 +52,7 @@ RestrainedRectangularCover$set("active", "number_intervals",
   }
 )
 
-RestrainedRectangularCover$set("public", "format", function(...){
+RestrainedIntervalCover$set("public", "format", function(...){
   sprintf("Cover: (typename = %s, number intervals = [%s], overlap = [%s])",
           self$typename,
           paste0(private$.number_intervals, collapse = ", "),
@@ -60,7 +60,7 @@ RestrainedRectangularCover$set("public", "format", function(...){
 })
 
 ## Given the current set of parameter values, construct the level sets whose union covers the filter space
-RestrainedRectangularCover$set("public", "construct_cover", function(){
+RestrainedIntervalCover$set("public", "construct_cover", function(){
   stopifnot(!is.na(private$.percent_overlap))
   stopifnot(!is.na(private$.number_intervals))
   

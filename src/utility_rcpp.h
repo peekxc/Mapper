@@ -31,20 +31,20 @@ public:
 
 // namespace util {
 
-  IntegerVector to_ivec(std::vector< std::size_t > v);
-  std::vector< std::size_t > to_vec(IntegerVector v);
+template <typename T> 
+IntegerVector to_ivec(std::vector<T> vec){
+  static_assert(std::is_integral<T>::value, "T must be integral type");
+  IntegerVector res = IntegerVector(vec.size());
+  auto const T_to_I = [](const T val){ return(static_cast< int >(val)); };
+  std::transform(vec.begin(), vec.end(), res.begin(), T_to_I);
+  return(res);
+}
 
-  sidx_t index_lower_triangular(sidx_t from, sidx_t to, const sidx_t N);
+  std::vector< std::size_t > to_vec(IntegerVector v);
 
   template <typename T>
   std::vector<T> seq_ij(const T i, const T j);
-  
-  template<typename ForwardIterator>
-  std::map<int, int> get_unique_indices(ForwardIterator first, ForwardIterator last); 
-  
-  template <typename T> 
-  std::vector<T> merge_vectors(const std::vector< std::vector<T>* >& vec);
-    
+
   // Rcpp-specific utilities 
   IntegerMatrix make_cartesian_product(const List& vecs);
   bool any_is_in(const IntegerVector& x, const IntegerVector& y);

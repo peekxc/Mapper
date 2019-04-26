@@ -119,23 +119,23 @@ IntegerVector check_connected(const IntegerVector ls_to_check, const List& ls_ve
   return(unique(res));
 }
 
-// Turns vertex list into a mapping between vertex id --> points 
-std::map< int, IntegerVector > vertices_to_map(List& ls_vertex_map, List& vertices){
-  const std::size_t n_level_sets = ls_vertex_map.size();
-  std::map< int, IntegerVector > res; 
+// Converts the List pullback to a C++ map
+std::map< int, IntegerVector > vertices_to_map(List& pullback, List& vertices){
+  const size_t n_pullbacks = pullback.size();
+  std::map< int, IntegerVector > pullback_map; 
   
   // Loop through each level set, creating the mapping along the way
-  for (std::size_t i = 0; i < n_level_sets; ++i){
-    const IntegerVector v_ids = ls_vertex_map.at(i);
+  for (size_t i = 0; i < n_pullbacks; ++i){
+    const IntegerVector v_ids = pullback.at(i);
     
     // Save the vertices into the map with their corresponding ids. 
-    std::for_each(v_ids.begin(), v_ids.end(), [&vertices, &res](const int v_id){
+    std::for_each(v_ids.begin(), v_ids.end(), [&vertices, &pullback_map](const int v_id){
       std::string v_key = std::to_string(v_id);
       const IntegerVector& pts = as<IntegerVector>(vertices[v_key]); // okay to access by index
-      res.emplace(v_id, pts);
+      pullback_map.emplace(v_id, pts);
     });
   }
-  return(res); 
+  return(pullback_map); 
 }
 
 // Builds the 0-skeleton by applying a given clustering function 'f' to a given set of level sets indexed by 'lsfis'.
@@ -237,7 +237,7 @@ List intersectNodes(const List& nodes1, const List& nodes2, const IntegerVector&
       const v_idx n2_idx = as< v_idx >(*n2);
 
       // Add edge between the two if they share a data point
-      bool intersect_check = nonempty_intersection(n1_idx, n2_idx);
+      bool intersect_check = nonempty_intersection(begin(n1_idx), end(n1_idx), begin(n2_idx), end(n2_idx));
       if (intersect_check){
         edgelist.push_back(IntegerVector::create(node_ids1[i], node_ids2[j]));
       }

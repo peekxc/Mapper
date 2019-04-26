@@ -101,7 +101,3 @@ intersectNodes <- function(nodes1, nodes2, node_ids1, node_ids2) {
     .Call(`_Mapper_intersectNodes`, nodes1, nodes2, node_ids1, node_ids2)
 }
 
-run_rcpp_tests <- function() {
-    invisible(.Call(`_Mapper_run_rcpp_tests`))
-}
-

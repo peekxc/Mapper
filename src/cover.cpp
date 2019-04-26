@@ -277,14 +277,16 @@ List dist_to_boxes(const IntegerVector& positions, const double interval_length,
     current_position[0] = pos;
     
     // Only compute distances to level sets not intersecting the current point
-    std::set_difference(all_positions.begin(), all_positions.end(), current_position.begin(), current_position.end(), target_positions.begin());
+    std::set_difference(all_positions.begin(), all_positions.end(), 
+                        current_position.begin(), current_position.end(), 
+                        target_positions.begin());
     
     // Distance calculation
     std::transform(target_positions.begin(), target_positions.end(), target_distances.begin(), 
-                   [interval_length, pos, dtl, dtu](int target_position){
-                     if (target_position < pos){ return(dtl + (pos - target_position - 1) * interval_length); }
-                     else { return(dtu + (target_position - pos - 1) * interval_length); }
-                   });
+       [interval_length, pos, dtl, dtu](int target_position){
+         double offset = std::abs((target_position - pos - 1) * interval_length);
+         return (target_position < pos ? dtl + offset : dtu + offset);
+    });
     
     // Store results
     res_dist.row(i) = clone(target_distances);

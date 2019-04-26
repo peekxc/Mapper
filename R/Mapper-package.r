@@ -8,7 +8,6 @@
 #' @importFrom methods new
 #' @useDynLib Mapper, .registration = TRUE
 #' @docType package
-#' @export
 NULL
 
 # simplextree <- Rcpp::Module("simplex_tree_module", PACKAGE = "simplextree", mustStart = TRUE)

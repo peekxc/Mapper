@@ -4,48 +4,8 @@
 #include "utility_rcpp.h"
 
 // namespace util {
-  IntegerVector to_ivec(std::vector< std::size_t > v){
-    return IntegerVector(v.begin(), v.end());
-  }
   std::vector< std::size_t > to_vec(IntegerVector v){
     return std::vector< std::size_t >(v.begin(), v.end());
-  }
-  
-  template <typename T> 
-  std::vector<T> merge_vectors(const std::vector< std::vector<T>* >& vec) {
-    std::size_t total_vec_size = 0;
-    std::for_each(vec.begin(), vec.end(), [&](const std::vector<T>* v){ total_vec_size += v->size(); });
-    std::vector< T > final_res = std::vector< T >();
-    final_res.reserve(total_vec_size);
-    // std::for_each(vec.begin(), vec.end(), [&](const std::vector<T>* v){ std::copy(v->begin(), v->end(), std::back_inserter(final_res)); });
-    std::for_each(vec.begin(), vec.end(), [&](const std::vector<T>* v){
-      final_res.insert(final_res.end(), v->begin(), v->end());
-    });
-    return(final_res);
-  }
-
-  
-  template<typename ForwardIterator>
-  inline std::map<int, int> get_unique_indices(ForwardIterator first, ForwardIterator last){
-    std::map<int, int> pt_to_unique_idx;
-    for(std::size_t i = 0; first != last; ++i, ++first){
-      auto it = pt_to_unique_idx.find(*first);
-      if (it == pt_to_unique_idx.end()) { // value doesn't exist
-        pt_to_unique_idx.emplace(*first, i);
-      }
-    }
-    return pt_to_unique_idx;
-  }
-  
-  template <typename T> 
-  IntegerVector to_ivec(std::vector<T> vec){
-    static_assert(std::is_integral<T>::value, "T must be integral type");
-    IntegerVector res = IntegerVector(vec.size());
-    std::size_t i = 0; 
-    std::for_each(vec.begin(), vec.end(), [&i, &res](const T val){
-      res.at(i++) = static_cast<int>(val);
-    });
-    return(res);
   }
   
   // rbindlist_int: Takes a list of integer vectors and rbind's them together.
@@ -71,24 +31,24 @@
   }
   
   
-  IntegerMatrix make_cartesian_product(const List& vecs){
-    std::vector< std::vector<int> > vv(vecs.size());
-    std::size_t n_rows = 1;
-    uidx_t vsize = vecs.size();
-    for (std::size_t i = 0; i < vsize; ++i){
-      IntegerVector v = vecs.at(i);
-      vv.at(i) = as< std::vector<int> >(v);
-      n_rows = n_rows * v.size();
-    }
-    
-    // Copy to result
-    std::size_t i = 0;
-    IntegerMatrix res = IntegerMatrix(n_rows, vecs.size());
-    CartesianProduct(vv, [&i, &res](std::vector<int> idx){
-      res(i++, _) = as<IntegerVector>(wrap(idx));
-    });
-    return(res);
-  }
+  // IntegerMatrix make_cartesian_product(const List& vecs){
+  //   std::vector< std::vector<int> > vv(vecs.size());
+  //   std::size_t n_rows = 1;
+  //   uidx_t vsize = vecs.size();
+  //   for (std::size_t i = 0; i < vsize; ++i){
+  //     IntegerVector v = vecs.at(i);
+  //     vv.at(i) = as< std::vector<int> >(v);
+  //     n_rows = n_rows * v.size();
+  //   }
+  //   
+  //   // Copy to result
+  //   std::size_t i = 0;
+  //   IntegerMatrix res = IntegerMatrix(n_rows, vecs.size());
+  //   CartesianProduct(vv, [&i, &res](std::vector<int> idx){
+  //     res(i++, _) = as<IntegerVector>(wrap(idx));
+  //   });
+  //   return(res);
+  // }
 
   // template <typename T> to_ivec< enable_int::type >();
   
@@ -96,7 +56,7 @@
 
 
 template IntegerVector to_ivec<uint8_t>(std::vector<uint8_t> vec);
-template std::vector<uint8_t> seq_ij<uint8_t>(uint8_t i, uint8_t j);
-template std::vector<sidx_t> merge_vectors<sidx_t>(const std::vector< std::vector<sidx_t>* >& vec);
+// template std::vector<uint8_t> seq_ij<uint8_t>(uint8_t i, uint8_t j);
+// template std::vector<sidx_t> merge_vectors<sidx_t>(const std::vector< std::vector<sidx_t>* >& vec);
   
 
