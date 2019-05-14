@@ -35,15 +35,13 @@ dashboard <- function(M, X, node_color_f = "default", dash_config=list(node_min=
   appDir <- system.file("dashboard_module", package = "Mapper")
   if (appDir == "") { stop("Could not find dashboard directory. Try re-installing `Mapper`.", call. = FALSE) }
   
-  .dash_env[["test"]] <- 1L
-  
   ## Make sure these are available to the app
   # mapply(assign, x=c("M", "X", "color_funcs", "dash_config"), value=list(M, X, color_funcs, dash_config), envir = .GlobalEnv)
-  .GlobalEnv$M <- M
-  .GlobalEnv$X <- X
-  .GlobalEnv$color_funcs <- color_funcs
-  .GlobalEnv$dash_config <- dash_config
-  on.exit(rm(list=c("M", "X", "color_funcs", "dash_config"), envir=.GlobalEnv))
+  .dash_env$M <- M
+  .dash_env$X <- X
+  .dash_env$color_funcs <- color_funcs
+  .dash_env$dash_config <- dash_config
+  on.exit(rm(list=c("M", "X", "color_funcs", "dash_config"), envir=.dash_env))
   
   ## Run the shiny app
   shiny::runApp(appDir, display.mode = "normal", launch.browser = TRUE)

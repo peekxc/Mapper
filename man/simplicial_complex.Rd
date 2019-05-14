@@ -12,5 +12,5 @@ the simplicial complex is stored as a \code{\link[simplextree]{simplextree}}.
 \cr 
 The underlying complex is completely maintained by \code{\link{MapperRef}} methods 
 (e.g. \code{\link{compute_vertices}}, etc.). The complex may also be modified directly
-via \code{\link[simplextree]{simplextree}} methods, however this is not recommended.
+via \code{\link[simplextree]{simplextree}} methods.
 }

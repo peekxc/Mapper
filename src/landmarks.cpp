@@ -20,7 +20,6 @@ IntegerVector landmark_maxmin(const NumericMatrix& x, const int n, const int see
   landmark_idx[seed] = 0; 
   IntegerVector::iterator c_landmark = landmark_idx.begin();
   double new_min_dist;
-  size_t i; 
   std::generate(landmark_idx.begin()+1, landmark_idx.end(), [&](){
     size_t i = 0;
     new_min_dist = std::numeric_limits<double>::infinity();

@@ -11,21 +11,21 @@ output: html_document
 library("Mapper")
 ```
 
-The **Mapper** package provides a configurable implementation of the Mapper framework (see 1). The package includes: 
+The **Mapper** package provides an [R](https://www.r-project.org/) implementation of the Mapper framework (see [1](#mapper_paper)). The package includes: 
 
 <img src="man/figures/mapper_logo.png" width=150 style="margin-left: 15px;" align="right" />
 
-- Efficient implementation of the Mapper framework
+- Efficient implementation of Mappers components with [Rcpp](https://cran.r-project.org/web/packages/Rcpp/index.html)
 
-- Multiple options for visualizing and interacting with _mappers_
+- Pre-configured tools for visualizing and interacting with _mappers_
 
-- Practical defaults for those unfamiliar with Mapper
+- Practical default settings for those unfamiliar with Mapper
 
-- Expressive parameterization interface through [method chaining](https://adv-r.hadley.nz/r6.html#method-chaining) 
+- Composable API via [method chaining](https://adv-r.hadley.nz/r6.html#method-chaining) 
 
-- Portable [R6 generators](https://github.com/r-lib/R6) for Mappers components
+- Extendable [R6 generators](https://github.com/r-lib/R6) for Mappers components
 
-The package was designed to make modifying or extending the Mapper method simple and efficient, without limiting its generality. 
+The package is designed to make modifying or extending the Mapper method simple and efficient, without limiting its generality. 
 
 ### Getting started
 
@@ -197,9 +197,9 @@ m$as_grapher(construct_widget = TRUE) %>% center()
 
 
 ## References 
-1. Singh, Gurjeet, Facundo Mémoli, and Gunnar E. Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.
-2. Boissonnat, Jean-Daniel, and Clément Maria. "The simplex tree: An efficient data structure for general simplicial complexes." Algorithmica 70.3 (2014): 406-427.
-<!-- ## Sphere example  -->
+<a name="mapper_paper">1.</a> Singh, Gurjeet, Facundo Mémoli, and Gunnar E. Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.
+
+<a name="simplex_tree_paper">2.</a> Boissonnat, Jean-Daniel, and Clément Maria. "The simplex tree: An efficient data structure for general simplicial complexes." Algorithmica 70.3 (2014): 406-427.
 
 <!-- TODO -->
 <!-- Show rgl + grapher shiny example to better demonstrate the concept of the pullback  -->

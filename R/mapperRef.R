@@ -25,38 +25,49 @@
 #'
 #' @author Matt Piekenbrock, \email{matt.piekenbrock@@gmail.com}
 #' @encoding UTF-8
-#' @references Singh, Gurjeet, Facundo Mémoli, and Gunnar E. Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.
+#' @references Gurjeet Singh, Facundo Mémoli, and Gunnar Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.
 #' @useDynLib Mapper
 #' @export
 MapperRef <- R6::R6Class("MapperRef", 
-  private = list(.X=NA, .cover=NA, .clustering_algorithm=NA, .measure="euclidean", .simplicial_complex = NA, .vertices=list(), .cl_map=list(), .config=NA),
+  private = list(.X=NA, .cover=NA, .clustering_algorithm=NA, .measure="euclidean", .simplicial_complex = NA, .vertices=list(), .pullback=list(), .config=NA),
   lock_class = FALSE,  ## Feel free to add your own members
   lock_objects = FALSE ## Or change existing ones 
 )
 
+## initialize ----
 MapperRef$set("public", "initialize", function(X){
-  stopifnot(is.numeric(X))
-  if (is.null(dim(X)) && !is(X, "dist")){ X <- as.matrix(X) }
-  private$.X <- X
+  # 
+  if (!is.function(X)){
+    stopifnot(is.numeric(X))
+    if (is.null(dim(X)) && !is(X, "dist")){ X <- as.matrix(X) }
+    Xf <- function(data_matrix){
+      function(idx){ return(data_matrix[idx,,drop=FALSE]) }
+    }
+    private$.X <- Xf(X)
+  } else { private$.X <- X }
   private$.simplicial_complex <- simplextree::simplex_tree()
+  self$use_distance_measure(measure = "euclidean")
+  self$use_clustering_algorithm(cl = "single", cutoff_method = "continuous")
   return(self)
 })
 
 ## To add a public member function 
+## add function ----
 MapperRef$set("public", "add_function", function(name, FUN) {
   self[[name]] <- FUN
   environment(self[[name]]) <- environment(self$add_function)
 })
 
-
 ## The set index -> (vertex) decomposition mapping. Read-only
+## pullback ----
 MapperRef$set("active", "pullback", 
   function(value){ 
     if (missing(value)){ private$.pullback } 
-    else { stop("'pullback' is read-only.") }
+    else { private$.pullback <- value }
   }
 )
 
+## cover ----
 #' @title Mapper cover
 #' @name cover
 #' @description Every \code{\link{MapperRef}} object requires a \code{\link{CoverRef}} object as 
@@ -78,16 +89,19 @@ MapperRef$set("active", "cover",
 )
 
 ## Mapper stores the vertices as a list
+## vertices ----
 MapperRef$set("active", "vertices", 
   function(value){
     if(missing(value)){
       private$.vertices
     } else {
-      stop("`$vertices` is read-only. To update the vertex membership, use the 'compute_vertices' function.", call. = FALSE)
+      private$.vertices <- value
+      # stop("`$vertices` is read-only. To update the vertex membership, use the 'compute_vertices' function.", call. = FALSE)
     }
   }  
 )
 
+## simplicial_complex ----
 #' @title Simplicial Complex 
 #' @name simplicial_complex 
 #' @description The relational information of the Mapper construction. 
@@ -96,16 +110,18 @@ MapperRef$set("active", "vertices",
 #' \cr 
 #' The underlying complex is completely maintained by \code{\link{MapperRef}} methods 
 #' (e.g. \code{\link{compute_vertices}}, etc.). The complex may also be modified directly
-#' via \code{\link[simplextree]{simplextree}} methods, however this is not recommended.
+#' via \code{\link[simplextree]{simplextree}} methods. 
 MapperRef$set("active", "simplicial_complex", 
   function(value){
     if (missing(value)){ private$.simplicial_complex }
     else {
-      stop("`$simplicial_complex` is read-only. To change the complex, use the objects (simplex tree) methods directly.", call. = FALSE)
+      private$.simplicial_complex <- value 
+      # stop("`$simplicial_complex` is read-only. To change the complex, use the objects (simplex tree) methods directly.", call. = FALSE)
     }
   }
 )
 
+## clustering_algorithm ----
 ## Clustering algorithm must be a function
 MapperRef$set("active", "clustering_algorithm", 
   function(value){
@@ -117,6 +133,7 @@ MapperRef$set("active", "clustering_algorithm",
   }
 )
 
+## X ----
 ## The data should be held fixed
 MapperRef$set("active", "X", 
   function(value){
@@ -127,6 +144,7 @@ MapperRef$set("active", "X",
   }
 )
 
+## measure ----
 ## Active binding for the distance measure
 MapperRef$set("active", "measure",
     function(value){
@@ -141,6 +159,7 @@ MapperRef$set("active", "measure",
     }
 )
 
+## use_clustering_algorithm ----
 #' @name use_clustering_algorithm 
 #' @title Sets the clustering algorithm 
 #' @description Sets the clustering algorithm used to construct the connected components in the pullback cover.
@@ -163,7 +182,7 @@ MapperRef$set("active", "measure",
 #' will taken precedence and override all previously set default settings. 
 MapperRef$set("public", "use_clustering_algorithm", 
   function(cl = c("single", "ward.D", "ward.D2", "complete", "average", "mcquitty", "median", "centroid"), 
-           cutoff_method = c("histogram", "continuous"),
+           cutoff_method = c("continuous", "histogram"),
            run_internal = FALSE,
            ...){
     ## Use a linkage criterion + cutting rule
@@ -177,15 +196,15 @@ MapperRef$set("public", "use_clustering_algorithm",
       ## Closured representation to substitute default parameters. 
       create_cl <- function(cl, cutoff_method, cut_defaults){
         cutoff_f <- switch(cutoff_method, "histogram"=cutoff_first_bin, "continuous"=cutoff_first_threshold)
-        function(X, idx = seq(nrow(X)), ...){
-          if (is.null(idx) || length(idx) == 0){ return(NULL) }
+        function(pid, idx, ...){
+          if (is.null(idx) || length(idx) == 0){ return(integer(0L)) }
           if (length(idx) <= 2L){ return(rep(1L, length(idx))); }
           override_params <- list(...)
           
           ## Use parallelDist package if available
           has_pd <- requireNamespace("parallelDist", quietly = TRUE)
           dist_f <- ifelse(has_pd, parallelDist::parallelDist, stats::dist)
-          dist_x <- do.call(dist_f, list(x=X[idx,], method=self$measure))
+          dist_x <- do.call(dist_f, list(x=self$X(idx), method=self$measure))
           
           ## Use fastcluster if available 
           has_fc <- requireNamespace("fastcluster", quietly = TRUE)
@@ -198,7 +217,8 @@ MapperRef$set("public", "use_clustering_algorithm",
           cutoff_params <- modifyList(modifyList(cutoff_params, cut_defaults), override_params)
         
           ## Use heuristic cutting value to produce the partitioning
-          do.call(cutoff_f, cutoff_params)
+          eps <- do.call(cutoff_f, cutoff_params)
+          return(cutree(hcl, h = eps))
         }
       }
       cl_f <- create_cl(cl, cutoff_method, default_cutting_params)
@@ -217,6 +237,7 @@ MapperRef$set("public", "use_clustering_algorithm",
   }
 )
 
+## use_distance_measure ----
 ## Sets the distance measure to use
 ## Supports any measure in proxy::pr_DB$get_entry_names()
 MapperRef$set("public", "use_distance_measure", function(measure){
@@ -224,6 +245,7 @@ MapperRef$set("public", "use_distance_measure", function(measure){
   invisible(self)
 })
 
+## use_cover ----
 #' @name use_cover 
 #' @title Selects one of the available covering methods to use.  
 #' @description 
@@ -233,13 +255,13 @@ MapperRef$set("public", "use_distance_measure", function(measure){
 #' @param ... Additional parameter values to pass to the covering generators initialize method. 
 #' @details The cover is automatically constructed before being assigned to the calling Mappers \code{$cover} field.  
 #' If this is undesirable, create the cover using the appropriate R6 class generators and assign to \code{$cover} field directly. 
-MapperRef$set("public", "use_cover", function(filter_values, typename="fixed rectangular", ...){
+MapperRef$set("public", "use_cover", function(filter_values, typename="fixed interval", ...){
   stopifnot(is.matrix(filter_values))
   stopifnot(nrow(filter_values) == nrow(private$.X))
-  if (missing(typename)){ typename <- "fixed rectangular"}
+  if (missing(typename)){ typename <- "fixed interval"}
   self$cover <- switch(typename, 
-    "fixed rectangular"=FixedRectangularCover$new(filter_values, ...)$construct_cover(), 
-    "restrained rectangular"=RestrainedRectangularCover$new(filter_values, ...)$construct_cover(),
+    "fixed interval"=FixedIntervalCover$new(filter_values, ...)$construct_cover(), 
+    "restrained interval"=RestrainedIntervalCover$new(filter_values, ...)$construct_cover(),
     "adaptive"=AdaptiveCover$new(filter_values, ...)$construct_cover(),
     "ball"=BallCover$new(filter_values, ...)$construct_cover(),
     stop(sprintf("Unknown cover type: %s", typename))
@@ -247,103 +269,116 @@ MapperRef$set("public", "use_cover", function(filter_values, typename="fixed rec
   invisible(self)
 })
 
+## compute_k_skeleton ----
 #' @name compute_k_skeleton 
-#' @title Computes the K-skeleton 
-#' @description For the details on how this is computed, see Singh et. al, section 3.2. 
-MapperRef$set("public", "compute_k_skeleton", function(k=1L, ...){
+#' @title Compute the K-skeleton 
+#' @description Computes the k-skeleton of the mapper by computing the nerve of the 
+#' the pullback cover induced by the cover set by the \code{cover} member. \cr
+#' \cr
+#' This function computes the k-skeleton inductively, e.g. by first computing the vertices, 
+#' then the edges, etc. Computing higher dimensions is supported, however may be significantly 
+#' slower than computing the 1-skeleton. 
+#' @details For the details on how this is computed, see Singh et. al, section 3.2. 
+MapperRef$set("public", "construct_k_skeleton", function(k=1L, ...){
   stopifnot(k >= 0)
-  if (k >= 0L){ self$compute_vertices(...) }
-  if (k >= 1L){ self$compute_edges(...) }
-  if (k >= 2L){
-    stop("k-skeletons for k > 1 are not yet available.!")
-    ## TODO: offer option to use flag complex k-expansion algorithm w/ Simplex tree or 
-    ## more general brute-force intersection method. 
-    
-    # k_simplex <- vector(mode = "list", length = k - 2L)
-    # for (k_i in 3L:k){
-    #   pt_map <- lapply(1:length(m$nodes), function(lsfi) cbind(pt_id = m$nodes[[lsfi]], node_id = rep(lsfi)))
-    #   pt_map <- data.table::data.table(do.call(rbind, pt_map))
-    #   intersection_pts <- pt_map[, .(n_intersects = nrow(.SD)), by = pt_id][n_intersects == k_i]$pt_id
-    #   simplex_pts <- pt_map[pt_id %in% intersection_pts, .SD, by = pt_id]
-    #   index <- (seq(nrow(simplex_pts))-1) %% k_i
-    #   k_simplex_mat <- unique(do.call(cbind, lapply(0:(k_i - 1L), function(idx){ simplex_pts$node_id[index == idx] })))
-    #   k_simplex[[k_i - 2L]] <- lapply(1:nrow(k_simplex_mat), function(i) k_simplex_mat[i,])
-    # }
+  self$simplicial_complex$clear()
+  if (k >= 0L){ self$construct_pullback(...) }
+  if (k >= 1L){
+    for (k_i in seq(1L, k)){ self$construct_nerve(k = k_i) }
   }
   invisible(self)
 })
 
-#' @name compute_vertices 
-#' @title Computes the vertices of mapper. 
-#' @description Executes the clustering algorithm for the level sets indexed by the 'which_levels' parameter. If not given, 
-#' runs the clustering algorithm and computes the subsequent vertices for all the available level sets. Additional 
-#' parameters passed via the '...' are passed to the clustering algorithm. 
-MapperRef$set("public", "compute_vertices", function(which_levels=NULL, ...){
+## construct_pullback ----
+#' @name construct_pullback 
+#' @title Computes the vertices of the mapper at a given index. 
+#' @description Executes the clustering algorithm for sets indexed by \code{pullback_ids}. 
+#' @details If ids are not supplied, the pullback is computed for all the sets in the cover.
+#' parameters passed via the '...' are passed to the clustering algorithm. \cr
+#' \cr
+#' Note that this method removes the vertices associated with \code{pullback_ids} from the simplicial 
+#' complex, which subsequently also any of their cofaces. New vertices computed with \code{clustering_algorithm}
+#' have their ids generated by \code{generate_ids}.
+MapperRef$set("public", "construct_pullback", function(pullback_ids=NULL, ...){
   stopifnot(!is.na(self$cover$level_sets))
   stopifnot(is.function(private$.clustering_algorithm))
-  if (!missing(which_levels) && !is.null(which_levels)){
-    if (!all(which_levels %in% self$cover$index_set)){
-      stop("If specified, 'which_levels' must be a vector of indexes in the covers index set.")
-    }
-  } else { which_levels <- self$cover$index_set }
+  pids_supplied <- (!missing(pullback_ids) && !is.null(pullback_ids))
+  if (pids_supplied){ stopifnot(all(pullback_ids %in% self$cover$index_set)) }
+  pullback_ids <- if (pids_supplied){ pullback_ids } else { self$cover$index_set }
   
-  ## If not populated yet, create a default mapping from the covers index set to the vertex ids
-  if (length(private$.cl_map) == 0){
-    private$.cl_map <- lapply(self$cover$index_set, function(x) integer(0L))
-    names(private$.cl_map) <- self$cover$index_set
+  ## If not populated yet, create a default pullback mapping from the covers index set to the vertex ids
+  if (length(private$.pullback) == 0){
+    private$.pullback <- lapply(self$cover$index_set, function(x) integer(0L))
+    names(private$.pullback) <- self$cover$index_set
   }
   
   ## Update the vertices for the given level sets. This requires updating both the simplex tree's 
   ## internal representation as well as the outward-facing vertex list. The new vertices are returned 
-  ## to replace the current list. 
-  which_level_idx <- match(which_levels, self$cover$index_set)-1L # 0-based
-  stree_ptr <- private$.simplicial_complex$as_XPtr()
+  ## to replace the current list. The pullback map is also updated. 
   private$.vertices <- Mapper:::build_0_skeleton(
-    which_levels = which_level_idx, 
-    X = private$.X, 
-    f = self$clustering_algorithm, 
-    level_sets = self$cover$level_sets, 
+    pullback_ids = as.character(pullback_ids),
+    cluster_f = self$clustering_algorithm, 
+    level_set_f = self$cover$construct_cover, 
     vertices = private$.vertices, 
-    ls_vertex_map = private$.cl_map, 
-    stree = stree_ptr
+    pullback = private$.pullback, 
+    stree = private$.simplicial_complex$as_XPtr()
   )
   
   ## Return self
   invisible(self)
 })
 
-#' @name compute_edges 
-#' @title Computes the edges of the mapper. 
-#' @description Computes (or updates) the edges composing the topological graph (1-skeleton). 
-#' @param which_level_pairs (n x 2) matrix of indices of the covers index set to check.
-#' @param min_weight minimum intersection size to consider as an edge. Defaults to 1.
-MapperRef$set("public", "compute_edges", function(which_level_pairs = NULL, min_weight=1L){
-  stopifnot(!is.na(self$cover$level_sets))
-  if (!missing(which_level_pairs) && !is.null(which_level_pairs)){
-    stopifnot(is.matrix(which_level_pairs))
-    stopifnot(dim(which_level_pairs)[[2]] == 2)
-    stopifnot(all(unlist(which_level_pairs) %in% self$cover$index_set))
-  } else { which_level_pairs <- self$cover$level_sets_to_compare() }
+## construct_nerve ----
+#' @name construct_nerve 
+#' @title Compute the nerve of the cover. 
+#' @description Computes (or updates) the k-simplices composing the Mapper, where k >= 1. 
+#' @param k The order of the simplices to construct. See details.  
+#' @param indices (n x k) matrix of indices of the covers index set to update.
+#' @param min_weight minimum intersection size to consider as a simplex. Defaults to 1.
+#' @details Compared to \code{construct_k_skeleton}, this method \emph{only} intersections 
+#' between (k-1) simplices in the complex.
+MapperRef$set("public", "construct_nerve", function(k = 1, indices = NULL, min_weight=1L, modify=TRUE){
+  stopifnot(length(private$.vertices) > 0)
+  stopifnot(k >= 1L)
+  idx_specified <- (!missing(indices) && !is.null(indices))
+  if (idx_specified){
+    stopifnot(is.matrix(indices))
+    stopifnot(all(unlist(indices) %in% self$cover$index_set))
+    k <- ncol(indices)-1L ## ensure k is equal to the number of columns of the indices - 1
+  }
+  indices <- if (idx_specified){ indices } else { self$cover$neighborhood(k) }
+  
   
   ## Retrieve the valid level set index pairs to compare. In the worst case, with no cover-specific optimization, 
   ## this may just be all pairwise combinations of LSFI's for the full simplicial complex.
   stree_ptr <- private$.simplicial_complex$as_XPtr()
-  ls_pairs <- apply(which_level_pairs, 2, function(x){ match(x, self$cover$index_set)-1L }) # 0-based
-  ls_pairs <- matrix(ls_pairs, ncol = 2)
-  build_1_skeleton(ls_pairs = ls_pairs, min_sz = min_weight, vertices = self$vertices, ls_vertex_map = private$.cl_map, stree = stree_ptr)
-
-  ## Return self
-  invisible(self)
+  params <- list(pullback_ids = indices, vertices = self$vertices, pullback = private$.pullback, stree = stree_ptr, modify = modify)
+  if (k == 1){ params <- modifyList(params, list(min_sz = min_weight)) } 
+  else { params <- modifyList(params, list(k = k)) }
+  sk_f <- ifelse(k == 1, build_1_skeleton, build_k_skeleton)
+  if (params$modify){
+    do.call(sk_f, params)
+    return(invisible(self))
+  } else {
+    return( do.call(rbind, do.call(sk_f, params)) )
+  }
 })
 
+## format ----
 ## S3-like print override
 MapperRef$set("public", "format", function(...){
-  if ("dist" %in% class(private$.X)){ n <- attr(private$.X, "Size") } else { n <- nrow(private$.X) }
-  message <- sprintf("Mapper construction for %d objects", n)
+  #if ("dist" %in% class(private$.X)){ n <- attr(private$.X, "Size") } else { n <- nrow(private$.X) }
+  max_k <- length(private$.simplicial_complex)
+  if (max_k == 0){ message <- "Mapper construction (empty)" }
+  else {
+    simplex_info <- sprintf("(%s) (%s)-simplices\n", paste0(private$.simplicial_complex$n_simplices, collapse = ", "), paste0(0L:(max_k-1L), collapse = ", "))
+    message <- paste0("Mapper construction with ", simplex_info)
+  }
   if (is(self$cover, "CoverRef")){ message <- append(message, format(self$cover)) }
   return(message)
 })
 
+## as_igraph ----
 #' @name as_igraph 
 #' @title Exports Mapper as an igraph object.
 #' @description Exports the 1-skeleton to a graph using the igraph library.
@@ -372,7 +407,8 @@ MapperRef$set("public", "as_igraph", function(vertex_scale=c("linear", "log"), v
     if (all(x == x[1])){ return(rep(1, length(x))) }
     else {  (x - min(x))/(max(x) - min(x)) }
   }
-  if (missing(vertex_scale)){ vertex_scale <- ifelse(vertex_scale == "linear", identity, log) }
+  if (missing(vertex_scale)){ vertex_scale <- "linear"}
+  vertex_scale <- switch(vertex_scale, "linear"=identity, "log"=log)
   vertex_sizes <- sapply(private$.vertices, length) 
   igraph::vertex_attr(G, "size") <- (vertex_max - vertex_min)*normalize(vertex_scale(vertex_sizes)) + vertex_min
 
@@ -383,6 +419,7 @@ MapperRef$set("public", "as_igraph", function(vertex_scale=c("linear", "log"), v
   return(G)
 })
 
+## as_grapher ----
 #' @name as_grapher
 #' @title Exports the 1-skeleton as a grapher object.
 #' @param construct_widget whether to construct the htmlwidget or just the grapher configuration.
@@ -443,6 +480,7 @@ MapperRef$set("public", "as_grapher", function(construct_widget=TRUE, ...){
   }
 })
 
+## as_pixiplex ----
 #' @name as_pixiplex
 #' @title Exports the complex as a pixiplex object.
 #' @description Uses the pixiplex library. 
@@ -469,6 +507,7 @@ MapperRef$set("public", "as_pixiplex", function(...){
   return(pp)
 })
 
+## exportMapper ----
 #' @name exportMapper
 #' @title Exports mapper information 
 #' @param graph_type export preference on the structure the graph output.

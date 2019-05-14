@@ -5,7 +5,7 @@ testthat::context("Testing mapper")
 # skip_on_cran()
 
 ## Load noisy circle data 
-system.file(file.path("data", "noisy_circle.rdata"), package = "Mapper")
+noisy_circle <- readRDS(system.file(file.path("extdata", "noisy_circle.rds"), package = "Mapper"))
 
 ## Define filter values equal to the distance from each point to the left-most point in the circle 
 left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
@@ -25,7 +25,7 @@ test_that("Can construct MapperRef object", {
 m <- MapperRef$new(noisy_circle)
 
 test_that("Can construct CoverRef object", {
-  cover_params <- list(filter_values = matrix(f_x, ncol = 1), type="fixed rectangular", number_intervals=5L, percent_overlap=20)
+  cover_params <- list(filter_values = matrix(f_x, ncol = 1), type="fixed interval", number_intervals=5L, percent_overlap=20)
   expect_silent(do.call(m$use_cover, cover_params))
   expect_is(m$cover, "CoverRef")
 })
@@ -41,20 +41,29 @@ test_that("Can assign distance measure", {
   expect_is(m$measure, "character")
 })
   
-test_that("Can compute vertices", {
-  expect_silent(m$compute_vertices())
+test_that("Can construct pullback", {
+  expect_silent(m$construct_pullback())
   expect_is(m$vertices, "list")
-  expect_is(m$ls_vertex_map, "list")
+  expect_is(m$pullback, "list")
+  for (pid in names(m$pullback)){
+    pt_ids <- unname(unlist(m$vertices[ as.character(m$pullback[[pid]]) ]))
+    expect_equal(sort(pt_ids), sort(m$cover$construct_cover(pid)))
+  }
 })
 
-test_that("Can compute edge", {
-  expect_silent(m$compute_edges())
-  expect_equal(m$simplicial_complex$n_simplexes, c(8, 8))
+test_that("Can construct nerve", {
+  expect_silent(m$construct_nerve(1L))
+  expect_equal(m$simplicial_complex$n_simplices, c(8, 8))
 })
 
 ## Stricter check that tests every connected and non-connected edge
 test_that("Mapper is valid", {
   expect_true(check_edges(m))
 })
+
+
+m <- MapperRef$new(runif(1000))
+m$use_cover(filter_values = cbind(runif(1000), runif(1000)), number_intervals=10, percent_overlap=60)
+m$construct_k_skeleton(k=2L)
 
 

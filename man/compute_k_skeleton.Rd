@@ -2,7 +2,15 @@
 % Please edit documentation in R/MapperRef.R
 \name{compute_k_skeleton}
 \alias{compute_k_skeleton}
-\title{Computes the K-skeleton}
+\title{Compute the K-skeleton}
 \description{
+Computes the k-skeleton of the mapper by computing the nerve of the 
+the pullback cover induced by the cover set by the \code{cover} member. \cr
+\cr
+This function computes the k-skeleton inductively, e.g. by first computing the vertices, 
+then the edges, etc. Computing higher dimensions is supported, however may be significantly 
+slower than computing the 1-skeleton.
+}
+\details{
 For the details on how this is computed, see Singh et. al, section 3.2.
 }

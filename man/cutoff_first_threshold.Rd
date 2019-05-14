@@ -13,6 +13,9 @@ cutoff_first_threshold(hcl, threshold = 0, ...)
 
 \item{...}{Additional parameters passed to \code{\link[stats]{density}}.}
 }
+\value{
+The cut-off value to use with \code{\link[stats]{cutree}}.
+}
 \description{
 Uses a heuristic similar to the one described in Section 3.1 of the original Mapper paper to cut a given hierarchical tree to produce a partitioning of the data.
 }

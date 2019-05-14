@@ -76,6 +76,7 @@ server <- function(input, output, session) {
   ## Outputs
   callModule(linkedTable, id="data_table", dt=X) ## construct the data table
 
+  session$onSessionEnded(stopApp)
 }
 
 shinyApp(ui=ui, server=server)

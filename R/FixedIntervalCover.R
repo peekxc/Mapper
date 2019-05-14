@@ -89,7 +89,7 @@ FixedIntervalCover$set("public", "interval_bounds", function(index=NULL){
       c(centroid - eps, centroid + eps)
     }))
   } else {
-    stopifnot(index %in% self$.index_set)
+    stopifnot(index %in% self$index_set)
     idx <- strsplit(substr(index, start=2L, stop=nchar(index)-1L), split = " ")[[1]]
     centroid <- filter_min + ((as.integer(idx)-1L)*base_interval_length) + base_interval_length/2.0
     ls_bounds <- c(centroid - eps, centroid + eps)
@@ -97,72 +97,75 @@ FixedIntervalCover$set("public", "interval_bounds", function(index=NULL){
   return(ls_bounds) ## Return bounds
 })
 
+## Setup a valid index set (via cartesian product)
+FixedIntervalCover$set("public", "construct_index_set", function(...){
+  cart_prod <- arrayInd(seq(prod(self$number_intervals)), .dim = self$number_intervals)
+  self$index_set <- apply(cart_prod, 1, function(x){ sprintf("(%s)", paste0(x, collapse = " ")) })
+})
+
 ## Given the current set of parameter values, construct the level sets whose union covers the filter space
-FixedIntervalCover$set("public", "construct_cover", function(...){
+FixedIntervalCover$set("public", "construct_cover", function(index=NULL){
   stopifnot(!is.na(private$.percent_overlap))
   stopifnot(!is.na(private$.number_intervals))
   
-  ## Setup a valid index set (via cartesian product)
-  cart_prod <- arrayInd(seq(prod(self$number_intervals)), .dim = self$number_intervals)
-  self$index_set <- apply(cart_prod, 1, function(x){ sprintf("(%s)", paste0(x, collapse = " ")) })
+  ## If the index set hasn't been made yet, construct it.
+  if (any(is.na(self$index_set))){ self$construct_index_set() }
+  stopifnot(!any(is.na(self$index_set)))
   
-  ## Retrieve the level set bounds
-  ls_bnds <- self$interval_bounds()
-  self$level_sets <- constructIsoAlignedLevelSets(self$filter_values, as.matrix(ls_bnds))
-  
-  ## Always return self 
-  invisible(self)
+  ## If no index specified, return the level sets either by construction
+  if (missing(index) || is.null(index)){
+    stopifnot(!index %in% self$index_set)
+    set_bnds <- self$interval_bounds()
+    self$level_sets <- constructIsoAlignedLevelSets(self$filter_values, as.matrix(set_bnds))
+    return(invisible(self)) ## return invisibly 
+  } else {
+    if (!is.na(self$level_sets) && index %in% names(self$level_sets)){
+      return(self$level_sets[[index]])
+    } else {
+      p_idx <- which(index == self$index_set)
+      set_bnds <- self$interval_bounds(index)
+      level_set <- constructIsoAlignedLevelSets(self$filter_values, set_bnds)
+      return(level_set)
+    }
+  }
 })
 
-## Alternative way to construct part of the cover 
-FixedIntervalCover$set("public", "construct_pullback", function(index){
-  stopifnot(!is.na(private$.percent_overlap))
-  stopifnot(!is.na(private$.number_intervals))
-  stopifnot(!is.na(self$index_set))
-  
-  ## Setup a valid index set (via cartesian product)
-  cart_prod <- arrayInd(seq(prod(self$number_intervals)), .dim = self$number_intervals)
-  self$index_set <- apply(cart_prod, 1, function(x){ sprintf("(%s)", paste0(x, collapse = " ")) })
-  
-  ## Retrieve the level set bounds
-  ls_bnds <- self$level_set_bounds()
-  self$level_sets <- constructIsoAlignedLevelSets(self$filter_values, as.matrix(ls_bnds))
-  
-  ## Always return self 
-  invisible(self)
-})
-
-
-FixedIntervalCover$set("public", "level_sets_to_compare", function(){
-  # browser()
-  all_pairs <- t(combn(1L:length(private$.index_set), 2))
-  multi_index <- arrayInd(seq(prod(self$number_intervals)), .dim = self$number_intervals)
-  
-  ## Get filter min and max ranges
-  filter_rng <- apply(self$filter_values, 2, range)
-  { filter_min <- filter_rng[1,]; filter_max <- filter_rng[2,] }
-  filter_len <- diff(filter_rng)
-  d_rng <- 1:ncol(self$filter_values)
-  
-  ## Compute the critical distances that determine which pairwise combinations to compare
-  base_interval_length <- filter_len/self$number_intervals
-  prop_overlap <- self$percent_overlap/100
-  critical_dist <- lapply(d_rng, function(d_i) { base_interval_length[d_i] + ((base_interval_length[d_i]/2)*seq(1, self$number_intervals[d_i] - 1))*2 })
-  c_interval_length <- base_interval_length + (base_interval_length * prop_overlap)/(1.0 - prop_overlap)
-  
-  ## Get the maximum index deviation allowed between level sets
-  max_dev <- sapply(d_rng, function(d_i) { findInterval(c_interval_length[d_i], critical_dist[[d_i]])+1L })
-  
-  ## Filter based on percent overlap  
-  which_pairs <- apply(all_pairs, 1, function(ls_pair){
-    m1 <- multi_index[ls_pair[1],]
-    m2 <- multi_index[ls_pair[2],]
-    all(sapply(d_rng, function(d_i){ abs(m1[d_i] - m2[d_i]) <= max_dev[d_i] }))
-  })
-  
-  ## Return the bounded pairs to compute
-  res <- apply(all_pairs[which_pairs,], 2, function(x) { self$index_set[x] })
-  return(res)
+## Constructs a 'neighborhood', which is an (n x k+1) subset of pullback ids representing 
+## the set of n unique (k+1)-fold intersections are required to construct the nerve. 
+FixedIntervalCover$set("public", "neighborhood", function(k){
+  stopifnot(!is.na(private$.index_set))
+  if (k == 1){
+    all_pairs <- t(combn(1L:length(private$.index_set), 2))
+    multi_index <- arrayInd(seq(prod(self$number_intervals)), .dim = self$number_intervals)
+    
+    ## Get filter min and max ranges
+    filter_rng <- apply(self$filter_values, 2, range)
+    { filter_min <- filter_rng[1,]; filter_max <- filter_rng[2,] }
+    filter_len <- diff(filter_rng)
+    d_rng <- 1:ncol(self$filter_values)
+    
+    ## Compute the critical distances that determine which pairwise combinations to compare
+    base_interval_length <- filter_len/self$number_intervals
+    prop_overlap <- self$percent_overlap/100
+    critical_dist <- lapply(d_rng, function(d_i) { base_interval_length[d_i] + ((base_interval_length[d_i]/2)*seq(1, self$number_intervals[d_i] - 1))*2 })
+    c_interval_length <- base_interval_length + (base_interval_length * prop_overlap)/(1.0 - prop_overlap)
+    
+    ## Get the maximum index deviation allowed between level sets
+    max_dev <- sapply(d_rng, function(d_i) { findInterval(c_interval_length[d_i], critical_dist[[d_i]])+1L })
+    
+    ## Filter based on percent overlap  
+    which_pairs <- apply(all_pairs, 1, function(ls_pair){
+      m1 <- multi_index[ls_pair[1],]
+      m2 <- multi_index[ls_pair[2],]
+      all(sapply(d_rng, function(d_i){ abs(m1[d_i] - m2[d_i]) <= max_dev[d_i] }))
+    })
+    
+    ## Return the bounded pairs to compute
+    res <- apply(all_pairs[which_pairs,], 2, function(x) { self$index_set[x] })
+    return(res)
+  } else {
+    return(super$neighborhood(k))
+  }
 })
 
 ## Converts percent overlap to interval length for a fixed number of intervals
@@ -174,5 +177,15 @@ FixedIntervalCover$set("public", "overlap_to_interval_len", function(percent_ove
   base_interval_length <- filter_len/self$number_intervals
   prop_overlap <- percent_overlap/100
   return(base_interval_length + (base_interval_length*prop_overlap)/(1.0 - prop_overlap))
+})
+
+## Converts interval length to percent overlap for a fixed number of intervals
+FixedIntervalCover$set("public", "interval_len_to_percent_overlap", function(interval_len){
+  stopifnot(all(is.numeric(self$number_intervals)))
+  filter_rng <- apply(self$filter_values, 2, range)
+  { filter_min <- filter_rng[1,]; filter_max <- filter_rng[2,] }
+  filter_len <- diff(filter_rng)
+  base_interval_length <- filter_len/self$number_intervals
+  100.0*(1.0 - (base_interval_length/interval_len))
 })
 

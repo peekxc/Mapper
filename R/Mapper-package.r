@@ -1,5 +1,5 @@
 #' Mapper Package
-#' @description Provides an R/Rcpp implementation of Mapper and its related tools. 
+#' @description Provides an R/Rcpp implementation of Mapper and related tools. 
 #' The main documentation for the package can be found here: \url{https://peekxc.github.io/mapper/}.  
 #' @author Matt Piekenbrock
 #' @name Mapper
@@ -10,7 +10,12 @@
 #' @docType package
 NULL
 
-# simplextree <- Rcpp::Module("simplex_tree_module", PACKAGE = "simplextree", mustStart = TRUE)
+#' MapperVis
+#' @description 'MapperVis' is a \code{\link[modules]{module}} containing \code{\link[shiny::callModule]{shiny modules}}
+#' that simplify making shiny applications with Mapper.
+#' @import modules
+#' @export
+MapperVis <- modules::use(file.path("R", "shiny_modules.R"))
 
 #' bin_color
 #' @param x A numeric vector whose magnitudes should be binned onto the color palette. 

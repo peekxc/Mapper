@@ -14,7 +14,7 @@
 #' distances may be a decent splot to cut the hierarchy. If \code{check_skew} is TRUE (default), the linkage distances are checked 
 #' that they are indeed right-skewed, and then the heuristic is used. If the distribution is left-skewed, the assumption for the 
 #' heuristic is not true, and the trivial clustering is returned instead. 
-#' 
+#' @return The cut-off value to use with \code{\link[stats]{cutree}}.
 #' @importFrom stats cutree
 #' @export
 cutoff_first_bin <- function(hcl, num_bins, check_skew=TRUE) {
@@ -34,9 +34,12 @@ cutoff_first_bin <- function(hcl, num_bins, check_skew=TRUE) {
   ## Check for the first empty
   cut_idx <- findFirstEqual(bin_idx, 0L) ## only need the first position
   
-  ## If there's a uniform distribution of distances, assign every point to the same cluster
-  if (cut_idx == length(bin_idx) + 1){ as.vector(cutree(hcl, k = 1L)) }
-  return(as.vector(cutree(hcl, h = breaks[cut_idx])))
+  ## If there's a uniform distribution of distances, assign every point to the same cluster by returning the 
+  ## maximum cutting height. Otherwise, return the calculated height of the first nonempty bin. 
+  return(ifelse(cut_idx == length(bin_idx) + 1, max(hcl$height), breaks[cut_idx]))
+  
+  # if (cut_idx == length(bin_idx) + 1){ as.vector(cutree(hcl, k = 1L)) }
+  # return(as.vector(cutree(hcl, h = )))
 }
 
 
@@ -51,7 +54,8 @@ cutoff_first_bin <- function(hcl, num_bins, check_skew=TRUE) {
 #' a given threshold value. Note that while this method offers a smooth alternative to \code{\link{cutoff_first_bin}} and may provide empirically better 
 #' clusterings, it's noticeably slower due to the call the \code{\link[stats]{density}}. 
 #' 
-#' @importFrom stats cutree
+#' @return The cut-off value to use with \code{\link[stats]{cutree}}.
+#' @importFrom stats density
 #' @export
 cutoff_first_threshold <- function(hcl, threshold = 0.0, ...){
   if (!is(hcl, "hclust")){ stop("'cutoff_first_bin' expects an 'hclust' object as input.") }
@@ -61,6 +65,7 @@ cutoff_first_threshold <- function(hcl, threshold = 0.0, ...){
   density_params$x <- hcl$height
   f_h <- do.call(stats::density, density_params)
   cut_idx <- Position(function(x) abs(x - threshold) < sqrt(.Machine$double.eps), x = f_h$y)
-  if (is.na(cut_idx) || cut_idx == 1L) { as.vector(cutree(hcl, k = 1L)) }
-  else { as.vector(cutree(hcl, h = f_h$x[cut_idx])) }
+  return(ifelse(is.na(cut_idx) || cut_idx == 1L, max(hcl$height), f_h$x[cut_idx]))
+  # if (is.na(cut_idx) || cut_idx == 1L) { as.vector(cutree(hcl, k = 1L)) }
+  # else { as.vector(cutree(hcl, h = )) }
 }

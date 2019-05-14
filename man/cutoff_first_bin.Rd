@@ -13,6 +13,9 @@ cutoff_first_bin(hcl, num_bins, check_skew = TRUE)
 
 \item{check_skew}{Whether to check if the distribution is left-skewed. See details.}
 }
+\value{
+The cut-off value to use with \code{\link[stats]{cutree}}.
+}
 \description{
 Uses the heuristic described in Section 3.1 of the original Mapper paper to cut a given hierarchical tree to produce a partitioning of the data.
 }

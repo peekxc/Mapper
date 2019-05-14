@@ -95,22 +95,24 @@ CoverRef$set("active", "level_sets",
 )
 
 ## Default cover 
-CoverRef$set("public", "construct_cover", function(){
+CoverRef$set("public", "construct_cover", function(index=NULL){
   stop("Base class cover construction called. This method must be overridden to be used.")
 })
 
-## Alternative, provide method which, for a given index, returns inverse image of that cover index
-CoverRef$set("public", "construct_pullback", function(){
-  stop("Base class cover construction called. This method must be overridden to be used.")
-})
+## Given an index in the index set, returns the indices of point intersect the image 
+## of f in the cover. The default method relies on the construct_cover method.  
+# CoverRef$set("public", "construct_pullback", function(index){
+# 
+# })
 
 
-## Which level sets (in terms of their corresponding indices in the index set) should be compared? 
-## This can be customized based on the cover to (dramatically) reduce the number of intersection checks
-## needed to generate the k-skeletons, where k >= 1. Defaults to every pairwise combination of level sets. 
-CoverRef$set("public", "level_sets_to_compare", function(k=1){
-  all_combs <- t(combn(seq(length(private$.index_set)), k+1L))
-  apply(all_combs, 2, function(x){ private$.index_set[x] })
+## Which level sets (in terms of their corresponding indices in the index set) should be compared 
+## in constructing the k-simplices? This can be customized based on the cover to (dramatically) reduce 
+## the number of intersection checks needed to generate the k-skeletons, where k >= 1. 
+## Defaults to every pairwise combination of level sets. 
+CoverRef$set("public", "neighborhood", function(k=1){
+  k_combs <- t(combn(length(private$.index_set), k+1))
+  relist(private$.index_set[k_combs], k_combs)
 })
 
 ## Validates that the constructed cover is indeed a valid cover. 

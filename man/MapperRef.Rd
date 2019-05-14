@@ -36,14 +36,14 @@ R6 utility class that enables computing mappers efficiently.
 \section{Methods}{
 
 \describe{
-  \item{Documentation}{ For full documentation see \href{https://peekxc.github.io/Mapper/}.}
+  \item{Documentation}{Full documentation available \href{https://peekxc.github.io/Mapper}{online}.}
   \item{\code{new(X)}}{This method uses \code{parameter_1} to ...}
   \item{\code{new(X)}}{This method uses \code{parameter_1} to ...}
 }
 }
 
 \references{
-Singh, Gurjeet, Facundo Mémoli, and Gunnar E. Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.
+Gurjeet Singh, Facundo Mémoli, and Gunnar Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.
 }
 \author{
 Matt Piekenbrock, \email{matt.piekenbrock@gmail.com}
