@@ -301,10 +301,17 @@ MapperRef$set("public", "as_igraph", function(){
   
   ## Color nodes and edges by a default rainbow palette
   rbw_pal <- rev(rainbow(100, start = 0, end = 4/6))
-  agg_node_val <- sapply(sapply(private$.vertices, function(v_idx){ 
-    apply(as.matrix(self$cover$filter_values[v_idx,]), 1, mean)
+  agg_val <- function(lst) sapply(sapply(lst, function(idx){ 
+    apply(as.matrix(self$cover$filter_values[idx,]), 1, mean)
   }), mean)
-  igraph::vertex_attr(G, name = "color") <- rbw_pal[cut(agg_node_val, breaks = 100, labels = F)]
+  rbw_fun <- function(val) rbw_pal[cut(val, breaks = 100, labels = F)]
+  agg_node_val <- agg_val(private$.vertices)
+  igraph::vertex_attr(G, name = "color") <- rbw_fun(agg_node_val)
+  agg_edge <- apply(igraph::as_edgelist(G), 1, function(vids){
+    intersect(private$.vertices[[vids[1]]], private$.vertices[[vids[2]]])
+  })
+  agg_edge_val <- agg_val(agg_edge)
+  igraph::edge_attr(G, name = "color") <- rbw_fun(agg_edge_val)
   
   ## Normalize between 0-1, unless all the same
   normalize <- function(x) { 
