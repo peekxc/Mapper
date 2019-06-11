@@ -53,9 +53,13 @@ vector< IntegerVector > apply_clustering(std::string pid, const Function& level_
     vector<IntegerVector> res; 
     return(res); 
   } 
+  // Rcout << "level set: " << level_set << std::endl;
   const IntegerVector cl_results = cluster_f(_["pid"] = pid, _["idx"] = level_set);
+  // Rcout << "cluster results: " << cl_results << std::endl;
   const IntegerVector cl_idx = self_match(cl_results) - 1; // guarenteed to be 0-based contiguous indices
+  // Rcout << "self match results: " << cl_idx << std::endl;
   const IntegerVector ids = unique(cl_idx); 
+  // Rcout << "cluster ids: " << ids << std::endl;
   
   // Collect the points into vertices  
   size_t i = 0; 
@@ -231,8 +235,7 @@ List build_0_skeleton(
     List& pullback, 
     SEXP stree)
 {
-  Rcpp::XPtr<SimplexTree> stree_ptr(stree); // Collect the simplex tree
-  // Rcout << "here" << std::endl;
+  Rcpp::XPtr<SimplexTree> stree_ptr(stree); // Collect the simplex tree;
   
   // Loop through the pullback ids to update. This will update the vertices, the pullback map, and the simplex tree
   vector< std::string > pids = as< vector< std::string > >(pullback_ids);
@@ -240,14 +243,13 @@ List build_0_skeleton(
     IntegerVector vids = pullback[pid];
     
     // Remove vids in vertex list, pullback, and simplex tree
+    // Rcout << "Removings vertices: " << vids << std::endl;
     vertices = remove_by_id(vids, vertices);
     pullback[pid] = IntegerVector::create();
     for (int vid: vids){ stree_ptr->remove_simplex({ size_t(vid) }); };
     
-    // Create the new vertices
-
-    // if (level_set.size() > 0){
     // Apply the clustering to get the new vertices
+    // Rcout << "Applying clustering to: " << pid << std::endl;
     vector< IntegerVector > new_vertices = apply_clustering(pid, level_set_f, cluster_f);
     
     if (new_vertices.size() == 0){
@@ -260,8 +262,6 @@ List build_0_skeleton(
       
       // Insert point indices into vertices
       for (size_t i = 0; i < new_vertices.size(); ++i){
-        // Rcout << "Inserting: " << std::to_string(new_0_simplexes.at(i)) << std::endl;
-        // Rcout << new_vertices.at(i) << std::endl;
         new_vertices.at(i).attr("level_set") = pid; 
         vertices[std::to_string(new_0_simplexes.at(i))] = new_vertices.at(i);
       }

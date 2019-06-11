@@ -384,311 +384,216 @@ void MultiScale::update_canonical_cover(const int_t i, const uint_t d_i){
     auto ub = std::upper_bound(begin(cc_off), end(cc_off), i);
     ii = std::distance(begin(cc_off), ub);
   }
-  // if (ii > 0){ ii -= 1; }
   // Rprintf("swap idx: %d, c_segment_idx: %d \n", ii, cc_index.at(d_i));
   // Updates the canonical cover based on the current index 'i', if needed
   if (ii != cc_index.at(d_i)){
     canonical_cover.at(d_i) = segment_cover_idx(ii, d_i);
     cc_index.at(d_i) = ii;
   }
-  // Rcout << "here_extra" << std::endl;
 }
-  
-List MultiScale::update_segments(const IntegerVector target_idx){
-  
-  // The information needed to update the indices
-  // std::map< int_t, pt_update > pts_to_update = std::map< int_t, pt_update >(); 
-  // 
-  // std::unordered_set< size_t > pts_to_update2 = std::unordered_set< size_t >(); 
+
+// Adjusts the state of the fitration to match the given target index. 
+// Returns a map between points that have changed and their (multi-index) target segments
+std::unordered_map< size_t, vector< uint_t > > MultiScale::update_paths(const IntegerVector target_idx){
   std::unordered_map< size_t, vector< uint_t > > update_list;
-  
-  vector< bool > expansion_status(d, true); // by default, points are expanding 
-    
-  // Aggregate per-dimension information
+
+  // Adjusts every points path state to match the target index
   for (auto d_i: d_range){
-    // Locals 
-    const int_t c_idx = current_index.at(d_i); // current filtration index
-    const int_t t_idx = target_idx.at(d_i); // target filtration index
+    const int_t c_idx = current_index[d_i]; // current filtration index
+    const int_t t_idx = target_idx[d_i]; // target filtration index
     if (c_idx == t_idx){ continue; } // Don't update if we're at the current index
-    const bool expanding = c_idx < t_idx; // are we expanding or contracting the current dimension?
-    expansion_status.at(d_i) = expanding;
-      
-    // Rprintf("d=%d: expanding? %d. Current index: %d, target index: %d\n", d_i, expanding, c_idx, t_idx);
-    // Adjust start and end indices
+    
+    // Identify start and end indices 
+    bool expanding = c_idx < t_idx; 
     int_t s_i = expanding ? c_idx+1 : c_idx;
     int_t e_i = expanding ? t_idx : t_idx+1;
+    const auto update = [&s_i, &expanding](){ return(expanding ? ++s_i : --s_i); };
+    const auto updating = [&s_i, &e_i, &expanding](){ return(expanding ? s_i <= e_i : s_i >= e_i); };
     
-    // Update lambda updates the start index, 
-    // Updating lambda checks whether the start index as arrived at the end
-    auto update = [&s_i, &expanding](){ return(expanding ? ++s_i : --s_i); };
-    auto updating = [&s_i, &e_i, &expanding](){ return(expanding ? s_i <= e_i : s_i >= e_i); };
-
+    
     // Update to the target state of the filtration
     for (; updating(); update()){
-      int_t f_i = indices.at(d_i).at(s_i); // current filtration index
-      size_t pt_idx = (f_i % n); // the point changing at this step
+      const int_t f_i = indices[d_i].at(s_i); // current filtration index
+      const size_t pt_idx = (f_i % n); // the point changing at this step
       
       // Extract the path information
-      path_info& c_path = pt_info.at(d_i).at(pt_idx);
-      v_uint_t ls_path = ls_paths.at(d_i).at(c_path.k_idx);
-      
-      // Debugging
-      // IntegerVector tmp1 = IntegerVector(ls_path.begin(), ls_path.end());
-      // Rprintf("pt_idx %d  path: k=%d, p=%d, c=%d, c_seg=%d\n", pt_idx, c_path.k_idx, c_path.p_idx, c_path.c_idx, c_path.c_segment);
-      // Rcout << "LS Path: " << tmp1 << std::endl;
+      path_info& c_path = pt_info[d_i].at(pt_idx); 
+      const vector< uint_t > ls_path = ls_paths[d_i].at(c_path.k_idx);
       
       // Get the source and target level sets for the current point
       uint_t next_idx = expanding ? c_path.c_idx+1 : c_path.c_idx-1;
       uint_t source_ls = ls_path.at(c_path.c_idx);
       uint_t target_ls = ls_path.at(next_idx);
       c_path.c_idx = next_idx;  // Update the points position 
-     
+      
       // Potentially updates the canonical cover
       update_canonical_cover(s_i, d_i);
-      
-      // IntegerVector tmp = IntegerVector(canonical_cover.at(d_i).begin(), canonical_cover.at(d_i).end());
-      // Rcout << "Current segment indices: " << tmp << std::endl;
       
       // Compute the target segment 
       const bool intersecting_right = source_ls < target_ls;
       uint_t target_segment = 
         expanding ? 
-          (intersecting_right ? canonical_cover.at(d_i).at(target_ls*2) : canonical_cover.at(d_i).at((target_ls*2)+1)-1) :
-          (intersecting_right ? canonical_cover.at(d_i).at((source_ls*2)+1) : canonical_cover.at(d_i).at(source_ls*2)-1)
-      ;
+        (intersecting_right ? canonical_cover[d_i].at(target_ls*2) : canonical_cover[d_i].at((target_ls*2)+1)-1) :
+        (intersecting_right ? canonical_cover[d_i].at((source_ls*2)+1) : canonical_cover[d_i].at(source_ls*2)-1);
       
-      // If the point isn't in the update list, put it in, otherwise update 
-      // the target segment for the current point
+      // If the point isn't in the update list, put it in, otherwise update the target segment 
+      // for the current point
       auto element = update_list.find(pt_idx);
       if (element != update_list.end()){
-        (*element).second.at(d_i) = target_segment;
+        (*element).second[d_i] = target_segment;
       } else {
         // Add the current points segment to the map, then update the target segment index for the current dimension
         update_list[pt_idx] = get_segment_midx(pt_idx); //vector< uint_t >(d, 255); // initialize to 255 to signal the segment hasn't changed
-        update_list[pt_idx].at(d_i) = target_segment;
+        update_list[pt_idx][d_i] = target_segment;
       }
-      
-      // Once the point has moved, check if the canonical cover needs to be updated
-      // update_canonical_cover(s_i, d_i); 
-      
-      // Debug
-      // Rprintf("pt id %d is going from ls %d to ls %d (going right? %d via segments f=%d, t=%d)\n",
-      //         int(pt_idx)+1, int(source_ls), int(target_ls), int(intersecting_right), int(c_path.c_segment), int(target_segment));
     } // for(; updating(); update())
     
-    current_index.at(d_i) = t_idx; // Update current filtration index
+    current_index[d_i] = t_idx; // Update current index to the target 
   } // for (auto d_i: d_range)
+  return update_list; 
+}
   
-  // If any dimensions  are contracting, keep p_idx --> c_idx expansions conservative 
-  const bool all_expanding = std::all_of(begin(expansion_status), end(expansion_status), identity());
-  // Rcout << "all expanding: " << all_expanding << std::endl;
-    
+// Given a target index, transfers points to the segments to match the state given by the target index
+void MultiScale::update_segments(std::unordered_map< size_t, vector< uint_t > >& update_list){
+  
   // Move the points in the updated lists to their new respective segments
   for(auto& pt_seg: update_list){
-    size_t pt_idx = pt_seg.first; 
-    v_uint_t pt_target_segment = pt_seg.second;
+    const size_t pt_idx = pt_seg.first; 
+    const vector< uint_t > pt_target_segment = pt_seg.second;
     
     // Remove point from first segment
-    v_uint_t pt_source_segment = get_segment_midx(pt_idx);
-    v_int_t& from_pts = segments.at(pt_source_segment);
+    v_int_t& from_pts = segments.at(get_segment_midx(pt_idx));
     erase_remove(from_pts, from_pts.begin(), from_pts.end(), int_t(pt_idx));
     
     // Push point into target segment. Save cached segment index 
     segments[pt_target_segment].push_back(pt_idx);
-    for (auto& d_i: d_range){ pt_info.at(d_i).at(pt_idx).c_segment = pt_target_segment.at(d_i); }
-      
-    // Info
-    // vector< size_t > src_seg = vector< size_t >(begin(pt_source_segment), end(pt_source_segment)); 
-    // vector< size_t > tgt_seg = vector< size_t >(begin(pt_target_segment), end(pt_target_segment)); 
-    // Rprintf("Pt idx: %d, source segment: %s, target_segment: %s\n", 
-    //         pt_idx,
-    //         vec_to_string(src_seg, ",").c_str(),
-    //         vec_to_string(tgt_seg, ",").c_str()
-    // );
+    for (auto& d_i: d_range){ pt_info[d_i].at(pt_idx).c_segment = pt_target_segment[d_i]; }
   }
-   
-  // Collect which pullback sets need updating
-  std::unordered_set< size_t > flat_ls;
-  std::set< std::pair< size_t, size_t > > flat_ls_pairs;
-  
-  const size_t n_sets = std::accumulate(begin(num_intervals), end(num_intervals), 1, std::multiplies< size_t >());
-  const size_t n_ls_pairs = choose< size_t >(n_sets, 2);
-  
-  for(auto& pt_seg: update_list){
-    size_t pt_idx = pt_seg.first; 
-    v_uint_t c_target_segment = pt_seg.second;
-      
-    // Step 1. Expand the level set indices in each direction
-    vector< v_uint_t > path_rng(d);
-    size_t cc = 0;
-    
-    // Collect the source set the point is coming from to remove from the cartesian product
-    v_uint_t previous = get_previous_lsmi(pt_idx);
-    v_uint_t target = get_current_lsmi(pt_idx);
-    IntegerVector tmp1 = IntegerVector(begin(previous), end(previous));
-    IntegerVector tmp2 = IntegerVector(begin(target), end(target));
-    // Rprintf("Source/target lsmi for pt %d: ", pt_idx);
-    // Rcout << tmp1 << ", ";
-    // Rcout << tmp2 << std::endl;
-    
-    // The 'path_info' uses the cartesian product of the delta between the p_idx and c_idx to  
-    // determine which sets were intersected. 
-    for (auto& d_i: d_range){
-      path_info& pt_meta = pt_info.at(d_i).at(pt_idx);
-      const vector< uint_t >& c_ls_path = ls_paths.at(d_i).at(pt_meta.k_idx);
-      
-      // Rprintf("(d_i=%d) pt_idx %d path_info: k=%d, p=%d, c=%d, c_seg=%d, path: %s\n", d_i, pt_idx, pt_meta.k_idx, pt_meta.p_idx, pt_meta.c_idx, pt_meta.c_segment, vec_to_string(c_ls_path, ", ").c_str());
-      
-      // TODO: if contracting, maybe the begin should be the c_idx, and the end 
-      // should be the p_idx, since p_idx > c_idx
-      // auto path_begin = c_ls_path.begin();
-      // auto path_end = c_ls_path.begin() + (expansion_status.at(d_i) ? int(pt_meta.c_idx)+1 : int(pt_meta.p_idx)+1);
-      // 
-      // auto idx_range = std::minmax_element(path_begin, path_end);
-      // const int_t s = (int_t) *idx_range.first, e = (int_t) *idx_range.second;
-      // path_rng.at(d_i) = seq_ij< uint_t >(s, e);
-      // cc += path_rng.at(d_i).size();
-      
-      // Point hasn't moved in this direction 
-      if (pt_meta.p_idx == pt_meta.c_idx){
-        if (d_range.size() == 1){
-          cc++;
-          path_rng.at(d_i).push_back(c_ls_path.at(pt_meta.c_idx));
-        } else {
-          auto c_path_idx = seq_ij< uint_t >(0, pt_meta.c_idx); // add entire range
-          for (uint_t idx: c_path_idx){
-            path_rng.at(d_i).push_back(c_ls_path.at(idx));
-          }
-          cc += c_path_idx.size();
-        }
+}
 
+// Computes the range of relative indices the given point intersects
+vector< v_uint_t > MultiScale::resolve_paths(const size_t pt_idx){
+  // Lambda which enables adding sequential ranges of LS indices to path_rng
+  vector< v_uint_t > path_rng(d);
+  size_t cc = 0;
+  const auto add_range = [&path_rng, &cc](const vector< uint_t >& ref_rng, const uint_t d_i, const uint_t a, const uint_t b){
+    auto rng = seq_ij< uint_t >(a, b); // add entire range
+    for (uint_t idx: rng){ path_rng[d_i].push_back(ref_rng.at(idx)); }
+    cc += rng.size();
+  };
+  
+  // Use delta between the p_idx and c_idx to determine which open sets each point intersected. 
+  for (auto& d_i: d_range){
+    path_info& pt_meta = pt_info[d_i].at(pt_idx);
+    const vector< uint_t >& c_ls_path = ls_paths[d_i].at(pt_meta.k_idx);
+    // 1. If point hasn't moved in this direction, depends on the dimensionality of the space 
+    if (pt_meta.p_idx == pt_meta.c_idx){
+      if (d_range.size() == 1){
+        cc++;
+        path_rng[d_i].push_back(c_ls_path.at(pt_meta.c_idx));
+      } else {
+        add_range(c_ls_path, d_i, 0, pt_meta.c_idx);
       }
-      // Contracting, add everything between
-      else if (pt_meta.p_idx > pt_meta.c_idx){
-        auto c_path_idx = seq_ij< uint_t >(pt_meta.c_idx, pt_meta.p_idx);
-        for (uint_t idx: c_path_idx){
-          path_rng.at(d_i).push_back(c_ls_path.at(idx));
-        }
-        cc += c_path_idx.size();
-      }
-      // Expanding, depends on dimensionality 
-      else {
-        // If 1-dimensional, just need to add up to and including the current index, but not the previous index
-        // if (d_range.size() == 1){
-          auto c_path_idx = seq_ij< uint_t >(pt_meta.p_idx+1, pt_meta.c_idx);
-          for (uint_t idx: c_path_idx){
-            path_rng.at(d_i).push_back(c_ls_path.at(idx));
-          }
-          cc += c_path_idx.size();
-        // } 
-        // Otherwise, need to add the previous index to collect the pullbacks in the product 
-        // else {
-        //   auto c_path_idx = seq_ij< uint_t >(pt_meta.p_idx, pt_meta.c_idx);
-        //   for (uint_t idx: c_path_idx){
-        //     path_rng.at(d_i).push_back(c_ls_path.at(idx));
-        //   }
-        //   cc += c_path_idx.size();
-        // }
-      }
-      // Reset the previous idx to the current index
-      pt_meta.p_idx = pt_meta.c_idx; 
-    } 
-    
-    // Only add the updated level sets if the point moved level sets
-    // if (cc > d){ 
+    } // 2. Contracting, add [p_idx, c_idx]
+    else if (pt_meta.p_idx > pt_meta.c_idx) {
+      add_range(c_ls_path, d_i, pt_meta.c_idx, pt_meta.p_idx); 
+    } // 3. Expanding, add (p_idx, c_idx]
+    else { 
+      add_range(c_ls_path, d_i, pt_meta.p_idx+1, pt_meta.c_idx);  
+    }
+    // Reset the previous idx to the current index
+    pt_meta.p_idx = pt_meta.c_idx; 
+  } 
+  return(path_rng);
+}
+
+
+// Collect the subset of indices in the covers index set have had their decompositions modified 
+void MultiScale::modified_indices(
+    const std::unordered_map< size_t, vector< uint_t > >& update_list, 
+    const size_t max_dim,
+    std::unordered_set< size_t >& pullback_idx,
+    std::unordered_set< vector< uint_t >, VectorHash< uint_t > >& nerve_idx, 
+    const bool all_expanding)
+{
+  // Number of open sets 
+  const size_t n_sets = std::accumulate(begin(num_intervals), end(num_intervals), 1, std::multiplies< size_t >());
+  
+  // Resolve the changes
+  for(auto& pt_seg: update_list){
+    const size_t pt_idx = pt_seg.first; 
+    const vector< uint_t > c_target_segment = pt_seg.second;
       
+    // Get previous and current LS multi-indices
+    const vector< uint_t > previous = get_previous_lsmi(pt_idx);
+    // const vector< uint_t > target = get_current_lsmi(pt_idx);
+  
+    // Step 1. Resolve point paths 
+    vector< v_uint_t > path_rng = resolve_paths(pt_idx);
+  
     // Step 2. The cartesian product of the expanded indices comprise the level sets that
     // need to have their pullbacks recomputed. Save their corresponding flat indices. 
-    vector< uint_t > local_flat_ls = vector< uint_t >();
-    // TODO: only add target level set! This is not
-    CartesianProduct(path_rng, [this, &previous, &target, &flat_ls, &local_flat_ls, &all_expanding](const v_uint_t lsmi){
-      // Rcout << "lsmi: " << int(multi_to_flat(lsmi)) << std::endl;
-      // If any dimensions are contracting, insert the index. If they're all expanding, only insert
-      // indices not originating from the points source pullback
+    vector< uint_t > local_pullbacks = vector< uint_t >();
+    CartesianProduct(path_rng, [this, &previous, &pullback_idx, &local_pullbacks, &all_expanding](const v_uint_t lsmi){
       if (lsmi != previous || !all_expanding){
-        size_t lsfi = multi_to_flat(lsmi);
-        flat_ls.insert(lsfi); // global 
-        local_flat_ls.push_back(lsfi); // local to a point
+        const size_t lsfi = multi_to_flat(lsmi);
+        pullback_idx.insert(lsfi);
+        local_pullbacks.push_back(lsfi); // local to a point
       }
     });
       
     // Step 3. The pairwise combinations of the new level sets to update comprise the LS pairs that need to be recomputed. 
-    // Save their corresponding (lower-triangular) flat indices. 
-    
-    // TODO: Change this structure, report instead 
-    // 1) The source set whose pullback changed, as a key in a map 
-    // 2) The newly intersecting target sets, as values in a std::set mapped by the source set 
-    // Then in R, take the (k-1)-fold combinations of the values w/ the source set. 
-    // Add a pair between the source set and any other sets the point intersected
-    vector< uint_t > src_vec = { uint_t(multi_to_flat(previous)) };
-    vector< v_uint_t > pair_sets = { src_vec, local_flat_ls};
-    // for (size_t k = 0; k < max_dim; ++k){ pair_sets.push_back(local_flat_ls); }
-    CartesianProduct(pair_sets, [&flat_ls_pairs, &n_sets](const v_uint_t pair_lsfi){
-      // size_t ij_flat = index_lt(, n_sets);
-      if (pair_lsfi.at(0) != pair_lsfi.at(1)){
-        size_t i = (size_t) std::min(pair_lsfi.at(0), pair_lsfi.at(1));
-        size_t j = (size_t) std::max(pair_lsfi.at(0), pair_lsfi.at(1));
-        flat_ls_pairs.insert(std::make_pair(i, j));
-      }
-    });
-        
-      // combine_pairwise(flat_ls.begin(), flat_ls.end(), [&n_sets, &flat_ls_pairs](const size_t ls_i, const size_t ls_j){
-      //   size_t ij_flat = index_lt(ls_i, ls_j, n_sets);
-      //   flat_ls_pairs.insert(ij_flat);
-      // });
-    // } // if (cc > d){ 
-   } // for(auto& pt_idx: update_list)
-  
-  // Convert the LS to update to an integer vector 
-  // IntegerVector ls_res = IntegerVector(ls_to_update.begin(), ls_to_update.end());
-  
-  // // Unexpand the the LS pairs to update to an integer matrix 
-  // const size_t n_sets = std::accumulate(begin(num_intervals), end(num_intervals), 1, std::multiplies< size_t >());
-  IntegerMatrix ls_pairs = no_init_matrix(flat_ls_pairs.size(), 2);
-  size_t i = 0;
-  for (auto idx: flat_ls_pairs){
-    // size_t to = index_to(idx, n_ls_pairs);
-    // size_t from = index_from(idx, n_ls_pairs, to);
-    ls_pairs(i++, _) = IntegerVector::create(idx.first, idx.second);
-  }
+    v_uint_t init = { uint_t(multi_to_flat(previous)) };
+    vector< v_uint_t > local_nerve = { init };
+    for (size_t k = 0; k < max_dim; ++k){ 
+      local_nerve.push_back(local_pullbacks);
+      CartesianProduct(local_nerve, [&nerve_idx](vector< uint_t > k_nerve){
+        std::sort(begin(k_nerve), end(k_nerve));
+        if (std::unique(begin(k_nerve), end(k_nerve)) == end(k_nerve)){
+          nerve_idx.insert(k_nerve); 
+        }
+      });
+    }
+  } // for(auto& pt_idx: update_list)
+}
 
+// Updates the index of the cover. Also records changes that occurred,  
+List MultiScale::update_index(const IntegerVector target_idx, const size_t max_dim){
+  
+  // Which dimensions are expanding or contracting?
+  vector< bool > expansion_status(d, true); 
+  for (auto d_i: d_range){
+    expansion_status[d_i] = current_index[d_i] < target_idx[d_i];
+  }
+  const bool all_expanding = std::all_of(begin(expansion_status), end(expansion_status), identity());
+  
+  // Move the points into states
+  //std::unordered_map< size_t, vector< uint_t > >
+  auto update_list = update_paths(target_idx);
+  
+  // Update the segments
+  update_segments(update_list);
+  
+  // Collect whats changed
+  std::unordered_set< size_t > pullback_idx;
+  std::unordered_set< vector< uint_t >, VectorHash< uint_t > > nerve_idx;
+  modified_indices(update_list, max_dim, pullback_idx, nerve_idx, all_expanding);
+
+  // Return information back to R 
+  IntegerVector pullbacks_to_update = IntegerVector(begin(pullback_idx), end(pullback_idx));
+  List nerve_to_update = wrap(nerve_idx);
+  // ntegerMatrix idx_to_check = no_init_matrix(nerve_idx.size(), max_dim+1);
+  // size_t i = 0;
+  // for (auto& local_pids: nerve_idx){
+  //   IntegerVector tmp(begin(local_pids), end(local_pids));
+  //   idx_to_check(i++, _) = tmp;
+  // }
   
   // Return the results 
-  //, _["ls_pairs_to_update"] = ls_pairs
   std::set< size_t > pts_changed; 
   for(auto& pt_seg: update_list){ pts_changed.insert(pt_seg.first); } 
-  return(List::create(_["indices_changed"] = flat_ls, _["pairs_changed"] = ls_pairs, _["points_updated"] = wrap(pts_changed))); 
-} // update_segments
-
-// Updates the simplex tree, and the corresponding vertices
-// TODO: Rewrite as *update_pullback*
-// void MultiScale::update_vertices(const IntegerVector which_levels, const NumericMatrix& X, const Function f, List& ls_vertex_map, SEXP stree){
-//   // Update the vertices in the level sets dynamically
-//   for (const int index: which_levels){
-//     const IntegerVector level_set = extract_level_set(index) + 1; // convert to 1-based for R
-//     update_level_set(index, level_set, X, f, vertices, ls_vertex_map, stree);
-//   }
-// }
-
-// Converts a given list of vertices to a map and assigns to the structure
-// void MultiScale::initialize_vertices(List& ls_vertex_map, List& vertices){
-//   this->vertices = vertices_to_map(ls_vertex_map, vertices);
-// }
-
-// Given a pullback cover consisting of level sets, 
-// void MultiScale::initialize(const List& pullback){
-//   
-// }
-
-// void MultiScale::persistence(){
-//   
-// }
-
-
-// This
-// void dist_to_boundary(const vector< double >& x, const vector< double >& lb, const vector< double >& ub){
-//   
-// }
+  return(List::create(_["indices_changed"] = pullbacks_to_update, _["pullback_indices_to_check"] = nerve_to_update, _["points_updated"] = wrap(pts_changed))); 
+} // update_filtration
 
 
 RCPP_MODULE(multiscale_module) {
@@ -700,7 +605,6 @@ RCPP_MODULE(multiscale_module) {
   .field_readonly( "canonical_offsets", &MultiScale::cc_offsets)
   .field_readonly( "eps", &MultiScale::eps ) // the interval lengths which cause distinct mappers
 
-  .field_readonly( "vertices", &MultiScale::vertices )
   .property( "segments", &MultiScale::get_segments ) // Read-only property to inspect the current segments 
   .property( "segment_table", &MultiScale::get_segment_table )
   .method( "as_XPtr", &MultiScale::as_XPtr ) 
@@ -715,13 +619,19 @@ RCPP_MODULE(multiscale_module) {
   
   .method( "flat_to_multi", &MultiScale::flat_to_multi )
   .method( "multi_to_flat", &MultiScale::multi_to_flat )
+  
+  .method( "update_index", &MultiScale::update_index )
 
   .method( "segment_cover_idx", &MultiScale::segment_cover_idx )
-  .method( "update_segments", &MultiScale::update_segments )
-
   .method( "get_nearest_index", &MultiScale::get_nearest_index )
   .method( "extract_level_set", &MultiScale::extract_level_set )
-  // .method( "update_vertices", &MultiScale::update_vertices )
-  // .method( "initialize_vertices", &MultiScale::initialize_vertices )
   ;
 }
+// Info
+// vector< size_t > src_seg = vector< size_t >(begin(pt_source_segment), end(pt_source_segment)); 
+// vector< size_t > tgt_seg = vector< size_t >(begin(pt_target_segment), end(pt_target_segment)); 
+// Rprintf("Pt idx: %d, source segment: %s, target_segment: %s\n", 
+//         pt_idx,
+//         vec_to_string(src_seg, ",").c_str(),
+//         vec_to_string(tgt_seg, ",").c_str()
+// );

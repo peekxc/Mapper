@@ -1,0 +1,21 @@
+---
+title: "Using Mapper in ML"
+author: "Matt Piekenbrock"
+output: html_notebook
+---
+
+```{r}
+library(Mapper)
+```
+
+
+Example using chemical diabetes data set 
+
+```{r}
+library(locfit)
+data("chemdiab")
+m <- MapperRef$new(X = scale(chemdiab[, 1:5]))$
+  use_filter(filter = "KDE")$
+  use_cover("fixed interval", number_intervals = 5L, percent_overlap = 50)$
+  construct_k_skeleton(k = 1L)
+```

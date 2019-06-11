@@ -48,7 +48,7 @@ Here's an example where points are sampled from an 'eight-curve' in $\mathbb{R}^
 $$g(t) = [\cos(t), \sin(t)\cos(t)],\; t \in \Big(-\frac{1}{2}\pi, \frac{3}{2}\pi\Big)$$
 In the example below, $X$ is created from equally spaced samples over $t$, and the map chosen is simply the $x$-coordinate of the shape, i.e. $f(X) = Z = x_1$.
 ```{r, echo=TRUE, fig.keep='none'}
-t <- seq(-0.5*pi, (3/2)*pi, length.out = 100)
+t <- seq(-0.5*pi, (3/2)*pi, length.out = 100) + runif(100, max = 0.01)
 eight <- cbind(x1=cos(t), x2=sin(t)*cos(t))
 f_x <- matrix(cos(t))
 
@@ -67,14 +67,11 @@ points(cbind(f_x, 1), pch = "|", col = col, cex = 2)
 
 Below is one possible way to construct a _mapper_. 
 ```{r, echo=TRUE, eval=TRUE}
-m <- MapperRef$
-  new(X = eight)$                                             
-  use_cover(filter_values = f_x, 
-            typename = "restrained rectangular", 
+m <- MapperRef$new(X = eight)$                                             
+  use_cover(filter_values = f_x, typename = "fixed interval", 
             number_intervals = 5, percent_overlap = 20)$
-  use_distance_measure(measure = "euclidean")$
   use_clustering_algorithm(cl = "single")$
-  compute_k_skeleton(k = 1L)
+  construct_k_skeleton(k = 1L)
 print(m)
 ```
 
@@ -122,7 +119,7 @@ m$use_clustering_algorithm(cl = function(X, idx, num_bins=10){
 If you prefer a different covering, just assign a valid object inheriting from `CoverRef`. 
 ```{r}
 m$use_cover(filter_values = f_x, 
-            typename="fixed rectangular", 
+            typename="restrained interval", 
             number_intervals = 10L, percent_overlap=50)
 ```
 
@@ -145,7 +142,7 @@ all(m$cover$index_set %in% names(m$cover$level_sets))
 This can be useful if you want to only update only part of the complex for some reason, e.g. re-cluster part of the data with different clustering parameters. For example, to re-cluster the data associated with the preimages the first two indices, you can do:
 ```{r}
 clustering_params <- list(num_bins=5L)
-m$compute_vertices(which_levels = m$cover$index_set[1:2], clustering_params)
+m$construct_nerve(which_levels = m$cover$index_set[1:2], clustering_params)
 ```
 
 The same rule applies to computing the edges. 

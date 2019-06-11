@@ -47,6 +47,18 @@ struct pt_update {
   }
 };
 
+// Used to hash a vector as a unique key for a set
+template <typename T>
+struct VectorHash {
+  static_assert(std::is_integral<T>::value, "Integral-type required as a range storage type.");
+  size_t operator()(const std::vector<T>& v) const {
+    std::hash<T> hasher;
+    size_t seed = 0;
+    for (T i : v) { seed ^= hasher(i) + 0x9e3779b9 + (seed<<6) + (seed>>2); }
+    return seed;
+  }
+};
+
 // MultiScale class
 // The MultiScale class effectively creates a filtration of point indices per dimension. Given a Mapper is already computed, 
 // this class provides tools for extracting which components of the 0-skeleton and 1-skeleton need to be updated in order 
@@ -118,9 +130,18 @@ struct MultiScale {
   // Computes row 'i' of the segment table for dimension d_i. Requires k and d. 
   v_uint_t segment_cover_idx(int_t i, uint_t d_i);
   
-  void update_canonical_cover(const int_t i, const uint_t d_i);
-
-  List update_segments(const IntegerVector target_idx);
+  
+  void update_canonical_cover(const int_t, const uint_t);
+  void update_segments(std::unordered_map< size_t, vector< uint_t > >&);
+  vector< v_uint_t > resolve_paths(const size_t);
+  std::unordered_map< size_t, vector< uint_t > > update_paths(const IntegerVector);
+  void modified_indices(const std::unordered_map< size_t, vector< uint_t > >&, 
+                        const size_t, 
+                        std::unordered_set< size_t >&, 
+                        std::unordered_set< vector< uint_t >, VectorHash< uint_t > >&, 
+                        const bool);
+  List update_index(const IntegerVector, const size_t);
+  
   // void initialize_vertices(List& ls_vertex_map, List& vertices);
   // void update_vertices(const IntegerVector, const NumericMatrix&, const Function, List&, SEXP);
 };

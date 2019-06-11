@@ -14,17 +14,13 @@
 #' \itemize{
 #'  \item{\emph{.level_sets}}{ named list, indexed by \code{.index_set}, whose values represent indices in the original data set to cluster over.}
 #'  \item{\emph{.index_set}}{ character vector of keys that uniquely index the level sets.}
-#'  \item{\emph{.filter_dim}}{ constant representing the filter dimension.}
-#'  \item{\emph{.filter_size}}{ constant representing the number of points in the filter space.}
 #'  \item{\emph{.typename}}{ unique string identifier of the covering method.}
 #' }
-#'  
 #'    
 #' @docType class
-#' @field filter_values (n x d) matrix of filter values
 #' @field typename Unique string identifier for the covering. 
 #' @field index_set character vector used to index the 'level_sets' list 
-#' @field level_sets list of the 
+#' @field level_sets list of the point in the preimages of the sets comprising the cover, indexed by the index set
 #' @format An \code{\link{R6Class}} generator object
 #' 
 #' @method level_sets_to_compare testing
@@ -32,12 +28,9 @@
 #' @author Matt Piekenbrock
 #' @export CoverRef
 CoverRef <- R6::R6Class("CoverRef", 
-  public = list(filter_values=NA),
   private = list(
     .level_sets = NA,
-    .index_set = NA,
-    .filter_size = NA,
-    .filter_dim = NA, 
+    .index_set = NA, 
     .typename = character(0)
   ), 
   lock_class = FALSE,  ## Feel free to add your own members
@@ -45,16 +38,12 @@ CoverRef <- R6::R6Class("CoverRef",
 )
 
 ## Cover initialization
-CoverRef$set("public", "initialize", function(filter_values, typename){
-  if (is.null(dim(filter_values))) { filter_values <- array(filter_values, dim = c(length(filter_values), 1)) }
-  self$filter_values <- filter_values
-  private$.filter_size <- dim(filter_values)[[1]]
-  private$.filter_dim <- dim(filter_values)[[2]]
+CoverRef$set("public", "initialize", function(typename){
   private$.typename <- typename
 })
 
 CoverRef$set("public", "format", function(...){
-  message <- c(sprintf("Open cover for %d objects (d = %d)", nrow(self$filter_values), private$.filter_dim))
+  # message <- c(sprintf("Open cover for %d objects (d = %d)", nrow(self$filter_values), private$.filter_dim))
   return(message)
 })
 
@@ -124,9 +113,9 @@ CoverRef$set("public", "validate", function(){
     stop("Cover invalid: Not all the level sets have a corresponding index in the index set.")
   }
   idx <- unique(unlist(private$.level_sets))
-  if ( length(idx) != private$.filter_size ){
-    stop("Cover invalid: Not all point indices account for in the open sets!")
-  }
+  # if ( length(idx) != private$.filter_size ){
+  #   stop("Cover invalid: Not all point indices account for in the open sets!")
+  # }
 })
 
 # TODO

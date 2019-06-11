@@ -29,27 +29,20 @@
 #' @useDynLib Mapper
 #' @export
 MapperRef <- R6::R6Class("MapperRef", 
-  private = list(.X=NA, .cover=NA, .clustering_algorithm=NA, .measure="euclidean", .simplicial_complex = NA, .vertices=list(), .pullback=list(), .config=NA),
+  private = list(
+    .X = NA, 
+    .cover=NA, 
+    .clustering_algorithm=NA, 
+    .measure="euclidean", 
+    .vertices=list(),
+    .simplicial_complex = NA, 
+    .pullback=list(), 
+    .filter = NULL, 
+    .config = NA
+  ),
   lock_class = FALSE,  ## Feel free to add your own members
   lock_objects = FALSE ## Or change existing ones 
 )
-
-## initialize ----
-MapperRef$set("public", "initialize", function(X){
-  # 
-  if (!is.function(X)){
-    stopifnot(is.numeric(X))
-    if (is.null(dim(X)) && !is(X, "dist")){ X <- as.matrix(X) }
-    Xf <- function(data_matrix){
-      function(idx){ return(data_matrix[idx,,drop=FALSE]) }
-    }
-    private$.X <- Xf(X)
-  } else { private$.X <- X }
-  private$.simplicial_complex <- simplextree::simplex_tree()
-  self$use_distance_measure(measure = "euclidean")
-  self$use_clustering_algorithm(cl = "single", cutoff_method = "continuous")
-  return(self)
-})
 
 ## To add a public member function 
 ## add function ----
@@ -58,7 +51,7 @@ MapperRef$set("public", "add_function", function(name, FUN) {
   environment(self[[name]]) <- environment(self$add_function)
 })
 
-## The set index -> (vertex) decomposition mapping. Read-only
+## The set index -> (vertex) decomposition mapping.
 ## pullback ----
 MapperRef$set("active", "pullback", 
   function(value){ 
@@ -115,6 +108,7 @@ MapperRef$set("active", "simplicial_complex",
   function(value){
     if (missing(value)){ private$.simplicial_complex }
     else {
+      stopifnot(is(value, "Rcpp_SimplexTree"))
       private$.simplicial_complex <- value 
       # stop("`$simplicial_complex` is read-only. To change the complex, use the objects (simplex tree) methods directly.", call. = FALSE)
     }
@@ -122,7 +116,7 @@ MapperRef$set("active", "simplicial_complex",
 )
 
 ## clustering_algorithm ----
-## Clustering algorithm must be a function
+## Clustering algorithm must be a function that takes as arguments 'pid' and 'idx' 
 MapperRef$set("active", "clustering_algorithm", 
   function(value){
     if (missing(value)){ private$.clustering_algorithm }
@@ -139,7 +133,45 @@ MapperRef$set("active", "X",
   function(value){
     if (missing(value)){ return(private$.X) }
     else {
-      stop("`$X` is read-only. The data points 'X' are specific to a MapperRef object.")
+      if (is.matrix(value)){
+        X_acc <- function(data_matrix){
+          function(idx=NULL){ 
+            if (missing(idx)){ return(data_matrix) }
+            return(data_matrix[idx,,drop=FALSE]) 
+          }
+        }
+        private$.X <- X_acc(value)
+      } else if (is.function(value)){
+        private$.X <- value
+      } else {
+        stop("X must be either a matrix or a function that returns a matrix of coordinates.")
+      }
+      # stop("`$X` is read-only. The data points 'X' are specific to a MapperRef object.")
+    }
+  }
+)
+
+## filter ----
+## The filter function associated with the Mapper instance
+MapperRef$set("active", "filter", 
+  function(value){
+    if (missing(value)){ return(private$.filter) }
+    else {
+      # browser()
+      if (is.matrix(value)){
+        filter_acc <- function(filter_matrix){
+          function(idx=NULL){ 
+            if (missing(idx) || is.null(idx)){ return(filter_matrix) }
+            return(filter_matrix[idx,,drop=FALSE]) 
+          }
+        }
+        private$.filter <- filter_acc(value)
+      } else if (is.function(value)){
+        private$.filter <- value
+      } else {
+        stop("Filter must be a matrix of coordinate values or a function that returns a matrix of coordinate values.")
+      }
+      return(self)
     }
   }
 )
@@ -158,6 +190,156 @@ MapperRef$set("active", "measure",
       }
     }
 )
+
+## initialize ----
+## Initialization method relies on active binding 
+MapperRef$set("public", "initialize", function(X){
+  self$X <- X
+  private$.simplicial_complex <- simplextree::simplex_tree()
+  self$use_distance_measure(measure = "euclidean")
+  self$use_clustering_algorithm(cl = "single", cutoff_method = "continuous")
+  return(self)
+})
+
+## use_filter ----
+#' @name use_filter
+#' @title Sets the filter
+#' @description Sets the map, or \emph{filter}, to associate with the instance
+#' @param filter either the filter name to use, or a function. See details. 
+#' @param ... additional parameters to pass to the filter function.
+#' @details \code{filter} one of the pre-configured named filters returning matrix-coercible set of coordinate values. 
+MapperRef$set("public", "use_filter", function(filter=c("PC", "IC", "ECC", "KDE", "DTM", "MDS", "ISOMAP", "LE", "UMAP"), ...){
+  if (is.function(filter)){ private$.filter <- filter } 
+  else if (is.matrix(filter)){
+    self$filter <- filter
+  } else if (is.character(filter)){
+    filter <- toupper(filter)
+    filter_types <- c("PC", "IC", "ECC", "KDE", "DTM", "MDS", "ISOMAP", "LE", "UMAP")
+    if (!filter %in% filter_types){
+      stop(sprintf("Filter type %s not recognized. Must be one of: %s", filter, paste0(filter_types, collapse=", ")))
+    }
+    given_params <- list(...)
+    require_but_ask <- function(pkg){
+      pkg_installed <- requireNamespace("fastICA", quietly = TRUE)
+      if (!pkg_installed){
+        messsage(sprintf("Using this filter requires the package '%s' to be installed.", pkg))
+        response <- readline(prompt = "Would you like to install it? y/n: ")
+        if (toupper(substr(response, 1, 1)) == "Y"){ install.packages(pkg) }
+      }
+    }
+    ## Basic filters
+    if (filter == "PC"){
+      default_params <- list(x = self$X(), scale. = TRUE, center = TRUE, rank. = 2L)
+      params <- modifyList(default_params, given_params)
+      res <- do.call(stats::prcomp, params)
+      self$filter <- matrix(res$x, ncol = params[["rank."]])  
+      # c("mapper_filter", "function")
+    }
+    else if (filter == "IC"){
+      require_but_ask("fastICA")
+      default_params <- list(X=self$X(), n.comp=2, method="C", alg.typ="parallel", fun="logcosh")
+      params <- modifyList(default_params, given_params)
+      res <- do.call(fastICA::fastICA, params)
+      self$filter <- matrix(res$S, ncol = params[["n.comp"]]) ## S stores independent components
+    } 
+    else if (filter == "ECC"){ ## eccentricity
+      has_pd <- requireNamespace("parallelDist", quietly = TRUE)
+      dist_f <- ifelse(has_pd, parallelDist::parallelDist, stats::dist)
+      params <- modifyList(list(p=1), given_params)
+      p_str <- c("manhattan", "euclidean", "maximum")[match(params$p, list(1, 2, Inf))]
+      if (params$p != Inf) { 
+        self$filter <- matrix(colMeans(as.matrix(dist_f(self$X())^(1/params$p))), ncol = 1)
+      } else { self$filter <- matrix(apply(as.matrix(dist_f(self$X())), 2, max), ncol = 1) } 
+    }
+    else if (filter == "KDE"){
+      require_but_ask("ks")
+      X <- self$X()
+      H <- if (ncol(X) <= 4L){ ks::Hpi(X) } else { diag(apply(X, 2, stats::bw.SJ)) }
+      self$filter <- matrix(ks::kde(X, eval.points = X, H = H, verbose = FALSE)$estimate, ncol = 1L)
+    } else if (filter == "DTM"){
+      require_but_ask("TDA")
+      X <- self$X()
+      params <- modifyList(list(X=X, Grid=X, m0=0.20, r=2), given_params)
+      self$filter <- matrix(do.call(TDA::dtm, params), ncol = 1L)
+    } else if (filter == "MDS"){
+      if (is.null(given_params[["d"]])){
+        has_pd <- requireNamespace("parallelDist", quietly = TRUE)
+        dist_f <- ifelse(has_pd, parallelDist::parallelDist, stats::dist)
+        given_params[["d"]] <- dist_f(self$X())
+      }
+      params <- modifyList(list(k=2), given_params)
+      self$filter <- matrix(do.call(stats::cmdscale, params), ncol = params[["k"]])
+    } else if (filter == "ISOMAP"){
+      require_but_ask("vegan")
+      if (is.null(given_params[["dist"]])){
+        has_pd <- requireNamespace("parallelDist", quietly = TRUE)
+        dist_f <- ifelse(has_pd, parallelDist::parallelDist, stats::dist)
+        given_params[["dist"]] <- dist_f(self$X())
+      }
+      ## Get the smallest epsilon to make the graph connected
+      if (is.null(given_params[["epsilon"]]) && is.null(given_params[["k"]])){
+        eps <- max(vegan::spantree(given_params[["dist"]])$dist)
+        given_params[["epsilon"]] <- eps + sqrt(.Machine$double.eps)*5
+      }
+      params <- modifyList(list(ndim=2), given_params)
+      self$filter <- matrix(do.call(vegan::isomap, params), ncol = params[["ndim"]])
+    } else if (filter == "LE"){
+      require_but_ask("geigen")
+      if (is.null(given_params[["dist"]])){
+        has_pd <- requireNamespace("parallelDist", quietly = TRUE)
+        dist_f <- ifelse(has_pd, parallelDist::parallelDist, stats::dist)
+        given_params[["dist"]] <- dist_f(self$X())
+      }
+      params <- modifyList(list(k=2L, sigma=mean(apply(self$X(), 2, stats::bw.SJ))), given_params)
+      W <- as.matrix(exp(-(params[["dist"]]/(params[["sigma"]]))))
+      D <- diag(colSums(W))
+      L <- D - W
+      res <- geigen::geigen(A = L, B = D, symmetric = TRUE, only.values = FALSE)
+      self$filter <- res$vector[,seq(2, 2L+(params[["k"]]-1)),drop=FALSE]
+    } else if (filter == "UMAP"){
+      require_but_ask("umap")
+      self$filter <- do.call(umap::umap, params)
+    } else {
+      stop(sprintf("Unknown filter: %s", filter))
+    }
+  }
+  # print.mapper_filter <- function(x){
+  #   
+  # }
+  invisible(self)
+})
+
+## use_distance_measure ----
+## Sets the distance measure to use
+## Supports any measure in proxy::pr_DB$get_entry_names()
+MapperRef$set("public", "use_distance_measure", function(measure){
+  self$measure <- measure
+  invisible(self)
+})
+
+## use_cover ----
+#' @name use_cover 
+#' @title Selects one of the available covering methods to use.  
+#' @description 
+#' Convenience method to select, parameterize, and construct a cover and associate it with the calling objects \code{cover} field.   
+#' @param cover Either a pre-configured cover, or name of the cover to use. 
+#' @param ... Additional parameter values to pass to the covering generators initialize method. 
+#' @details The \code{cover} parameter can be any \code{\link{CoverRef}}-derived instance (e.g. a \code{\link{FixedIntervalCover}}), 
+#' or one of the cover typenames listed in the \code{\link{covers_available}()}. 
+#' If a typename is given, the cover is automatically constructed before being assigned to the \code{$cover} field.  
+MapperRef$set("public", "use_cover", function(cover="fixed interval", ...){
+  stopifnot(!is.null(self$filter))
+  if (missing(cover)){ cover <- "fixed interval"}
+  self$cover <- switch(cover, 
+    "fixed interval"=FixedIntervalCover$new(...)$construct_cover(self$filter), 
+    "restrained interval"=RestrainedIntervalCover$new(...)$construct_cover(self$filter),
+    "adaptive"=AdaptiveCover$new(...)$construct_cover(self$filter),
+    "ball"=BallCover$new(...)$construct_cover(self$filter),
+    stop(sprintf("Unknown cover type: %s, please specify a cover typename listed in `covers_available()`", cover))
+  )
+  invisible(self)
+})
+#@param filter_values (n x d) numeric matrix of values giving the results of the map. 
 
 ## use_clustering_algorithm ----
 #' @name use_clustering_algorithm 
@@ -188,7 +370,7 @@ MapperRef$set("public", "use_clustering_algorithm",
     ## Use a linkage criterion + cutting rule
     default_cutting_params <- list(...)
     if (missing(cl)) { cl <- "single" }
-    if (missing(cutoff_method)){ cutoff_method <- "histogram" } 
+    if (missing(cutoff_method)){ cutoff_method <- "continuous" } 
     if (class(cl) == "character"){
       hclust_opts <- c("single", "ward.D", "ward.D2", "complete", "average", "mcquitty", "median", "centroid")
       if (!cl %in% hclust_opts){ stop(sprint("Unknown linkage method passed. Please use one of (%s). See ?hclust for details.", paste0(hclust_opts, collapse = ", "))) }
@@ -237,58 +419,6 @@ MapperRef$set("public", "use_clustering_algorithm",
   }
 )
 
-## use_distance_measure ----
-## Sets the distance measure to use
-## Supports any measure in proxy::pr_DB$get_entry_names()
-MapperRef$set("public", "use_distance_measure", function(measure){
-  self$measure <- measure
-  invisible(self)
-})
-
-## use_cover ----
-#' @name use_cover 
-#' @title Selects one of the available covering methods to use.  
-#' @description 
-#' Convenience method to select, parameterize, and construct a cover and associate it with the calling objects \code{cover} field.   
-#' @param filter_values (n x d) numeric matrix of values giving the results of the map.  
-#' @param typename The name of the cover to use. Accepts any one of the typenames printed in the \code{available_covers}.  
-#' @param ... Additional parameter values to pass to the covering generators initialize method. 
-#' @details The cover is automatically constructed before being assigned to the calling Mappers \code{$cover} field.  
-#' If this is undesirable, create the cover using the appropriate R6 class generators and assign to \code{$cover} field directly. 
-MapperRef$set("public", "use_cover", function(filter_values, typename="fixed interval", ...){
-  stopifnot(is.matrix(filter_values))
-  stopifnot(nrow(filter_values) == nrow(private$.X))
-  if (missing(typename)){ typename <- "fixed interval"}
-  self$cover <- switch(typename, 
-    "fixed interval"=FixedIntervalCover$new(filter_values, ...)$construct_cover(), 
-    "restrained interval"=RestrainedIntervalCover$new(filter_values, ...)$construct_cover(),
-    "adaptive"=AdaptiveCover$new(filter_values, ...)$construct_cover(),
-    "ball"=BallCover$new(filter_values, ...)$construct_cover(),
-    stop(sprintf("Unknown cover type: %s", typename))
-  )
-  invisible(self)
-})
-
-## compute_k_skeleton ----
-#' @name compute_k_skeleton 
-#' @title Compute the K-skeleton 
-#' @description Computes the k-skeleton of the mapper by computing the nerve of the 
-#' the pullback cover induced by the cover set by the \code{cover} member. \cr
-#' \cr
-#' This function computes the k-skeleton inductively, e.g. by first computing the vertices, 
-#' then the edges, etc. Computing higher dimensions is supported, however may be significantly 
-#' slower than computing the 1-skeleton. 
-#' @details For the details on how this is computed, see Singh et. al, section 3.2. 
-MapperRef$set("public", "construct_k_skeleton", function(k=1L, ...){
-  stopifnot(k >= 0)
-  self$simplicial_complex$clear()
-  if (k >= 0L){ self$construct_pullback(...) }
-  if (k >= 1L){
-    for (k_i in seq(1L, k)){ self$construct_nerve(k = k_i) }
-  }
-  invisible(self)
-})
-
 ## construct_pullback ----
 #' @name construct_pullback 
 #' @title Computes the vertices of the mapper at a given index. 
@@ -315,10 +445,15 @@ MapperRef$set("public", "construct_pullback", function(pullback_ids=NULL, ...){
   ## Update the vertices for the given level sets. This requires updating both the simplex tree's 
   ## internal representation as well as the outward-facing vertex list. The new vertices are returned 
   ## to replace the current list. The pullback map is also updated. 
+  calc_preimage <- function(){
+    function(index){
+      self$cover$construct_cover(self$filter, index)
+    }
+  }
   private$.vertices <- Mapper:::build_0_skeleton(
     pullback_ids = as.character(pullback_ids),
     cluster_f = self$clustering_algorithm, 
-    level_set_f = self$cover$construct_cover, 
+    level_set_f = calc_preimage(), 
     vertices = private$.vertices, 
     pullback = private$.pullback, 
     stree = private$.simplicial_complex$as_XPtr()
@@ -346,7 +481,7 @@ MapperRef$set("public", "construct_nerve", function(k = 1, indices = NULL, min_w
     stopifnot(all(unlist(indices) %in% self$cover$index_set))
     k <- ncol(indices)-1L ## ensure k is equal to the number of columns of the indices - 1
   }
-  indices <- if (idx_specified){ indices } else { self$cover$neighborhood(k) }
+  indices <- if (idx_specified){ indices } else { self$cover$neighborhood(self$filter, k) }
   
   
   ## Retrieve the valid level set index pairs to compare. In the worst case, with no cover-specific optimization, 
@@ -362,6 +497,26 @@ MapperRef$set("public", "construct_nerve", function(k = 1, indices = NULL, min_w
   } else {
     return( do.call(rbind, do.call(sk_f, params)) )
   }
+})
+
+## compute_k_skeleton ----
+#' @name compute_k_skeleton 
+#' @title Compute the K-skeleton 
+#' @description Computes the k-skeleton of the mapper by computing the nerve of the 
+#' the pullback cover induced by the cover set by the \code{cover} member. \cr
+#' \cr
+#' This function computes the k-skeleton inductively, e.g. by first computing the vertices, 
+#' then the edges, etc. Computing higher dimensions is supported, however may be significantly 
+#' slower than computing the 1-skeleton. 
+#' @details For the details on how this is computed, see Singh et. al, section 3.2. 
+MapperRef$set("public", "construct_k_skeleton", function(k=1L, ...){
+  stopifnot(k >= 0)
+  self$simplicial_complex$clear()
+  if (k >= 0L){ self$construct_pullback(...) }
+  if (k >= 1L){
+    for (k_i in seq(1L, k)){ self$construct_nerve(k = k_i) }
+  }
+  invisible(self)
 })
 
 ## format ----
@@ -398,7 +553,7 @@ MapperRef$set("public", "as_igraph", function(vertex_scale=c("linear", "log"), v
   
   ## Color nodes and edges by a default rainbow palette
   agg_node_val <- sapply(private$.vertices, function(v_idx){ 
-    mean(rowMeans(self$cover$filter_values[v_idx,,drop=FALSE]))
+    mean(rowMeans(self$filter(v_idx)))
   })
   igraph::vertex_attr(G, name = "color") <- bin_color(agg_node_val, col_pal)
   
@@ -419,66 +574,61 @@ MapperRef$set("public", "as_igraph", function(vertex_scale=c("linear", "log"), v
   return(G)
 })
 
-## as_grapher ----
-#' @name as_grapher
-#' @title Exports the 1-skeleton as a grapher object.
-#' @param construct_widget whether to construct the htmlwidget or just the grapher configuration.
-#' @description Uses the grapher library. 
-MapperRef$set("public", "as_grapher", function(construct_widget=TRUE, ...){
-  requireNamespace("grapher", quietly = TRUE)
-  
-  ## Make the igraph 
-  am <- private$.simplicial_complex$as_adjacency_matrix()
-  G <- igraph::graph_from_adjacency_matrix(am, mode = "undirected", add.colnames = NA) 
-  json_config <- grapher::getDefaultJsonConfig(network=G)
-
-  ## Color nodes and edges by a default rainbow palette
-  rbw_pal <- rev(rainbow(100, start = 0, end = 4/6))
-  agg_node_val <- sapply(sapply(private$.vertices, function(v_idx){ 
-    apply(as.matrix(self$cover$filter_values[v_idx,]), 1, mean)
-  }), mean)
-  binned_idx <- cut(agg_node_val, breaks = 100, labels = F)
-  vertex_colors <- rbw_pal[binned_idx]
-  vertex_sizes <- sapply(private$.vertices, length) 
-  
-  ## Normalize between 0-1, unless all the same
-  normalize <- function(x) { 
-    if (all(x == x[1])){ return(rep(1, length(x))) }
-    else {  (x - min(x))/(max(x) - min(x)) }
-  }
-    
-  ## Create the vertices. By default, color them on a rainbow palette according to their mean filter value.
-  if (length(igraph::V(G)) > 0){
-    vertex_radii <- (7L - 2L)*normalize(vertex_sizes) + 2L
-    vertex_xy <- apply(igraph::layout.auto(G), 2, normalize)
-    json_config$nodes$x <- vertex_xy[, 1]
-    json_config$nodes$y <- vertex_xy[, 2]
-    json_config$nodes$r <- vertex_radii
-    json_config$nodes$color <- grapher::hex2rgba(vertex_colors)
-    # index = 0:(length(vertex_sizes)-1))
-  } else {
-    json_config$nodes <- integer(length = 0L)
-  }
-    
-  ## Create the edges w/ a similar coloring scheme.
-  if (length(igraph::E(G)) > 0){
-    el <- igraph::as_edgelist(G, names = FALSE)
-    edge_binned_idx <- apply(el, 1, function(vertex_ids) { (binned_idx[vertex_ids[1]] + binned_idx[vertex_ids[2]])/2 })
-    edge_links <- matrix(apply(el, 2, as.integer) - 1L, ncol = 2)
-    json_config$links$from <- edge_links[,1]
-    json_config$links$to <- edge_links[,2]
-    json_config$links$color <- substr(rbw_pal[edge_binned_idx], start = 0, stop = 7) 
-  } else {
-    json_config$links <- integer(length = 0L)
-  }
-    
-  ## Return the grapher instance or just the json config if requested 
-  if (construct_widget){
-    grapher::grapher(json_config) 
-  } else {
-    return(json_config)
-  }
-})
+# MapperRef$set("public", "as_grapher", function(construct_widget=TRUE, ...){
+#   requireNamespace("grapher", quietly = TRUE)
+#   
+#   ## Make the igraph 
+#   am <- private$.simplicial_complex$as_adjacency_matrix()
+#   G <- igraph::graph_from_adjacency_matrix(am, mode = "undirected", add.colnames = NA) 
+#   json_config <- grapher::getDefaultJsonConfig(network=G)
+# 
+#   ## Color nodes and edges by a default rainbow palette
+#   rbw_pal <- rev(rainbow(100, start = 0, end = 4/6))
+#   agg_node_val <- sapply(sapply(private$.vertices, function(v_idx){ 
+#     apply(as.matrix(self$cover$filter_values[v_idx,]), 1, mean)
+#   }), mean)
+#   binned_idx <- cut(agg_node_val, breaks = 100, labels = F)
+#   vertex_colors <- rbw_pal[binned_idx]
+#   vertex_sizes <- sapply(private$.vertices, length) 
+#   
+#   ## Normalize between 0-1, unless all the same
+#   normalize <- function(x) { 
+#     if (all(x == x[1])){ return(rep(1, length(x))) }
+#     else {  (x - min(x))/(max(x) - min(x)) }
+#   }
+#     
+#   ## Create the vertices. By default, color them on a rainbow palette according to their mean filter value.
+#   if (length(igraph::V(G)) > 0){
+#     vertex_radii <- (7L - 2L)*normalize(vertex_sizes) + 2L
+#     vertex_xy <- apply(igraph::layout.auto(G), 2, normalize)
+#     json_config$nodes$x <- vertex_xy[, 1]
+#     json_config$nodes$y <- vertex_xy[, 2]
+#     json_config$nodes$r <- vertex_radii
+#     json_config$nodes$color <- grapher::hex2rgba(vertex_colors)
+#     # index = 0:(length(vertex_sizes)-1))
+#   } else {
+#     json_config$nodes <- integer(length = 0L)
+#   }
+#     
+#   ## Create the edges w/ a similar coloring scheme.
+#   if (length(igraph::E(G)) > 0){
+#     el <- igraph::as_edgelist(G, names = FALSE)
+#     edge_binned_idx <- apply(el, 1, function(vertex_ids) { (binned_idx[vertex_ids[1]] + binned_idx[vertex_ids[2]])/2 })
+#     edge_links <- matrix(apply(el, 2, as.integer) - 1L, ncol = 2)
+#     json_config$links$from <- edge_links[,1]
+#     json_config$links$to <- edge_links[,2]
+#     json_config$links$color <- substr(rbw_pal[edge_binned_idx], start = 0, stop = 7) 
+#   } else {
+#     json_config$links <- integer(length = 0L)
+#   }
+#     
+#   ## Return the grapher instance or just the json config if requested 
+#   if (construct_widget){
+#     grapher::grapher(json_config) 
+#   } else {
+#     return(json_config)
+#   }
+# })
 
 ## as_pixiplex ----
 #' @name as_pixiplex
@@ -491,7 +641,7 @@ MapperRef$set("public", "as_pixiplex", function(...){
   ## Default styling
   rbw_pal <- rev(rainbow(100, start = 0, end = 4/6))
   agg_node_val <- sapply(sapply(private$.vertices, function(v_idx){ 
-    apply(as.matrix(self$cover$filter_values[v_idx,]), 1, mean)
+    rowMeans(self$filter(v_idx))
   }), mean)
   binned_idx <- cut(agg_node_val, breaks = 100, labels = F)
   vertex_colors <- rbw_pal[binned_idx]
@@ -526,7 +676,7 @@ MapperRef$set("public", "exportMapper", function(graph_type=c("adjacency_matrix"
                          "edgelist"=self$simplicial_complex$as_edge_list(), 
                          stop("'graph_type' must be one of: 'adjacency_matrix', 'adjacency_list', 'edgelist'"))
   n_simplices <- self$simplicial_complex$n_simplexes
-  z_d <- ncol(self$cover$filter_values)
+  z_d <- ncol(self$filter())
   attr(result, ".summary") <- c(sprintf("Mapper with filter f: %s -> %s",
                                         ifelse(is(self$X, "dist"), "dist(X)",
                                                ifelse(ncol(self$X) > 1, sprintf("X^%d", ncol(self$X)), "X")),

@@ -5,11 +5,7 @@ testthat::context("Testing mapper")
 # skip_on_cran()
 
 ## Load noisy circle data 
-noisy_circle <- readRDS(system.file(file.path("extdata", "noisy_circle.rds"), package = "Mapper"))
-
-## Define filter values equal to the distance from each point to the left-most point in the circle 
-left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
-f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
+data("noisy_circle", package = "Mapper")
 
 ## --------- Begin Tests --------- 
 ## Helper imported: am, check_neighborhoods, check_vertices, check_edges
@@ -17,21 +13,30 @@ f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
 test_that("Can construct MapperRef object", {
   m <- MapperRef$new(noisy_circle)
   expect_is(m, "MapperRef")
-  expect_equal(m$cover, NA)
   expect_is(m$simplicial_complex, "Rcpp_SimplexTree")
 })
 
 ## Let mapper object be global now
-m <- MapperRef$new(noisy_circle)
+m <- MapperRef$new(X = noisy_circle)
 
+## Define filter values equal to the distance from each point to the left-most point in the circle 
+test_that("Can assign filter values", {
+  left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
+  f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
+  expect_silent(m$use_filter(filter = f_x))
+  expect_true(is.function(m$filter))
+  expect_is(m$filter(), "matrix")
+})
+
+## Test cover construction
 test_that("Can construct CoverRef object", {
-  cover_params <- list(filter_values = matrix(f_x, ncol = 1), type="fixed interval", number_intervals=5L, percent_overlap=20)
+  cover_params <- list(cover="fixed interval", number_intervals=5L, percent_overlap=20)
   expect_silent(do.call(m$use_cover, cover_params))
   expect_is(m$cover, "CoverRef")
 })
 
 test_that("Can create clustering algorithm", {
-  cl_params <- list(cl = "single", num_bins = 10L)
+  cl_params <- list(cl = "single", threshold = 0.0)
   expect_silent(do.call(m$use_clustering_algorithm, cl_params))
   expect_is(m$clustering_algorithm, "function") 
 })
@@ -47,7 +52,7 @@ test_that("Can construct pullback", {
   expect_is(m$pullback, "list")
   for (pid in names(m$pullback)){
     pt_ids <- unname(unlist(m$vertices[ as.character(m$pullback[[pid]]) ]))
-    expect_equal(sort(pt_ids), sort(m$cover$construct_cover(pid)))
+    expect_equal(sort(pt_ids), sort(m$cover$construct_cover(filter = m$filter, index = pid)))
   }
 })
 
@@ -60,10 +65,5 @@ test_that("Can construct nerve", {
 test_that("Mapper is valid", {
   expect_true(check_edges(m))
 })
-
-
-m <- MapperRef$new(runif(1000))
-m$use_cover(filter_values = cbind(runif(1000), runif(1000)), number_intervals=10, percent_overlap=60)
-m$construct_k_skeleton(k=2L)
 
 

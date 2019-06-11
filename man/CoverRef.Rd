@@ -20,13 +20,11 @@ cover for details.
 \section{Fields}{
 
 \describe{
-\item{\code{filter_values}}{(n x d) matrix of filter values}
-
 \item{\code{typename}}{Unique string identifier for the covering.}
 
 \item{\code{index_set}}{character vector used to index the 'level_sets' list}
 
-\item{\code{level_sets}}{list of the}
+\item{\code{level_sets}}{list of the point in the preimages of the sets comprising the cover, indexed by the index set}
 }}
 
 \section{Private variables}{
@@ -36,8 +34,6 @@ by the \code{private} environment. See \code{?R6} for more details.
 \itemize{
  \item{\emph{.level_sets}}{ named list, indexed by \code{.index_set}, whose values represent indices in the original data set to cluster over.}
  \item{\emph{.index_set}}{ character vector of keys that uniquely index the level sets.}
- \item{\emph{.filter_dim}}{ constant representing the filter dimension.}
- \item{\emph{.filter_size}}{ constant representing the number of points in the filter space.}
  \item{\emph{.typename}}{ unique string identifier of the covering method.}
 }
 }

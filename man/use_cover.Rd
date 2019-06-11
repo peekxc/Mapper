@@ -4,9 +4,7 @@
 \alias{use_cover}
 \title{Selects one of the available covering methods to use.}
 \arguments{
-\item{filter_values}{(n x d) numeric matrix of values giving the results of the map.}
-
-\item{typename}{The name of the cover to use. Accepts any one of the typenames printed in the \code{available_covers}.}
+\item{cover}{Either a pre-configured cover, or name of the cover to use.}
 
 \item{...}{Additional parameter values to pass to the covering generators initialize method.}
 }
@@ -14,6 +12,7 @@
 Convenience method to select, parameterize, and construct a cover and associate it with the calling objects \code{cover} field.
 }
 \details{
-The cover is automatically constructed before being assigned to the calling Mappers \code{$cover} field.  
-If this is undesirable, create the cover using the appropriate R6 class generators and assign to \code{$cover} field directly.
+The \code{cover} parameter can be any \code{\link{CoverRef}}-derived instance (e.g. a \code{\link{FixedIntervalCover}}), 
+or one of the cover typenames listed in the \code{\link{covers_available}()}. 
+If a typename is given, the cover is automatically constructed before being assigned to the \code{$cover} field.
 }
