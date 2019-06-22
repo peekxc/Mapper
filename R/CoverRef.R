@@ -42,12 +42,14 @@ CoverRef$set("public", "initialize", function(typename){
   private$.typename <- typename
 })
 
+## format ----
 CoverRef$set("public", "format", function(...){
   # message <- c(sprintf("Open cover for %d objects (d = %d)", nrow(self$filter_values), private$.filter_dim))
   return(message)
 })
 
 ## Typename field
+## typename ----
 CoverRef$set("active", "typename", 
   function(value){
     if (missing(value)){ private$.typename } else {
@@ -57,6 +59,7 @@ CoverRef$set("active", "typename",
 
 ## The index set may be composed of any data type, but the collection of indices must uniquely
 ## index the level sets list via the `[[` operator.
+## index_set ----
 CoverRef$set("active", "index_set", 
  function(value){
    if (missing(value)){
@@ -71,6 +74,7 @@ CoverRef$set("active", "index_set",
 
 ## The level sets must be a list indexed by the index set. If the list is named, a check is performed to make sure the 
 ## names match the values of the index set, and in the proper order. Otherwise, the order is assumed to be correct. 
+## level_sets ----
 CoverRef$set("active", "level_sets", 
   function(value){
     if (missing(value)){
@@ -84,6 +88,7 @@ CoverRef$set("active", "level_sets",
 )
 
 ## Default cover 
+## construct_cover ----
 CoverRef$set("public", "construct_cover", function(index=NULL){
   stop("Base class cover construction called. This method must be overridden to be used.")
 })
@@ -99,12 +104,14 @@ CoverRef$set("public", "construct_cover", function(index=NULL){
 ## in constructing the k-simplices? This can be customized based on the cover to (dramatically) reduce 
 ## the number of intersection checks needed to generate the k-skeletons, where k >= 1. 
 ## Defaults to every pairwise combination of level sets. 
+## neighborhood ----
 CoverRef$set("public", "neighborhood", function(k=1){
   k_combs <- t(combn(length(private$.index_set), k+1))
   relist(private$.index_set[k_combs], k_combs)
 })
 
 ## Validates that the constructed cover is indeed a valid cover. 
+## validate ----
 CoverRef$set("public", "validate", function(){
   if ( length(private$.index_set) != length(private$.level_sets) ){
     stop("Cover invalid: length of the index set does nto match length of the level sets")

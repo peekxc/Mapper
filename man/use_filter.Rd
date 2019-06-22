@@ -4,7 +4,7 @@
 \alias{use_filter}
 \title{Sets the filter}
 \arguments{
-\item{filter}{either the filter name to use, or a function. See details.}
+\item{filter}{either the filter name to use, a matrix, or a function. See details.}
 
 \item{...}{additional parameters to pass to the filter function.}
 }
@@ -12,5 +12,25 @@
 Sets the map, or \emph{filter}, to associate with the instance
 }
 \details{
-\code{filter} one of the pre-configured named filters returning matrix-coercible set of coordinate values.
+\code{filter} must be either a matrix of coordinate values, a function that returns a matrix of 
+coordinate values, or one of the following predefined filters: 
+\itemize{
+  \item{\strong{PC}}{ Principle components (with \code{\link[stats:prcomp]{prcomp}})}
+  \item{\strong{IC}}{ Independent components (with \code{\link[fastICA:fastICA]{fastICA}})}
+  \item{\strong{ECC}}{ Eccentricity (internal, change the norm by passing one of \eqn{p} = [1, 2, Inf])}
+  \item{\strong{KDE}}{ Kernel Density Estimate (with \code{\link[ks:ks]{kde}})}
+  \item{\strong{DTM}}{ Distance to measure (with \code{\link[TDA:dtm]{dtm}})}
+  \item{\strong{MDS}}{ Classic (Metric) Multidimensional Scaling (with \code{\link[stats:cmdscale]{cmdscale}})}
+  \item{\strong{ISOMAP}}{ Isometric feature mapping (with \code{\link[vegan::isomap]{isomap}})}
+  \item{\strong{LE}}{ Laplacian Eigenmaps (with \code{\link[geigen::geigen]{geigen}})}
+  \item{\strong{UMAP}}{ Uniform Manifold Approximation and Projection (with \code{\link[umap::umap]{umap}})}
+}
+Nearly all the pre-configured filters essentially call functions in other packages with
+somewhat reasonable default parameters to perform the mapping. If the package needed to compute the filter 
+is not installed, a prompt is given asking the user whether they would like to install it. Any 
+parameters supplied to \code{...} are passed to the corresponding filter function, and always 
+override pre-configured default parameters. \cr
+\cr
+\strong{NOTE:} The predefined filters are meant to be used for illustrative purposes only---this function 
+is \emph{not} meant to act as a comprensive interface to the functions each filter corresponds too.
 }

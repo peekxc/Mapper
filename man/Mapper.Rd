@@ -5,10 +5,9 @@
 \alias{mapper}
 \title{mapper}
 \usage{
-mapper(X, filter_values, cover_params = c(typename = "fixed rectangular",
+mapper(X, filter_values, cover_params = c(typename = "fixed interval",
   number_intervals = 10L, percent_overlap = 35), measure = "euclidean",
-  cluster_params = c(cl = "single", num_bins = 10L),
-  return_reference = FALSE)
+  cluster_params = c(cl = "single"), return_reference = FALSE)
 }
 \arguments{
 \item{X}{Either an \eqn{n x D} data matrix.}
@@ -54,10 +53,10 @@ data("noisy_circle", package="Mapper")
 left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
 f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
 
-m <- Mapper::mapper(X = noisy_circle, filter_values = f_x, 
-                    cover_params = list(typename="restrained rectangular", number_intervals=10L, percent_overlap=50),
-                    measure = "euclidean", 
-                    cluster_params = list(cl="single", num_bins=10L))
+m <- mapper(X = noisy_circle, filter_values = f_x, 
+            cover_params = list(typename="fixed interval", number_intervals=10L, percent_overlap=50),
+            measure = "euclidean", 
+            cluster_params = list(cl="single", threshold = 0.0))
 }
 \references{
 Singh, Gurjeet, Facundo Memoli, and Gunnar E. Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.

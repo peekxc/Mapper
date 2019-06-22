@@ -14,23 +14,44 @@ BallCover <- R6::R6Class(
   public = list(epsilon=NA)
 )
 
-BallCover$set("public", "initialize", function(filter_values, ...){
-  super$initialize(filter_values, typename="ball")
+## initialize ------
+BallCover$set("public", "initialize", function(...){
+  super$initialize(typename="ball")
   params <- list(...)
   if ("epsilon" %in% names(params)){ self$epsilon <- params[["epsilon"]] }
 })
 
-BallCover$set("public", "construct_cover", function(){
+## validate ------
+BallCover$set("public", "validate", function(filter){
   stopifnot(!is.na(self$epsilon))
+})
+
+## format ----
+BallCover$set("public", "format", function(...){
+  titlecase <- function(x){
+    s <- strsplit(x, " ")[[1]]
+    paste(toupper(substring(s, 1, 1)), substring(s, 2), sep = "", collapse = " ")
+  }
+  sprintf("%s Cover: (epsilon = %.2f)", titlecase(private$.typename), self$epsilon)
+})
+
+## construct_cover ------
+BallCover$set("public", "construct_cover", function(filter, index=NULL){
   if (!requireNamespace("RANN", quietly = TRUE)){
     stop("Package \"RANN\" is needed for to use this cover.", call. = FALSE)
   }
+  self$validate()
+  
+  ## Get filter values 
+  fv <- filter()
+  f_dim <- ncol(fv)
+  f_size <- nrow(fv)
   
   ## Construct the balls
-  ball_cover  <- RANN::nn2(self$filter_values, query = self$filter_values, searchtype = "radius", radius = self$epsilon)
+  ball_cover  <- RANN::nn2(fv, query = fv, searchtype = "radius", radius = self$epsilon)
   
   ## Union them together 
-  ds <- union_find(private$.filter_size)
+  ds <- union_find(f_size)
   apply(ball_cover$nn.idx, 1, function(idx){
     connected_idx <- idx[idx != 0] - 1L
     if (length(connected_idx) > 0){
@@ -45,6 +66,7 @@ BallCover$set("public", "construct_cover", function(){
     which(cc == as.integer(idx))
   })
   self$level_sets <- structure(ls, names=self$index_set)
+  if (!missing(index)){ return(self$level_sets[[index]]) }
   
   ## Always return self 
   invisible(self)

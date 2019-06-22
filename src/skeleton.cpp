@@ -48,13 +48,12 @@ List connected_pullbacks(std::vector< std::string > pullback_ids, const List& pu
 // apply the clustering function to the subset of X given by the level set, and returns a 
 // vector of index vector representing which points fell into which partition. 
 vector< IntegerVector > apply_clustering(std::string pid, const Function& level_set_f, const Function& cluster_f){
-  const IntegerVector level_set = level_set_f(pid);
-  if (level_set.size() == 0){ 
+  const IntegerVector preimages = level_set_f(pid);
+  if (preimages.size() == 0){ 
     vector<IntegerVector> res; 
     return(res); 
   } 
-  // Rcout << "level set: " << level_set << std::endl;
-  const IntegerVector cl_results = cluster_f(_["pid"] = pid, _["idx"] = level_set);
+  const IntegerVector cl_results = cluster_f(pid, preimages);
   // Rcout << "cluster results: " << cl_results << std::endl;
   const IntegerVector cl_idx = self_match(cl_results) - 1; // guarenteed to be 0-based contiguous indices
   // Rcout << "self match results: " << cl_idx << std::endl;
@@ -65,7 +64,7 @@ vector< IntegerVector > apply_clustering(std::string pid, const Function& level_
   size_t i = 0; 
   vector< IntegerVector > new_vertices( ids.size() );
   for (const int ci: cl_idx){
-    new_vertices.at(ci).push_back(level_set.at(i++));
+    new_vertices.at(ci).push_back(preimages.at(i++));
   }
   // IntegerVector::const_iterator c_i = cl_idx.begin();
   // for (int i = 0; c_i != cl_idx.end(); ++c_i, ++i){
@@ -217,7 +216,37 @@ List remove_by_id(IntegerVector ids, const List& vertices){
 //   return(pullback_map); 
 // }
 
-// Builds the 0-skeleton by applying the pullback operation to a given set of cover indices.
+vector< size_t > smallest_not_in(const size_t n){
+  vector< size_t > new_ids = vector< size_t >();
+  new_ids.resize(n);
+  std::iota(begin(new_ids), end(new_ids), 0);
+  return(new_ids);
+}
+
+vector< size_t > smallest_not_in(const size_t n, vector< size_t > old_ids){
+  // if (any(old_ids < 0).is_true()){ stop("Supplied ids must be non-negative integers."); }
+  const size_t max = old_ids.size() + n;
+  std::sort(begin(old_ids), end(old_ids));
+  vector< size_t > new_ids = vector< size_t >();
+  new_ids.resize(n);
+  for (size_t i = 0, cc = 0; i < max; ++i){
+    auto lb = std::find(begin(old_ids), end(old_ids), i); 
+    if (lb == end(old_ids)){ new_ids[cc++] = i; } // i not in old_vids
+  }
+  return(new_ids);
+}
+
+std::unordered_map< std::string, IntegerVector > lst2map(const List& lst){
+  if (Rf_isNull(lst.names()) || lst.size() == 0){ return std::unordered_map< std::string, IntegerVector >(); }
+  vector< std::string > keys = as< vector< std::string > >(lst.names());
+  std::unordered_map< std::string, IntegerVector > res; 
+  for (auto c_key: keys){ res.emplace(c_key, lst[c_key]); }
+  return(res);
+}
+
+// Decomposes the preimages into connected components according to a given clustering function.
+// This modifies both the vertex list and the pullback mapping. 
+// This method assumes the names in the 'pullback' list are constant! 
 // Parameters:
 //  pullback_ids := The pullback ids to update by this method. Only performs the pullback operation on these keys.
 //  X := The data matrix. 
@@ -225,17 +254,29 @@ List remove_by_id(IntegerVector ids, const List& vertices){
 //  level_set_f := Function which takes as input a pullback id and returns as output the indices of the point within that pullback set. 
 //  vertices := List of the current vertices (each element of which is a vector containing the point indices contained in the vertex)
 //  pullback := Named-indexed list mapping pullback ids to vertex ids
-//  stree := SimplexTree object containing the underlying simplicial complex
 // [[Rcpp::export]]
-List build_0_skeleton(
+List decompose_preimages(
     const StringVector pullback_ids, 
     const Function cluster_f, 
     const Function level_set_f, 
-    List& vertices, 
-    List& pullback, 
-    SEXP stree)
+    const List& vertices, 
+    List& pullback)
 {
-  Rcpp::XPtr<SimplexTree> stree_ptr(stree); // Collect the simplex tree;
+  using str_map = std::unordered_map< std::string, IntegerVector >; 
+  
+  // Extract the current set of vertices in C++ 
+  str_map mod_vertices = lst2map(vertices);
+  
+  // Create lambda to extract the vertex ids as integers
+  const auto vertex_ids = [&mod_vertices](){ 
+    using v_type = std::unordered_map< std::string, IntegerVector >::value_type;
+    if (mod_vertices.empty()){ return(vector< size_t >()); }
+    vector< size_t > vids(mod_vertices.size());
+    std::transform(begin(mod_vertices), end(mod_vertices), begin(vids), [](v_type v){
+      return(std::stoi(v.first));
+    });
+    return(vids);
+  };
   
   // Loop through the pullback ids to update. This will update the vertices, the pullback map, and the simplex tree
   vector< std::string > pids = as< vector< std::string > >(pullback_ids);
@@ -244,30 +285,44 @@ List build_0_skeleton(
     
     // Remove vids in vertex list, pullback, and simplex tree
     // Rcout << "Removings vertices: " << vids << std::endl;
-    vertices = remove_by_id(vids, vertices);
+    // vertices = remove_by_id(vids, vertices);
+    for (auto id: vids){ mod_vertices.erase(std::to_string(id)); }
+
     pullback[pid] = IntegerVector::create();
-    for (int vid: vids){ stree_ptr->remove_simplex({ size_t(vid) }); };
     
     // Apply the clustering to get the new vertices
-    // Rcout << "Applying clustering to: " << pid << std::endl;
     vector< IntegerVector > new_vertices = apply_clustering(pid, level_set_f, cluster_f);
     
     if (new_vertices.size() == 0){
       pullback[pid] = IntegerVector::create();
     } else {
       // Update both the simplex tree and the pullback map with the new vertex ids
-      vector< idx_t > new_0_simplexes = stree_ptr->generate_ids(new_vertices.size());
+      // vector< idx_t > new_0_simplexes = stree_ptr->generate_ids(new_vertices.size());
+      // vector< idx_t > new_0_simplexes = as< vector< idx_t > >(id_generator(new_vertices.size()));
+      vector< size_t > c_vids = vertex_ids();
+      vector< size_t > new_0_simplexes = smallest_not_in(new_vertices.size(), c_vids);
       pullback[pid] = wrap(new_0_simplexes);
-      for (idx_t v: new_0_simplexes){ stree_ptr->insert_simplex({ v }); }
       
-      // Insert point indices into vertices
+      // Insert point indices into vertices. New vertex ids should be guarenteed to not be in vertex ids
       for (size_t i = 0; i < new_vertices.size(); ++i){
         new_vertices.at(i).attr("level_set") = pid; 
-        vertices[std::to_string(new_0_simplexes.at(i))] = new_vertices.at(i);
+        std::string new_vid = std::to_string(new_0_simplexes.at(i));
+        mod_vertices.emplace(new_vid, new_vertices.at(i));
       }
     }
   }
-  return(vertices);
+  return(wrap(mod_vertices));
+}
+
+
+//  vids := New vertex ids
+//  st := SimplexTree object containing the underlying simplicial complex
+// [[Rcpp::export]]
+void build_0_skeleton(const IntegerVector vids, SEXP st){
+  Rcpp::XPtr<SimplexTree> st_ptr(st); // Collect the simplex tree
+  st_ptr->clear();
+  //for (int vid: vids){ stree_ptr->remove_simplex({ size_t(vid) }); };
+  for (idx_t v: vids){ st_ptr->insert_simplex({ v }); }
 }
 
 // Builds the 1-skeleton by inserting 1-simplexes for each pair of vertices whose points have non-empty 

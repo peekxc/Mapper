@@ -205,9 +205,29 @@ MapperRef$set("public", "initialize", function(X){
 #' @name use_filter
 #' @title Sets the filter
 #' @description Sets the map, or \emph{filter}, to associate with the instance
-#' @param filter either the filter name to use, or a function. See details. 
+#' @param filter either the filter name to use, a matrix, or a function. See details. 
 #' @param ... additional parameters to pass to the filter function.
-#' @details \code{filter} one of the pre-configured named filters returning matrix-coercible set of coordinate values. 
+#' @details \code{filter} must be either a matrix of coordinate values, a function that returns a matrix of 
+#' coordinate values, or one of the following predefined filters: 
+#' \itemize{
+#'   \item{\strong{PC}}{ Principle components (with \code{\link[stats:prcomp]{prcomp}})}
+#'   \item{\strong{IC}}{ Independent components (with \code{\link[fastICA:fastICA]{fastICA}})}
+#'   \item{\strong{ECC}}{ Eccentricity (internal, change the norm by passing one of \eqn{p} = [1, 2, Inf])}
+#'   \item{\strong{KDE}}{ Kernel Density Estimate (with \code{\link[ks:ks]{kde}})}
+#'   \item{\strong{DTM}}{ Distance to measure (with \code{\link[TDA:dtm]{dtm}})}
+#'   \item{\strong{MDS}}{ Classic (Metric) Multidimensional Scaling (with \code{\link[stats:cmdscale]{cmdscale}})}
+#'   \item{\strong{ISOMAP}}{ Isometric feature mapping (with \code{\link[vegan::isomap]{isomap}})}
+#'   \item{\strong{LE}}{ Laplacian Eigenmaps (with \code{\link[geigen::geigen]{geigen}})}
+#'   \item{\strong{UMAP}}{ Uniform Manifold Approximation and Projection (with \code{\link[umap::umap]{umap}})}
+#' }
+#' Nearly all the pre-configured filters essentially call functions in other packages with
+#' somewhat reasonable default parameters to perform the mapping. If the package needed to compute the filter 
+#' is not installed, a prompt is given asking the user whether they would like to install it. Any 
+#' parameters supplied to \code{...} are passed to the corresponding filter function, and always 
+#' override pre-configured default parameters. \cr
+#' \cr
+#' \strong{NOTE:} The predefined filters are meant to be used for illustrative purposes only---this function 
+#' is \emph{not} meant to act as a comprensive interface to the functions each filter corresponds too.  
 MapperRef$set("public", "use_filter", function(filter=c("PC", "IC", "ECC", "KDE", "DTM", "MDS", "ISOMAP", "LE", "UMAP"), ...){
   if (is.function(filter)){ private$.filter <- filter } 
   else if (is.matrix(filter)){
@@ -254,8 +274,13 @@ MapperRef$set("public", "use_filter", function(filter=c("PC", "IC", "ECC", "KDE"
     else if (filter == "KDE"){
       require_but_ask("ks")
       X <- self$X()
-      H <- if (ncol(X) <= 4L){ ks::Hpi(X) } else { diag(apply(X, 2, stats::bw.SJ)) }
-      self$filter <- matrix(ks::kde(X, eval.points = X, H = H, verbose = FALSE)$estimate, ncol = 1L)
+      default_params <- list(x = X, eval.points = X, verbose = FALSE)
+      if (is.null(given_params[["H"]])){
+        H <- if (ncol(X) <= 4L){ ks::Hpi(X) } else { diag(apply(X, 2, stats::bw.nrd0)) }
+        default_params[["H"]] <- H
+      }
+      params <- modifyList(default_params, given_params)
+      self$filter <- matrix(do.call(ks::kde, params)$estimate, ncol = 1L)
     } else if (filter == "DTM"){
       require_but_ask("TDA")
       X <- self$X()
@@ -279,10 +304,11 @@ MapperRef$set("public", "use_filter", function(filter=c("PC", "IC", "ECC", "KDE"
       ## Get the smallest epsilon to make the graph connected
       if (is.null(given_params[["epsilon"]]) && is.null(given_params[["k"]])){
         eps <- max(vegan::spantree(given_params[["dist"]])$dist)
-        given_params[["epsilon"]] <- eps + sqrt(.Machine$double.eps)*5
+        eps_add <- min(given_params[["dist"]])
+        given_params[["epsilon"]] <- eps + eps_add
       }
       params <- modifyList(list(ndim=2), given_params)
-      self$filter <- matrix(do.call(vegan::isomap, params), ncol = params[["ndim"]])
+      self$filter <- matrix(do.call(vegan::isomap, params)$points, ncol = params[["ndim"]])
     } else if (filter == "LE"){
       require_but_ask("geigen")
       if (is.null(given_params[["dist"]])){
@@ -290,7 +316,7 @@ MapperRef$set("public", "use_filter", function(filter=c("PC", "IC", "ECC", "KDE"
         dist_f <- ifelse(has_pd, parallelDist::parallelDist, stats::dist)
         given_params[["dist"]] <- dist_f(self$X())
       }
-      params <- modifyList(list(k=2L, sigma=mean(apply(self$X(), 2, stats::bw.SJ))), given_params)
+      params <- modifyList(list(k=2L, sigma=mean(apply(self$X(), 2, stats::bw.nrd0))), given_params)
       W <- as.matrix(exp(-(params[["dist"]]/(params[["sigma"]]))))
       D <- diag(colSums(W))
       L <- D - W
@@ -298,7 +324,7 @@ MapperRef$set("public", "use_filter", function(filter=c("PC", "IC", "ECC", "KDE"
       self$filter <- res$vector[,seq(2, 2L+(params[["k"]]-1)),drop=FALSE]
     } else if (filter == "UMAP"){
       require_but_ask("umap")
-      self$filter <- do.call(umap::umap, params)
+      self$filter <- do.call(umap::umap, list(d=self$X()))$layout
     } else {
       stop(sprintf("Unknown filter: %s", filter))
     }
@@ -347,25 +373,21 @@ MapperRef$set("public", "use_cover", function(cover="fixed interval", ...){
 #' @description Sets the clustering algorithm used to construct the connected components in the pullback cover.
 #' @param cl Either one of the link criteria used in the \code{\link[stats]{hclust}} function (string) or a function. See details.
 #' @param cutoff_method Type of heuristic to determine cut value. See details. Ignored is \code{cl} is a function.
-#' @param run_internal Whether to run the clustering within the \code{MapperRef} instance environment.
 #' @param ... Additional parameters passed as defaults to the cutoff method. See details. 
 #' @details If \code{cl} is a linkage criterion, a standard hierarchical clustering algorithm is used with suitable default parameters. 
 #' If it is a function, it must have a signature compatible with \code{function(X, idx, ...)} where \code{X} is the data matrix and \code{idx}
-#' is a vector of integer indices giving which subset of \code{X} to cluster over. \cr 
+#' is a vector of integer indices giving which subset of \code{X} to cluster over. The enclosing environment of \code{cl}
+#' is set to  \cr 
 #' \cr
 #' The cutoff method may be one of either c("histogram", "continuous"). See \code{\link{cutoff_first_bin}} and \code{\link{cutoff_first_threshold}}
 #' for what they each correspond to, respectively. Additional named parameters passed via \code{...} act as defaults to the cutting method chosen. 
 #' If not chosen, reasonable defaults are used. \cr 
-#' \cr 
-#' If \code{run_internal} is set to TRUE, the \code{MapperRef} instance environment is imported, such that field members
-#' may be used inside \code{cl}s definition. Defaults to FALSE. 
 #' \cr
 #' Additional named parameters passed via the dots in \code{$clustering_algorithm} 
 #' will taken precedence and override all previously set default settings. 
 MapperRef$set("public", "use_clustering_algorithm", 
   function(cl = c("single", "ward.D", "ward.D2", "complete", "average", "mcquitty", "median", "centroid"), 
            cutoff_method = c("continuous", "histogram"),
-           run_internal = FALSE,
            ...){
     ## Use a linkage criterion + cutting rule
     default_cutting_params <- list(...)
@@ -403,17 +425,14 @@ MapperRef$set("public", "use_clustering_algorithm",
           return(cutree(hcl, h = eps))
         }
       }
-      cl_f <- create_cl(cl, cutoff_method, default_cutting_params)
-      parent.env(environment(cl_f)) <- environment(self$initialize)
-      self$clustering_algorithm <- cl_f
+      # cl_f <- create_cl(cl, cutoff_method, default_cutting_params)
+      # parent.env(environment(cl_f)) <- environment(self$initialize)
+      self$clustering_algorithm <- create_cl(cl, cutoff_method, default_cutting_params)
       # environment(self$clustering_algorithm) <- environment(self$initialize)
     } else if (is.function(cl)){
+      ## Run given functions under the instance environment
+      parent.env(environment(cl)) <- environment(self$initialize)
       self$clustering_algorithm <- cl
-      ## If internal objects are requested
-      if (run_internal){
-        parent.env(environment(self$clustering_algorithm)) <- environment(self$initialize)
-        # environment(self$clustering_algorithm) <- environment(self$initialize)
-      }
     } else { stop("Invalid parameter type 'cl'") }
     invisible(self)
   }
@@ -427,8 +446,9 @@ MapperRef$set("public", "use_clustering_algorithm",
 #' parameters passed via the '...' are passed to the clustering algorithm. \cr
 #' \cr
 #' Note that this method removes the vertices associated with \code{pullback_ids} from the simplicial 
-#' complex, which subsequently also any of their cofaces. New vertices computed with \code{clustering_algorithm}
-#' have their ids generated by \code{generate_ids}.
+#' complex, which subsequently also removes any of their cofaces. \cr
+#' \cr
+#' New vertices computed with \code{clustering_algorithm} have their ids generated by \code{generate_ids}.
 MapperRef$set("public", "construct_pullback", function(pullback_ids=NULL, ...){
   stopifnot(!is.na(self$cover$level_sets))
   stopifnot(is.function(private$.clustering_algorithm))
@@ -436,27 +456,42 @@ MapperRef$set("public", "construct_pullback", function(pullback_ids=NULL, ...){
   if (pids_supplied){ stopifnot(all(pullback_ids %in% self$cover$index_set)) }
   pullback_ids <- if (pids_supplied){ pullback_ids } else { self$cover$index_set }
   
-  ## If not populated yet, create a default pullback mapping from the covers index set to the vertex ids
-  if (length(private$.pullback) == 0){
-    private$.pullback <- lapply(self$cover$index_set, function(x) integer(0L))
-    names(private$.pullback) <- self$cover$index_set
+  ## If specific pullback ids not given, then resist the pullback mapping
+  if (!pids_supplied || length(private$.pullback) == 0){
+    n_sets <- length(self$cover$index_set)
+    self$simplicial_complex$clear()
+    self$vertices <- list()
+    private$.pullback <- structure(replicate(n_sets, integer(0)), names = self$cover$index_set)
   }
   
   ## Update the vertices for the given level sets. This requires updating both the simplex tree's 
   ## internal representation as well as the outward-facing vertex list. The new vertices are returned 
   ## to replace the current list. The pullback map is also updated. 
   calc_preimage <- function(){
-    function(index){
-      self$cover$construct_cover(self$filter, index)
-    }
+    function(index){ self$cover$construct_cover(self$filter, index) }
   }
-  private$.vertices <- Mapper:::build_0_skeleton(
+  partial_cluster <- function(...){
+    extra <- list(...)
+    function(pid, idx){ do.call(self$clustering_algorithm, append(list(pid, idx), extra)) }
+  }
+  # id_gen <- function(n){
+  #   ## make cpp function smallest_not_in
+  #   private$.vertices
+  #   as.integer(names(m$vertices))
+  #   private$.simplicial_complex
+  #   ids <- private$.simplicial_complex$generate_ids(n)
+  #   private$.simplicial_complex$insert(as.list(ids))
+  #   return(ids)
+  # }
+  
+  ## Do the decomposition
+  private$.vertices <- Mapper:::decompose_preimages(
     pullback_ids = as.character(pullback_ids),
-    cluster_f = self$clustering_algorithm, 
+    cluster_f = partial_cluster(...), 
     level_set_f = calc_preimage(), 
-    vertices = private$.vertices, 
-    pullback = private$.pullback, 
-    stree = private$.simplicial_complex$as_XPtr()
+    vertices = private$.vertices,
+    # id_generator = id_gen,
+    pullback = private$.pullback
   )
   
   ## Return self
@@ -466,37 +501,43 @@ MapperRef$set("public", "construct_pullback", function(pullback_ids=NULL, ...){
 ## construct_nerve ----
 #' @name construct_nerve 
 #' @title Compute the nerve of the cover. 
-#' @description Computes (or updates) the k-simplices composing the Mapper, where k >= 1. 
+#' @description Computes (or updates) the k-simplices composing the Mapper, where k >= 0. 
 #' @param k The order of the simplices to construct. See details.  
 #' @param indices (n x k) matrix of indices of the covers index set to update.
 #' @param min_weight minimum intersection size to consider as a simplex. Defaults to 1.
 #' @details Compared to \code{construct_k_skeleton}, this method \emph{only} intersections 
 #' between (k-1) simplices in the complex.
-MapperRef$set("public", "construct_nerve", function(k = 1, indices = NULL, min_weight=1L, modify=TRUE){
+MapperRef$set("public", "construct_nerve", function(k, indices = NULL, min_weight=1L, modify=TRUE){
   stopifnot(length(private$.vertices) > 0)
-  stopifnot(k >= 1L)
+  stopifnot(k == trunc(k), k >= 0)
   idx_specified <- (!missing(indices) && !is.null(indices))
   if (idx_specified){
     stopifnot(is.matrix(indices))
     stopifnot(all(unlist(indices) %in% self$cover$index_set))
-    k <- ncol(indices)-1L ## ensure k is equal to the number of columns of the indices - 1
+    stopifnot(k >= 1)
   }
   indices <- if (idx_specified){ indices } else { self$cover$neighborhood(self$filter, k) }
-  
-  
   ## Retrieve the valid level set index pairs to compare. In the worst case, with no cover-specific optimization, 
   ## this may just be all pairwise combinations of LSFI's for the full simplicial complex.
   stree_ptr <- private$.simplicial_complex$as_XPtr()
   params <- list(pullback_ids = indices, vertices = self$vertices, pullback = private$.pullback, stree = stree_ptr, modify = modify)
-  if (k == 1){ params <- modifyList(params, list(min_sz = min_weight)) } 
-  else { params <- modifyList(params, list(k = k)) }
-  sk_f <- ifelse(k == 1, build_1_skeleton, build_k_skeleton)
-  if (params$modify){
-    do.call(sk_f, params)
+  if (k == 0){ 
+    if (!params$modify){ return(as.integer(names(m$vertices))) } 
+    build_0_skeleton(as.integer(names(m$vertices)), stree_ptr)
     return(invisible(self))
-  } else {
-    return( do.call(rbind, do.call(sk_f, params)) )
   }
+  else if (k == 1){ 
+    params <- modifyList(params, list(min_sz = min_weight)) 
+    if (!params$modify){ return(do.call(rbind, do.call(build_1_skeleton, params)) ) } 
+    do.call(build_1_skeleton, params)
+    return(invisible(self))
+  } 
+  else { 
+    params <- modifyList(params, list(k = k)) 
+    if (!params$modify){ return(do.call(rbind, do.call(build_k_skeleton, params)) ) } 
+    do.call(build_k_skeleton, params)
+    return(invisible(self))
+  }  
 })
 
 ## compute_k_skeleton ----
@@ -523,10 +564,10 @@ MapperRef$set("public", "construct_k_skeleton", function(k=1L, ...){
 ## S3-like print override
 MapperRef$set("public", "format", function(...){
   #if ("dist" %in% class(private$.X)){ n <- attr(private$.X, "Size") } else { n <- nrow(private$.X) }
-  max_k <- length(private$.simplicial_complex)
-  if (max_k == 0){ message <- "Mapper construction (empty)" }
+  max_k <- length(private$.simplicial_complex$n_simplices)
+  if (max_k == 0){ message <- "(empty) Mapper construction" }
   else {
-    simplex_info <- sprintf("(%s) (%s)-simplices\n", paste0(private$.simplicial_complex$n_simplices, collapse = ", "), paste0(0L:(max_k-1L), collapse = ", "))
+    simplex_info <- sprintf("(%s) (%s)-simplices", paste0(private$.simplicial_complex$n_simplices, collapse = ", "), paste0(0L:(max_k-1L), collapse = ", "))
     message <- paste0("Mapper construction with ", simplex_info)
   }
   if (is(self$cover, "CoverRef")){ message <- append(message, format(self$cover)) }
@@ -668,21 +709,20 @@ MapperRef$set("public", "as_pixiplex", function(...){
 #' \item \emph{level_sets} map connecting the which vertices belong to the preimage of the sets in the cover. 
 #' }
 MapperRef$set("public", "exportMapper", function(graph_type=c("adjacency_matrix", "adjacency_list", "edgelist")){
-  result <- list(level_sets = private$.cl_map, vertices = private$.vertices)
+  result <- list(level_sets = private$.pullback, vertices = private$.vertices)
   if (missing(graph_type)){ graph_type <- "adjacency_matrix" }
   result$graph <- switch(graph_type, 
                          "adjacency_matrix"=self$simplicial_complex$as_adjacency_matrix(),
                          "adjacency_list"=self$simplicial_complex$as_adjacency_list(), 
                          "edgelist"=self$simplicial_complex$as_edge_list(), 
                          stop("'graph_type' must be one of: 'adjacency_matrix', 'adjacency_list', 'edgelist'"))
-  n_simplices <- self$simplicial_complex$n_simplexes
-  z_d <- ncol(self$filter())
+  n_simplices <- self$simplicial_complex$n_simplices
+  x_dim <- ncol(self$X())
+  z_dim <- ncol(self$filter())
   attr(result, ".summary") <- c(sprintf("Mapper with filter f: %s -> %s",
-                                        ifelse(is(self$X, "dist"), "dist(X)",
-                                               ifelse(ncol(self$X) > 1, sprintf("X^%d", ncol(self$X)), "X")),
-                                        ifelse(z_d > 1, sprintf("Z^%d", z_d), "Z")),
-                                sprintf("Configured with a %s cover comprising %d open sets", self$cover$typename, length(self$cover$level_sets)),
-                                sprintf("The graph contains %d vertices and %d edges", n_simplices[[1]], n_simplices[[2]]))
+                                        ifelse(x_dim > 1, sprintf("X^%d", x_dim), "X"),
+                                        ifelse(z_dim > 1, sprintf("Z^%d", z_dim), "Z")),
+                                format(self$cover))
   class(result) <- "Mapper"
   return(result)
 })

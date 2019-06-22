@@ -5,7 +5,7 @@
 #' and produces a topological summary of the data expressed through a cover equipped to the codomain of the map.
 #'
 #' @param X Either an \eqn{n x D} data matrix.
-#' @param filter_values An \eqn{n x d} data matrix.
+#' @param filter An \eqn{n x d} data matrix, or a function.
 #' @param cover_params Named list of cover parameters. See details. 
 #' @param measure String indicating the measure in the data space. Accepts any in \link[proxy]{pr_DB}. 
 #' @param cluster_params Named list of clustering parameters. See details. 
@@ -44,32 +44,31 @@
 #' left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
 #' f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
 #' 
-#' m <- Mapper::mapper(X = noisy_circle, filter_values = f_x, 
-#'                     cover_params = list(typename="restrained rectangular", number_intervals=10L, percent_overlap=50),
-#'                     measure = "euclidean", 
-#'                     cluster_params = list(cl="single", num_bins=10L))
+#' m <- mapper(X = noisy_circle, filter_values = f_x, 
+#'             cover_params = list(typename="fixed interval", number_intervals=10L, percent_overlap=50),
+#'             measure = "euclidean", 
+#'             cluster_params = list(cl="single", threshold = 0.0))
 #' @export
 mapper <- function(X, filter_values, 
-                   cover_params = c(typename="fixed rectangular", number_intervals=10L, percent_overlap=35), 
+                   cover_params = c(typename="fixed interval", number_intervals=10L, percent_overlap=35), 
                    measure = "euclidean",
-                   cluster_params = c(cl="single", num_bins=10L),
+                   cluster_params = c(cl="single"),
                    return_reference = FALSE) {
-
   ## Extract the given parameters as a named list.
   # extra <- list(...)
   # getParam <- function(param, default){  ifelse(is.null(extra[[param]]), default, extra[[param]]) }
 
   ## Setup 
-  if (!is.null(dim(X)) && !methods::is(X, "dist")){ X <- as.matrix(X) } ## convert to matrix
-  if (!class(X) %in% c("matrix", "dist")){ stop("Mapper expects 'X' to be either a matrix-coercible data type or a 'dist' object.") }
+  if (!is.null(dim(X))){ X <- as.matrix(X) } ## convert to matrix
+  if (!class(X) %in% c("matrix")){ stop("Mapper expects 'X' to be either a matrix-coercible data type.") }
   m <- MapperRef$new(X = X)
   
   ## Configure mapper 
-  cover_params <- append(cover_params, list(filter_values=filter_values))
+  m$use_filter(filter = filter_values)
   do.call(m$use_cover, cover_params)
   do.call(m$use_distance_measure, list(measure=measure))
   do.call(m$use_clustering_algorithm, cluster_params)
-  m$compute_k_skeleton(k = 1L)
+  m$construct_k_skeleton(k = 1L)
 
   ## Convert to 'Mapper' object or, if the reference class is wanted, return that. The .summary attribute
   ## stores a useful string used for default printing characteristics of the Mapper.
@@ -91,53 +90,6 @@ mapper <- function(X, filter_values,
 #' @export
 print.Mapper <- function(x, ...){
   writeLines(attr(x, ".summary"))
-}
-
-#' S3 method for default plotting
-#' @param x Mapper object.
-#' @param ... unused.
-#' @export
-plot.Mapper <- function(x, ...){
-  requireNamespace("igraph", quietly = TRUE)
-  if (is.matrix(x$graph) && length(unique(dim(x$graph))) == 1){
-    G <- igraph::graph_from_adjacency_matrix(x$graph, mode = "undirected", add.colnames = NA) 
-  }
-  if (is.matrix(x$graph) && dim(x$graph)[[2]] == 2){
-    G <- igraph::graph_from_edgelist(x$graph, directed = FALSE)
-  } else if (is.list(x$graph)){
-    G <- igraph::graph_from_adj_list(x$graph)
-  } 
-  
-  ## Color vertices based on density
-  vertex_sizes <- sapply(x$vertices, length) 
-  igraph::vertex_attr(G, "color") <- bin_color(log(vertex_sizes))
-  
-  ## Scale by size; Normalize between 0-1, unless all the same
-  normalize <- function(x) { 
-    if (all(x == x[1])){ return(rep(1, length(x))) }
-    else {  (x - min(x))/(max(x) - min(x)) }
-  }
-  igraph::vertex_attr(G, "size") <- (15L - 10L)*normalize(log(vertex_sizes)) + 10L
-  
-  ## Fill in labels with id:size
-  igraph::vertex_attr(G, "label") <- apply(cbind(names(x$vertices), vertex_sizes), 1, function(x){
-    paste0(x, collapse = ":")
-  })
-  
-  ## Plot and return invisibly
-  igraph::plot.igraph(G)
-  return(invisible(G))
-  # node_sizes <- sapply(x$nodes, length)
-  # g <- igraph::graph_from_adjacency_matrix(x$adjacency, mode = "undirected")
-  # xy_coords <- local({ set.seed(1234); igraph::layout.fruchterman.reingold(g) })
-  # edges <- apply(igraph::as_edgelist(g), 1, function(e){ list(xy_coords[e[1],], xy_coords[e[2],]) })
-  # edges <- do.call(rbind, lapply(edges, function(lst) do.call(rbind, lst)))
-  # params <- list(...)
-  # default_params <- list(xlab=NA, ylab=NA, xaxt='n', yaxt='n', cex=(1 + (node_sizes/sum(node_sizes))), main = attr(x, ".summary")[[1]], pch = 20)
-  # args <- names(default_params)
-  # params[args] <- ifelse(args %in% names(params), params[args], default_params[args])
-  # { params[["x"]] <- xy_coords; do.call(plot, params) }
-  # { params[["x"]] <- edges; do.call(lines, params) }
 }
 
 # Empty environment to allow passing parameters to dashboard

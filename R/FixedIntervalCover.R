@@ -75,10 +75,14 @@ FixedIntervalCover$set("public", "validate", function(filter){
 ## format ----
 FixedIntervalCover$set("public", "format", function(...){
   # type_pretty <- paste0(toupper(substr(self$typename, start = 1, stop = 1)), tolower(substr(self$typename, start = 2, stop = nchar(self$typename))))
-  sprintf("Cover: (typename = %s, number intervals = [%s], percent overlap = [%s]%%)",
-          private$.typename,
-          paste0(private$.number_intervals, collapse = ", "),
-          paste0(format(private$.percent_overlap, digits = 3), collapse = ", "))
+  titlecase <- function(x){
+    s <- strsplit(x, " ")[[1]]
+    paste(toupper(substring(s, 1, 1)), substring(s, 2), sep = "", collapse = " ")
+  }
+  sprintf("%s Cover: (number intervals = [%s], percent overlap = [%s]%%)",
+          titlecase(private$.typename),
+          paste0(self$number_intervals, collapse = ", "),
+          paste0(format(self$percent_overlap, digits = 3), collapse = ", "))
 })
 
 ## This function is specific to the interval-type covers
@@ -124,6 +128,7 @@ FixedIntervalCover$set("public", "construct_index_set", function(...){
 ## Given the current set of parameter values, construct the level sets whose union covers the filter space
 ## construct_cover ----
 FixedIntervalCover$set("public", "construct_cover", function(filter, index=NULL){
+  stopifnot(is.function(filter))
   self$validate(filter)
   
   ## Get filter values 
@@ -131,8 +136,7 @@ FixedIntervalCover$set("public", "construct_cover", function(filter, index=NULL)
   f_dim <- ncol(fv)
   
   ## If the index set hasn't been made yet, construct it.
-  if (any(is.na(self$index_set))){ self$construct_index_set() }
-  stopifnot(!any(is.na(self$index_set)))
+  self$construct_index_set()
   
   ## If no index specified, return the level sets either by construction
   if (missing(index) || is.null(index)){

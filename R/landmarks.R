@@ -9,9 +9,10 @@
 #' @param dist_method the distance metric to use. Any distance measure in the \code{proxy} package is supported.
 #' @param seed_index the first landmark to seed the algorithm. 
 #' @param shuffle_data whether to first randomly shuffle the data.
+#' @param show_progress whether to display progress
 #' @references De Silva, Vin, and Gunnar E. Carlsson. "Topological estimation using witness complexes." SPBG 4 (2004): 157-166.
 #' @export
-landmarks <- function(x, n, dist_method = "euclidean", seed_index = 1, shuffle_data=FALSE){
+landmarks <- function(x, n, dist_method = "euclidean", seed_index = 1, shuffle_data=FALSE, show_progress=FALSE){
   stopifnot(is.matrix(x))
   stopifnot(seed_index >= 1L && seed_index < nrow(x))
   shuffle_idx <- NA
@@ -20,7 +21,7 @@ landmarks <- function(x, n, dist_method = "euclidean", seed_index = 1, shuffle_d
     x <- x[,,drop=FALSE] 
   }
   if (missing(dist_method) || toupper(dist_method) == "EUCLIDEAN"){
-    landmark_idx <- landmark_maxmin(x, n, seed_index-1L)
+    landmark_idx <- landmark_maxmin(x, n, seed_index-1L, show_progress)
   } else if (requireNamespace("proxy", quietly = TRUE)){
     stopifnot(toupper(dist_method) %in% toupper(proxy::pr_DB$get_entry_names()))
     landmark_idx <- vector(mode="integer", n)

@@ -69,8 +69,12 @@ all_correspondences <- function(X, Y) {
     .Call(`_Mapper_all_correspondences`, X, Y)
 }
 
-landmark_maxmin <- function(x, n, seed = 0L) {
-    .Call(`_Mapper_landmark_maxmin`, x, n, seed)
+eccentricity <- function(from, x, type = 1L, display_progress = TRUE) {
+    .Call(`_Mapper_eccentricity`, from, x, type, display_progress)
+}
+
+landmark_maxmin <- function(x, n, seed = 0L, display_progress = TRUE) {
+    .Call(`_Mapper_landmark_maxmin`, x, n, seed, display_progress)
 }
 
 nondecreasing_seq <- function(lst) {
@@ -81,8 +85,12 @@ connected_pullbacks <- function(pullback_ids, pullback, stree) {
     .Call(`_Mapper_connected_pullbacks`, pullback_ids, pullback, stree)
 }
 
-build_0_skeleton <- function(pullback_ids, cluster_f, level_set_f, vertices, pullback, stree) {
-    .Call(`_Mapper_build_0_skeleton`, pullback_ids, cluster_f, level_set_f, vertices, pullback, stree)
+decompose_preimages <- function(pullback_ids, cluster_f, level_set_f, vertices, pullback) {
+    .Call(`_Mapper_decompose_preimages`, pullback_ids, cluster_f, level_set_f, vertices, pullback)
+}
+
+build_0_skeleton <- function(vids, st) {
+    invisible(.Call(`_Mapper_build_0_skeleton`, vids, st))
 }
 
 build_1_skeleton <- function(pullback_ids, min_sz, vertices, pullback, stree, modify) {

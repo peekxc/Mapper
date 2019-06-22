@@ -25,7 +25,7 @@ multiscale <- function(m, max_dim=1L, max_overlap = 50, time = c("integer", "mea
   
   ## Get initial eps parameter to minimize bias on the clusters
   eps_vals <- sapply(m$cover$index_set, function(alpha){
-    preimage <- m$cover$construct_cover(alpha)
+    preimage <- m$cover$construct_cover(m$filter, alpha)
     if (length(preimage) < 3){ return(0) }
     hcl <- hclust(dist(m$X(preimage)), method = "single")
     Mapper::cutoff_first_threshold(hcl)
@@ -41,7 +41,7 @@ multiscale <- function(m, max_dim=1L, max_overlap = 50, time = c("integer", "mea
   environment(m$clustering_algorithm)[["setup"]] <- TRUE ## Allow simplicial maps to be captured
   
   ## Create indexed cover 
-  indexed_cover <- construct_indexed_cover(m$cover, ensure_unique = TRUE)
+  indexed_cover <- construct_indexed_cover(m, m$cover, ensure_unique = TRUE)
   # ls1 <- lapply(seq(0, prod(m$cover$number_intervals)-1), function(i) indexed_cover$extract_level_set(i))
   # ls2 <- m$cover$level_sets
   
@@ -330,7 +330,7 @@ basic_cluster <- function(g_eps){
 }
 
 
-construct_indexed_cover <- function(cover, ensure_unique = FALSE){
+construct_indexed_cover <- function(m, cover, ensure_unique = FALSE){
   ## Locals
   fv <- m$filter()
   n <- nrow(fv)
@@ -338,7 +338,7 @@ construct_indexed_cover <- function(cover, ensure_unique = FALSE){
   base_interval_length <- diff(apply(fv, 2, range))/cover$number_intervals
   
   ## R^(k x 2d) matrix of interval lower/upper bounds in form of (x_lb, y_lb, ..., x_ub, y_ub, ...)
-  interval_bnds <- cover$interval_bounds()
+  interval_bnds <- cover$interval_bounds(m$filter)
   
   ## Encode cover with multi-index
   key_to_ind <- function(idx_set) { lapply(strsplit(substr(idx_set, 2, nchar(idx_set)-1), " "), as.integer) }

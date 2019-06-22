@@ -217,16 +217,31 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// eccentricity
+NumericVector eccentricity(const NumericMatrix& from, const NumericMatrix& x, const int type, bool display_progress);
+RcppExport SEXP _Mapper_eccentricity(SEXP fromSEXP, SEXP xSEXP, SEXP typeSEXP, SEXP display_progressSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type from(fromSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const int >::type type(typeSEXP);
+    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(eccentricity(from, x, type, display_progress));
+    return rcpp_result_gen;
+END_RCPP
+}
 // landmark_maxmin
-IntegerVector landmark_maxmin(const NumericMatrix& x, const int n, const int seed);
-RcppExport SEXP _Mapper_landmark_maxmin(SEXP xSEXP, SEXP nSEXP, SEXP seedSEXP) {
+IntegerVector landmark_maxmin(const NumericMatrix& x, const int n, const int seed, bool display_progress);
+RcppExport SEXP _Mapper_landmark_maxmin(SEXP xSEXP, SEXP nSEXP, SEXP seedSEXP, SEXP display_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const NumericMatrix& >::type x(xSEXP);
     Rcpp::traits::input_parameter< const int >::type n(nSEXP);
     Rcpp::traits::input_parameter< const int >::type seed(seedSEXP);
-    rcpp_result_gen = Rcpp::wrap(landmark_maxmin(x, n, seed));
+    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(landmark_maxmin(x, n, seed, display_progress));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -254,20 +269,30 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// build_0_skeleton
-List build_0_skeleton(const StringVector pullback_ids, const Function cluster_f, const Function level_set_f, List& vertices, List& pullback, SEXP stree);
-RcppExport SEXP _Mapper_build_0_skeleton(SEXP pullback_idsSEXP, SEXP cluster_fSEXP, SEXP level_set_fSEXP, SEXP verticesSEXP, SEXP pullbackSEXP, SEXP streeSEXP) {
+// decompose_preimages
+List decompose_preimages(const StringVector pullback_ids, const Function cluster_f, const Function level_set_f, const List& vertices, List& pullback);
+RcppExport SEXP _Mapper_decompose_preimages(SEXP pullback_idsSEXP, SEXP cluster_fSEXP, SEXP level_set_fSEXP, SEXP verticesSEXP, SEXP pullbackSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const StringVector >::type pullback_ids(pullback_idsSEXP);
     Rcpp::traits::input_parameter< const Function >::type cluster_f(cluster_fSEXP);
     Rcpp::traits::input_parameter< const Function >::type level_set_f(level_set_fSEXP);
-    Rcpp::traits::input_parameter< List& >::type vertices(verticesSEXP);
+    Rcpp::traits::input_parameter< const List& >::type vertices(verticesSEXP);
     Rcpp::traits::input_parameter< List& >::type pullback(pullbackSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type stree(streeSEXP);
-    rcpp_result_gen = Rcpp::wrap(build_0_skeleton(pullback_ids, cluster_f, level_set_f, vertices, pullback, stree));
+    rcpp_result_gen = Rcpp::wrap(decompose_preimages(pullback_ids, cluster_f, level_set_f, vertices, pullback));
     return rcpp_result_gen;
+END_RCPP
+}
+// build_0_skeleton
+void build_0_skeleton(const IntegerVector vids, SEXP st);
+RcppExport SEXP _Mapper_build_0_skeleton(SEXP vidsSEXP, SEXP stSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const IntegerVector >::type vids(vidsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type st(stSEXP);
+    build_0_skeleton(vids, st);
+    return R_NilValue;
 END_RCPP
 }
 // build_1_skeleton
@@ -350,10 +375,12 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Mapper_gh_make_A", (DL_FUNC) &_Mapper_gh_make_A, 1},
     {"_Mapper_gh_make_Q", (DL_FUNC) &_Mapper_gh_make_Q, 2},
     {"_Mapper_all_correspondences", (DL_FUNC) &_Mapper_all_correspondences, 2},
-    {"_Mapper_landmark_maxmin", (DL_FUNC) &_Mapper_landmark_maxmin, 3},
+    {"_Mapper_eccentricity", (DL_FUNC) &_Mapper_eccentricity, 4},
+    {"_Mapper_landmark_maxmin", (DL_FUNC) &_Mapper_landmark_maxmin, 4},
     {"_Mapper_nondecreasing_seq", (DL_FUNC) &_Mapper_nondecreasing_seq, 1},
     {"_Mapper_connected_pullbacks", (DL_FUNC) &_Mapper_connected_pullbacks, 3},
-    {"_Mapper_build_0_skeleton", (DL_FUNC) &_Mapper_build_0_skeleton, 6},
+    {"_Mapper_decompose_preimages", (DL_FUNC) &_Mapper_decompose_preimages, 5},
+    {"_Mapper_build_0_skeleton", (DL_FUNC) &_Mapper_build_0_skeleton, 2},
     {"_Mapper_build_1_skeleton", (DL_FUNC) &_Mapper_build_1_skeleton, 6},
     {"_Mapper_build_k_skeleton", (DL_FUNC) &_Mapper_build_k_skeleton, 6},
     {"_Mapper_build_flag_complex", (DL_FUNC) &_Mapper_build_flag_complex, 2},

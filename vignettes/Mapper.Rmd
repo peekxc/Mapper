@@ -8,7 +8,14 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-This document contains a quick overview of how to use the interface in the _Mapper_ package to fully customize the _mapper_ construction. The focus on this document is on package functionality and usage, as opposed the theory the _Mapper_ framework was founded on, and as such discusses _Mapper_ from a strictly algorithmic or computational perspective. 
+This document contains a quick overview of how to use the interface in the _Mapper_ package to fully customize the _mapper_ construction. The focus on this document is on package functionality and usage, as opposed the theory the _Mapper_ framework was founded on, and as such discusses _Mapper_ from a strictly algorithmic / computational perspective. 
+
+```{r}
+m <- MapperRef$new(X = noisy_circle)$
+  use_filter(filter= f_x)$
+  use_cover(cover = "fixed interval", number_intervals = 5, percent_overlap = 20)
+```
+
 
 # Quickstart 
 
@@ -36,39 +43,44 @@ library("Mapper")
 left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
 f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
 m <- mapper(X = noisy_circle, filter_values = f_x, 
-            cover_params = list(typename="restrained rectangular", 
-                                number_intervals=10L, percent_overlap=50),
+            cover_params = list(typename="fixed interval", number_intervals=10L, percent_overlap=50),
             measure = "euclidean", 
-            cluster_params = list(cl="single", num_bins=10L))
+            cluster_params = list(cl="single", threshold = 0.0))
 print(m)
 ```
 By default, the core information of the $1$-skeleton of the `Mapper` construction is returned, including:
   
-  1. The vertices of the graph containing the indices of the points resulting from the clustering.
+  1. The vertices, and the points (by index) comprising their corresponding connected components.
   
-  2. An adjacency representation of the mapper graph.
+  2. An adjacency representation of the mapper 
   
-  3. A list mapping cover indices to vertex ids   
+  3. A map between the index set of the cover and the vertices
 
 This is, in essence, all the central information one needs to conduct a more in-depth analysis of the mapper.
 
-# Interactively building the Mapper
+# Building the Mapper piecewise 
 
-For most use-cases, the static method above is sufficient for getting a compact Mapper construction back. However, building the 'right' Mapper is usually an interactive process that requires parameter tuning, e.g. trying alternative filter functions, tweaking clustering parameters, exploring different covering strategies, etc. For large data sets, employing this iterative fitting process with the above method can be prohibitively expensive.
+For most use-cases, the static method above is sufficient for getting a compact Mapper construction back. However, building the 'right' Mapper is usually a _process_ that requires parameter tuning in the form of e.g. alternative filter functions, 'fitted' clustering parameters, different covering geometries, etc. For large data sets, employing this iterative fitting process with the above method can be prohibitively expensive.
 
-To help facilitate this process, the _Mapper_ package uses `R6` class generators to decompose the components used to build the mapper. A few of the benefits `R6` classes include full encapsulation support, reference semantics for member fields, easy-to-employ parameter checking via active bindings, and modularity via [method chaining](https://adv-r.hadley.nz/R6.html#method-chaining). More details available at [Hadleys Advanced R](https://adv-r.hadley.nz/r6.html#introduction-12) series or the [R6 documentation site](https://r6.r-lib.org/articles/Introduction.html).
+To help facilitate this process, the _Mapper_ package uses `R6` class generators to decompose the components used to build the mapper. A few of the benefits `R6` classes include full encapsulation support, reference semantics for member fields, easy-to-employ parameter checking via active bindings, and composability via [method chaining](https://adv-r.hadley.nz/R6.html#method-chaining). More details available at [Hadleys Advanced R](https://adv-r.hadley.nz/r6.html#introduction-12) series or the [R6 documentation site](https://r6.r-lib.org/articles/Introduction.html).
 
 To demonstrate some of these benefits, consider a simplified interpretation of the Mapper pipeline:
 
   1. "Filter" the data via a reference map
   
-  2. Equip the filter space with a cover
+  2. Equip the filtered space with a cover
   
-  3. Construct the _k_-skeleton
+  3. Decompose preimages of the (pulled back) open sets of the cover into _clusters_
   
-These steps are demonstrated below using the `noisy_circle` data set below. 
+  4. Construct the _k_-skeleton by considering non-empty intersections of the clusters
+  
+These steps are demonstrated below using the `noisy_circle` data set below. To begin building a mapper object more fluidly, one starts by using the `MapperRef` R6-class instance generator. It accepts as its only argument the data to construct the mapper with. The data can be specified as a matrix of coordinate values or a function which returns a matrix of coordinate values. 
 
-Below is an example of a very simple filter that calculates distance from every points first coordinate to the point with left-most coordinate, $p$, i.e. 
+```{r}
+m <- MapperRef$new(X = noisy_circle)
+```
+
+Assume, as before, that our filter is the distance from every points first coordinate to the point with left-most coordinate, $p$, i.e. 
 
 ```{r}
 ## 1. Specify a filter function for the data 
@@ -76,7 +88,7 @@ left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
 f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
 ```
 
-Coloring the points on a rainbow gradient based on their distance values sheds light on what the filter geometrically represents
+Coloring the points in the original space w/ a rainbow gradient based on their filter values sheds light on what the filter geometrically represents
 ```{r}
 ## Bin the data onto a sufficiently high-resolution rainbow gradient from blue (low) to red (high)
 rbw_pal <- rev(rainbow(100, start = 0, end = 4/6))
@@ -84,34 +96,37 @@ binned_idx <- cut(f_x, breaks = 100, labels = F)
 plot(noisy_circle, pch = 20, asp = 1, col = rbw_pal[binned_idx], xlab = "X", ylab = "Y", main = "Circle")
 ```
 
-To begin building a mapper object more fluidly, one starts by using the `MapperRef` R6 class generator. It accepts as its only argument the data matrix, which is stored as read-only field. 
+The filter is assigned as usual, and like the data matrix, it accepts a matrix of coordinate values or a function that generates a matrix of coordinate values.
 ```{r}
-m <- MapperRef$new(X = noisy_circle)
+m$filter <- f_x
 ```
 
-## Building the cover
+Both the data matrix and filter as stored as _functions_, which both accept as input a set of indices and return as output a matrix of coordinate values.
+
+<!-- Explain sqllite example -->
+
+## Constructing the cover
 
 Once the filter has been applied, a cover must be chosen to discretize the space. Here, a simple rectangular cover with fixed centers is used. 
 ```{r}
-## 2. Create cover of the filter space
-rec_cover <- FixedRectangularCover$new(filter_values = f_x)
+## 2. Create cover 
+cover <- FixedIntervalCover$new(number_intervals = 5L, percent_overlap = 20)
 ```
-The only required argument is the filter point values themselves; cover-specific parameters may optionally be supplied at initialization, or set via the assignment operator. 
-```{r}
-rec_cover$number_intervals <- 5L
-rec_cover$percent_overlap <- 20
-```
+Cover parameters may be be supplied at initialization, or set via the assignment operator. 
 If you supply a single value when the filter dimensionality $> 1$, the argument is recycled across the dimensions. The cover summary can be printed as follows: 
 
 ```{r}
-print(rec_cover)
+print(cover)
 ```
 
 Once parameterized, the cover may be explicitly constructed via the `construct_cover` member, before sending to Mapper. The `construct_cover` function uses the given set of parameters to populate the intersection between the open sets in the cover and the given filter data.
 
 ```{r}
-rec_cover$construct_cover() ## Now the level sets are populated
-m$cover <- rec_cover
+cover$construct_cover(filter = m$filter) ## Now the level sets are populated
+summary(cover$level_sets)
+```
+```{r}
+m$cover <- cover
 ```
 
 `Mapper` accepts any cover that derives from the abstract `CoverRef` R6 class. To see a list of the `covers_available` method. 
@@ -120,114 +135,118 @@ m$cover <- rec_cover
 Mapper::covers_available()
 ```
 
-If you want to use a cover outside of the ones offers by the package, feel free to derive a new type cover class (and consider submitting a pull request!).
+If you want to use a cover outside of the ones offers by the package, feel free to derive a new type cover class (and submitting a pull request!).
 
-## Building the 0-skeleton 
-The final step to create a Mapper is to construct the _k_-skeleton, which requires a different set of procedures, based on _k_. Since the definition of a _k_-skeleton is inductive, the $0$-skeleton is constructed first. This amounts to applying a partial clustering over data intersecting the preimages of the sets comprising the cover. The choice of clustering algorithm, metric, hyper-parameters, etc. is completely customizable--the only requirement is that the [clustering] function take as input at least the data `X` and a vector of indices `idx`$\subset \{1, 2, \dots, n\}$ and return an integer vector giving a partitioning on that subset. 
+## Decomposing the preimages
 
-An example of how one might construct a custom clustering function using the `parallelDist` and `fastcluster` packages is given below, wherein the _single linkage criterion_ is used to build a cluster hierarchy, and then a histogram-based heuristic similar the idea discussed in Section 3.1 of the original Mapper paper is used to set the [cut value](?stats::cutree). 
+After creating the cover, the next step is to perform the _pullback_ operation, wherein the cover $\mathcal{U}$ of the space $Z$ is used to create a cover on $X$ through $f$. This operation generally denotes two operations: computing the preimages of each open set, and decomposing the subsets of $X$ given by these preimages into connected components. The latter is referred to in the original Mapper paper as _partial clustering_, and it (naturally) requires a number of parameters. 
+
+The goal of the _Mapper_ package is to provide the user full access to how the open sets are decomposed, while also providing easy-to-parameterize defaults for those unfamiliar with clustering in general. Towards this end, there are two options to assign the clustering algorithm: either choose from a set of pre-defined 
+clustering algorithms (+ hyper-parameters), or simply supply your own function to do the decomposition.
+
+#### Using pre-configured defaults
+
+For people do not have much experience in clustering, one may simply one of many pre-defined [linkage criteria](https://en.wikipedia.org/wiki/Hierarchical_clustering) to the `cl` argument of the `use_clustering_algorithm` method. The choice of linkage criteria determines the type of hierarchical clustering to perform. Given a cluster hierarchy, it's common to `cut` the tree at some height value to obtain a partitioning of the points. There are a few available cutting heuristics implemented which attempt to identify the major 'clusters' automatically. See `?use_clustering_algorithm` for more details.
+
+Below is an example of how to specify a pre-configured clustering approach.
 
 ```{r}
-custom_clustering_f <- function(){
+m$use_clustering_algorithm(cl = "single", cutoff_method = "continuous")
+```
+
+For a complete list of the available linkage criteria, see `?stats::hclust`.
+
+#### Using a custom function
+
+If it is not sufficient to use one of the standard clustering methods, you can alteratively just supply a  function! The only requirement is that it take input the index of the open set `pid` and a vector of indices `idx`$\subset \{1, 2, \dots, n\}$ (representing the preimage), and return an integer vector giving a partitioning on that subset. An example of how one might construct a custom clustering function leveraging the `parallelDist` and `fastcluster` packages is given below.
+
+```{r}
+custom_clustering_f <- function(num_bins.default = 10L){
   dependencies_met <- sapply(c("parallelDist", "fastcluster"), requireNamespace)
   stopifnot(all(dependencies_met))
-  return(function(X, idx) {
-    dist_x <- parallelDist::parallelDist(X[idx,], method = "euclidean")
+  function(pid, idx) {
+    dist_x <- parallelDist::parallelDist(self$X(idx), method = self$measure)
     hcl <- fastcluster::hclust(dist_x, method = "single")
-    cutoff_first_bin(hcl, num_bins = 10L)
-  })
+    eps <- cutoff_first_bin(hcl, num_bins = num_bins.default)
+    cutree(hcl, h = eps)
+  }
 }
-m$clustering_algorithm <- custom_clustering_f()
+m$use_clustering_algorithm(cl = custom_clustering_f(10L))
 ```
 
-The clustering function in this example was created as a closure. This can be useful to e.g. store auxiliary parameters option needed by the algorithm, check for package dependencies (like above), cache precomputed information, etc. Since closures [capture their enclosing environments](http://adv-r.had.co.nz/Functional-programming.html#functional-programming), which is a common cause of a form of [memory leaking](http://adv-r.had.co.nz/memory.html#gc), they must be used with caution.
+The above example also demonstrates a simplified example of what one of the pre-configured options might look like. Functions supplied via the `use_clustering_algorithm` accessor are given access to the instance fields and methods, e.g. the data `self$X(...)` and the measure with `self$measure`. 
 
-If the clustering function depends on internal components of the `MapperRef` class instance, the function will error when it is first called. Consider the exact same code as above, but this time parameterized by a field of the `MapperRef` instance.
-
-```{r, eval = FALSE, echo = TRUE}
-m$measure <- "euclidean"
-custom_clustering_f <- function(){ 
-  ...
-  dist_x <- parallelDist::parallelDist(X[idx,], method = self$measure)
-  ...
-}
-```
-
-
-This will return an evaluation error upon executing, both from the user side and internally. 
-```{r, eval = FALSE}
-m$clustering_algorithm(X = noisy_circle, idx = 1:10)
-## Error in pmatch(method, METHODS) : object 'self' not found 
-```
-
-The search path of the execution environment of the closure doesn't traverse the binding environment of either the _self_ or _private_ environments associated with the instance. If access to these environments is needed, pass the clustering function via the `cl` argument of the `use_clustering_algorithm` member. 
-
-```{r}
-custom_clustering_f <- function(linkage="single", nbins = 10L){
-  return(function(X, idx) {
-    dist_x <- parallelDist::parallelDist(X[idx,], method = self$measure)
-    hcl <- fastcluster::hclust(dist_x, method = linkage)
-    cutoff_first_bin(hcl, num_bins = nbins)
-  })
-}
-m$use_clustering_algorithm(cl = custom_clustering_f())
-```
-
-This effectively allows the user to use any clustering algorithm they wish, even algorithms that depend on the internal parameters of the _mapper_ itself. 
-
-Alternatively, for people do not have much experience in clustering, the `cl` argument to `use_clustering_algorithm` can also be one of the widely-supported linkage criteria and distance measures used in hierarchical clustering, to which a default cutting heuristic is assumed. The distance measure may also be any 1 of the 49 (at this time of writing) proximity measures widely available in from the `proxy` package. 
+By default, the metric to cluster on is set to euclidean distance. However, the distance measure may also be any one of the 49 (at this time of writing) proximity measures available in from the `proxy` package. To change the distance measure, use the `use_distance_measure` method. 
 ```{r}
 m$use_distance_measure(measure = "euclidean")
-m$use_clustering_algorithm(cl = "single")
-
 ```
-For a complete list of the available linkage criteria and distance/similarity measures, see `?stats::hclust` and `?proxy::pr_DB`, respectively.
+For a complete list of the distance/similarity measures supported, see `?proxy::pr_DB`.
 
-Once these have been set, the $0$-skeleton is computed with the `compute_vertices` function.
-<!-- All parameters passed to `compute_vertices` are passed via `...` as hyper-parameters to the clustering algorithm.  -->
+Notice the clustering function in this example was created as a [closure](https://en.wikipedia.org/wiki/Closure_(computer_programming)). Since closures [capture their enclosing environments](http://adv-r.had.co.nz/Functional-programming.html#functional-programming), they can be quite useful for e.g. storing auxiliary parameters option needed by the algorithm, checking for package dependencies (like above), caching precomputed information to for improved efficiency, etc. However, for the same reason, they are a common cause of a form of [memory leaking](http://adv-r.had.co.nz/memory.html#gc), so they should generally be used with caution.
+
+#### Performing the decomposition
+
+Once the clustering algorithm has been picked, the pullback can be constructed.
 ```{r}
-m$compute_vertices()
+m$construct_pullback()
 ```
 
-The parameters of these functions may be fine-tuned to allow adjusting only specific parts of the skeleton at a time. 
+This populates the vertices the _mapper_ construct and records a mapping between the index set of the cover and the corresponding vertices decomposed by the corresponding open set. 
 
-## Building the k-skeletons
-
-The $1$-skeleton is computed analogously.
 ```{r}
-m$compute_edges()
+str(m$vertices)
+str(m$pullback)
 ```
 
-Generally, this is sufficient. However, if the user wishes too, the $k$-skeleton for any $k > 1$ can also be computed. 
-```{r}
-max_k <- 1L
-m$compute_k_skeleton(k = max_k) ## higher values of k can be passed as well
-```
 
-The output of Mapper is a simplicial complex, or in the simplest case (when $k = 1$), a topological graph. Internally, the complex is stored in a [Simplex Tree](https://hal.inria.fr/hal-00707901v1/document). The underlying simplex tree is exported as an [Rcpp Module](https://cran.r-project.org/web/packages/Rcpp/vignettes/Rcpp-modules.pdf), and is accessible via the `$simplicial_complex` member. 
+## Constructing the k-skeleton 
+
+The final step to create a Mapper is to construct a geometric realization of nerve of the pullback: a simplicial complex. Internally, the simplicial complex is stored in a [Simplex Tree](https://hal.inria.fr/hal-00707901v1/document). The underlying simplex tree is exported as an [Rcpp Module](https://cran.r-project.org/web/packages/Rcpp/vignettes/Rcpp-modules.pdf), and is accessible via the `$simplicial_complex` member. 
 ```{r}
 m$simplicial_complex
 ```
 
-The simplex tree is a type of trie specialized specifically for storing and running general algorithms on simplicial complexes. The trie structure can be printed as follows:
+The simplex tree is a type of trie specialized specifically for storing and running general algorithms on simplicial complexes. For more details on the simplex tree, see use `?simplextree`, or see the [package repository](https://github.com/peekxc/simplextree/), and references therein. 
+
+Often, instead of constructing the full-dimensional complex (where the dimension is governed by the maximum number of non-empty intersections in the cover), it's common to restrict the _mapper_ to the _k_-skeleton of the nerve instead. 
+
+For example, if ones wishes to reduce the _mapper_ to a graph, the $1$-skeleton may be computed as follows.
 ```{r}
-m$simplicial_complex$print_tree()
+m$construct_k_skeleton(k = 1L)
+m$simplicial_complex
 ```
+
+Generally, this is sufficient. However, if necessary, the $k$-skeleton for any $k > 1$ can also be computed. 
+```{r}
+m$construct_k_skeleton(k = 2L)
+m$simplicial_complex
+```
+
+Note that `construct_k_skeleton` clears out the simplicial complex, the decomposed preimages, etc. and iteratively builds the nerve (up to the specified dimension) each time it's called. Alternatively, each dimension of the nerve can also be computed separately, so long as the previous dimension has been already been computed, i.e. 
+
+```{r}
+m$simplicial_complex$clear()
+m$construct_nerve(k = 0L)
+m$construct_nerve(k = 1L)
+# ... 
+```
+
+Using the `construct_nerve` method is only necessary if one wants to obtain finer control over the specific intersection checks. Just the the `construct_pullback` method, it optionally accepts a subset of indices which can be used to restrict the intersection computation to specific subsets of the data.  
+
 
 ## Putting it all together 
 
-The above is a brief exposition into how to customize each component of the Mapper process. All the methods can chained together with the `use_*` series of members, which all enact side-effects and return the instance invisibly. 
+The above is a brief exposition into how to customize each component of the Mapper process. To facilitate easier parameterization and composability, by convention all the methods denoted with the `use_*` enact side-effects and return the instance invisibly. This enables a reduction of the Mapper `pipeline` to a sequence of chained operations:
 ```{r}
-## Equivalent to all of the above 
 m <- MapperRef$new(noisy_circle)$
-  use_cover(filter_values = f_x, type = "fixed rectangular", 
-            number_intervals = 5L, percent_overlap = 20)$
+  use_filter(filter = f_x)$
+  use_cover(cover = "fixed interval", number_intervals = 5L, percent_overlap = 20)$
   use_distance_measure(measure = "euclidean")$
-  use_clustering_algorithm(cl = "single", num_bins = 10)$
-  compute_k_skeleton(k=1L)
+  use_clustering_algorithm(cl = "single")$
+  construct_k_skeleton(k=1L)
 ```
 
-If the Mapper is constantly being reparameterized, this interface is preferred over the more functional-style `mapper` call because of the efficiency that comes with mutability. For example, say you wanted to use a different metric for the partial clustering. To change the metric with the static approach, one might do something like the following:
+If the Mapper is constantly being reparameterized, this interface is preferred over the more concise `mapper` call because of the efficiency that comes with mutability. To illustrate this, consider the case where you want to use a different distance measure for the clustering algorithm. To change the metric with the 'static' approach, one might do something like the following:
 ```{r}
 all_params <- list(
   X = noisy_circle, filter_values = f_x, 
@@ -240,42 +259,59 @@ m_static1 <- do.call(mapper, append(all_params, list( measure = "euclidean")))
 m_static2 <- do.call(mapper, append(all_params, list( measure = "mahalanobis")))
 ```
 
-Both function calls require the entire mapper to be reconstructed, including the cover, the allocation for the simplex tree, all initializers, etc. With reference semantics, you can keep all the same settings and just change what is needed. For example, the following switches the metric to use without reconstructing the cover:
+Both function calls require the entire mapper to be reconstructed, including the cover, the allocation for the simplex tree, all initializers, etc. With reference semantics, you can keep all the same settings and just change what is needed. For example, the following switches the distance measure and exports `mapper` objects without reconstructing the cover:
 ```{r}
-m_dynamic <- sapply(c("euclidean", "mahalanobis"), function(metric){
-  m$use_distance_measure(metric)$
-    compute_k_skeleton(k=1L)$
-    exportMapper()
+m_dynamic <- lapply(c("euclidean", "mahalanobis"), function(measure){
+  m$use_distance_measure(measure)
+  m$compute_k_skeleton(k=1L)$exportMapper()
 })
 ```
 
-Due to the a natural dependency chain that comes with Mapper, the simplicial complex had to be recomputed in this case. What requires recomputing depends on how far up the dependency chain you go. For example, consider recomputing the 1-simplices with different intersection size thresholds.
+Note that, due to the a natural dependency chain that comes with Mapper, the pullback and nerve operations both needed to be recomputed, since the latter depends on the former, and the former (the pullback operation) depends on the distance measure. Determining what requires recomputation depends on how far up the dependency chain you go. For example, consider recomputing the 1-simplices with different intersection size thresholds.
 ```{r}
 invisible(lapply(1:10, function(e_weight){
-  m$compute_edges(min_weight = e_weight)$exportMapper()
+  m$construct_nerve(k = 1L, min_weight = e_weight)
 }))
 ```
-In this case, compared to the static method, we save on having to recompute the cover, the clustering, and the construction of the vertices.
+In this case, compared to the static method, we save on having to recompute the cover, the clustering, and the construction of the pullback.
 
 ## Visualizing the Mapper 
 
-The `grapher` package provides a [htmlwidget](https://www.htmlwidgets.org/) implementation of Ayasdi's Apache-licensed [grapher](https://github.com/ayasdi/grapher) library, which can be used to visualize the Mapper network, with options to support nice things like [D3 force](https://github.com/d3/d3-force). The `$as_grapher` function provides a few default coloring and sizing options.
-```{r, eval=FALSE, echo=TRUE}
-library("grapher")
-m$as_grapher()
+The `pixiplex` package provides a [htmlwidget](https://www.htmlwidgets.org/) implementation of a subset of the [pixi.js](https://www.pixijs.com/) geared for visualizing and interacting with simplicial complexes, which can be used to visualize the _mapper_ construction. An export option is available via the `$as_pixiplex` function, which provides a few default coloring and sizing options.
+```{r, eval=TRUE, echo=TRUE}
+library("pixiplex")
+plot(m$as_pixiplex())
 ```
 
-To customize the visualization, refer to graphers [documentation]().
+For more information, see the [package repository](https://github.com/peekxc/pixiplex).
 
-## Accessing other members  
+For a static rendering of the _mapper_, one can use either the `as_igraph` method or, for higher-order complexes, the default S3 plot method available in the simplextree package (e.g. `plot(m$simplicial_complex)`). Other options for visualization are an ongoing effort. If you have a particular visualization package you prefer, feel free to [submit a issue or PR on the github repository](https://github.com/peekxc/Mapper).
 
-The full help pages for are accessible via the `?MapperRef` page or the additional reference pages on the documentation website. 
 
-Below is a brief summary: 
-```{r}
-str(m$cover$filter_values)          ## filter values used to build the cover 
-str(m$cover$index_set)              ## index set of the cover 
-str(m$cover$level_sets)             ## level set point memberships
-str(args(m$clustering_algorithm))   ## function used to perform the partial clustering 
-```
+<!-- If the clustering function depends on internal components of the `MapperRef` class instance, the function will error when it is first called. Consider the exact same code as above, but this time parameterized by a field of the `MapperRef` instance. -->
 
+<!-- ```{r, eval = FALSE, echo = TRUE} -->
+<!-- m$measure <- "euclidean" -->
+<!-- custom_clustering_f <- function(){  -->
+<!--   ... -->
+<!--   dist_x <- parallelDist::parallelDist(X[idx,], method = self$measure) -->
+<!--   ... -->
+<!-- } -->
+<!-- ``` -->
+
+
+<!-- This will return an evaluation error upon executing, both from the user side and internally.  -->
+<!-- ```{r, eval = FALSE} -->
+<!-- m$clustering_algorithm(idx = 1:10) -->
+<!-- ## Error in pmatch(method, METHODS) : object 'self' not found  -->
+<!-- ``` -->
+
+<!-- The search path of the execution environment of the closure doesn't traverse the binding environment of either the _self_ or _private_ environments associated with the instance. If access to these environments is needed, pass the clustering function via the `cl` argument of the `use_clustering_algorithm` member.  -->
+
+<!-- ```{r} -->
+<!-- m$use_clustering_algorithm(cl = custom_clustering_f(), run_internal = TRUE) -->
+<!-- ``` -->
+
+<!-- This effectively allows the user to use any clustering algorithm they wish, even algorithms that depend on the internal parameters of the _mapper_ itself.  -->
+
+<!-- The only requirements of the function is that it accept as its arguments the index of the open set to peform the partial clustering and the indices of the points in the preimage of that open set, and return as its output a vector of integers indicating component membership. -->
