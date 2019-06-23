@@ -46,6 +46,7 @@ check_edges <- function(m){
   ## Checks that connected vertices have a non-empty intersection, and unconnected vertices are disjoint
   connected_edges <- m$simplicial_complex$as_edge_list()
   all_edges <- apply(t(combn(length(m$vertices), 2)), 2, function(idx) as.integer(names(m$vertices)[idx]))
+  all_edges <- t(apply(all_edges, 1, sort))
   conn_idx <- rowmatch(connected_edges, all_edges)
   
   ## Ensures edges recorded as connected have a non-empty intersection

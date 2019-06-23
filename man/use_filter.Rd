@@ -26,11 +26,11 @@ coordinate values, or one of the following predefined filters:
   \item{\strong{UMAP}}{ Uniform Manifold Approximation and Projection (with \code{\link[umap::umap]{umap}})}
 }
 Nearly all the pre-configured filters essentially call functions in other packages with
-somewhat reasonable default parameters to perform the mapping. If the package needed to compute the filter 
-is not installed, a prompt is given asking the user whether they would like to install it. Any 
-parameters supplied to \code{...} are passed to the corresponding filter function, and always 
-override pre-configured default parameters. \cr
+somewhat reasonable default parameters to perform the mapping. Any parameters supplied to \code{...} 
+are passed to the corresponding package function linked above, which override any default parameters. 
+If the package needed to compute the filter is not installed, a prompt is given asking the user 
+whether they would like to install it. \cr
 \cr
-\strong{NOTE:} The predefined filters are meant to be used for illustrative purposes only---this function 
+\strong{NOTE:} The predefined filters are meant to be used for exploratory or illustrative purposes only---this function 
 is \emph{not} meant to act as a comprensive interface to the functions each filter corresponds too.
 }

@@ -11,7 +11,7 @@
 \item{min_weight}{minimum intersection size to consider as a simplex. Defaults to 1.}
 }
 \description{
-Computes (or updates) the k-simplices composing the Mapper, where k >= 1.
+Computes (or updates) the k-simplices composing the Mapper, where k >= 0.
 }
 \details{
 Compared to \code{construct_k_skeleton}, this method \emph{only} intersections 

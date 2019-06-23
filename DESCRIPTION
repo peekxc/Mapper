@@ -7,17 +7,18 @@ Authors@R: c(person("Matt", "Piekenbrock", email = "matt.piekenbrock@gmail.com",
 Author: Matt Piekenbrock [aut, cre, ctb]
 Maintainer: Matt Piekenbrock <matt.piekenbrock@gmail.com>
 Description: An efficient implementation of the Mapper algorithm, and other related algorithms and tools used in Topological Data Analysis. 
-Imports: R6, Rcpp, stats, methods, simplextree, RcppProgress
+Imports: R6, Rcpp, stats, methods, simplextree
 LinkingTo: Rcpp, RcppProgress, simplextree
-License: file LICENSE
+License: MIT + file LICENSE
 BugReports: https://github.com/peekxc/mapper
 Remotes: peekxc/simplextree, peekxc/pixiplex
-Suggests: 
+Suggests:
     igraph,
     htmlwidgets, shiny, DT,
     proxy, parallelDist, fastcluster, RANN,
     testthat, knitr, rmarkdown, 
-    pixiplex
+    pixiplex, 
+    modules
 Copyright: The Mapper method was originally developed by Gurjeet Singh, Facundo Mémoli, and Gunnar Carlsson. The software is Copyright by Matt Piekenbrock.
 Encoding: UTF-8
 LazyData: true

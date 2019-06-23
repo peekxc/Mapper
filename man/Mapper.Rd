@@ -5,14 +5,12 @@
 \alias{mapper}
 \title{mapper}
 \usage{
-mapper(X, filter_values, cover_params = c(typename = "fixed interval",
+mapper(X, filter_values, cover_params = c(cover = "fixed interval",
   number_intervals = 10L, percent_overlap = 35), measure = "euclidean",
   cluster_params = c(cl = "single"), return_reference = FALSE)
 }
 \arguments{
 \item{X}{Either an \eqn{n x D} data matrix.}
-
-\item{filter_values}{An \eqn{n x d} data matrix.}
 
 \item{cover_params}{Named list of cover parameters. See details.}
 
@@ -21,6 +19,8 @@ mapper(X, filter_values, cover_params = c(typename = "fixed interval",
 \item{cluster_params}{Named list of clustering parameters. See details.}
 
 \item{return_reference}{Boolean whether or not to return the reference class used to construct Mapper. See \link[Mapper]{MapperRef}.}
+
+\item{filter}{An \eqn{n x d} data matrix, or a function.}
 }
 \value{
 By default, returns a \code{mapper} object, which is a named list with members \code{adjacency} (adjacency matrix for the edges),
@@ -37,11 +37,11 @@ and produces a topological summary of the data expressed through a cover equippe
 \details{
 \code{mapper} is a generic function that concisely parameterizes the Mapper framework into a single function definition.
 This function serves as a convenience wrapper around the \link[Mapper]{MapperRef} R6 generator for users used to functional programming. 
-For finer control over the mapper construction, use \link[Mapper]{MapperRef} instead. If \code{return_reference} is TRUE, the 
+For finer control over the mapper construction, it's recommended to use \link[Mapper]{MapperRef} instead. If \code{return_reference} is TRUE, the 
 \link[Mapper]{MapperRef} instance used by this function is returned. 
 
 The \code{cover_params} must be a named list of all of the parameters needed by the cover. 
-It must have a \code{typename} member matching one of the typenames listed in \link[Mapper]{covers_available}, along with all of the 
+It must have a \code{cover} type matching one of the typenames listed in \link[Mapper]{covers_available}, along with all of the 
 corresponding parameters for that cover type.   
 
 The \code{cluster_params} must be a named list containing members \code{cl} (string) and \code{num_bins} (integer), where 
@@ -54,7 +54,7 @@ left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
 f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
 
 m <- mapper(X = noisy_circle, filter_values = f_x, 
-            cover_params = list(typename="fixed interval", number_intervals=10L, percent_overlap=50),
+            cover_params = list(cover="fixed interval", number_intervals=10L, percent_overlap=50),
             measure = "euclidean", 
             cluster_params = list(cl="single", threshold = 0.0))
 }

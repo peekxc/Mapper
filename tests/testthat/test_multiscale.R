@@ -1,6 +1,6 @@
 library("Mapper")
 library("testthat")
-testthat::context("Testing mapper")
+# testthat::context("Testing mapper")
 # skip_on_cran()
 
 # 

@@ -66,4 +66,23 @@ test_that("Mapper is valid", {
   expect_true(check_edges(m))
 })
 
+## Check wrapper works 
+test_that("Mapper wrapper matches MapperRef object", {
+  left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
+  f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
+  m1 <- mapper(X = noisy_circle, filter_values = f_x,
+              cover_params = list(cover="fixed interval", number_intervals=5L, percent_overlap=50),
+              measure = "euclidean",
+              cluster_params = list(cl="single", threshold = 0.0), return_reference = TRUE)
+  m2 <- MapperRef$new(X = noisy_circle)$
+    use_filter(f_x)$
+    use_cover(cover="fixed interval", number_intervals=5L, percent_overlap=50)$
+    use_distance_measure("euclidean")$
+    use_clustering_algorithm(cl="single", cutoff_method = "continuous", threshold = 0.0)$
+    construct_k_skeleton(k = 1L)
+  testthat::expect_equal(m1, m2)
+})
+
+
+
 

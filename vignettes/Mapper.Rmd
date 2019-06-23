@@ -10,13 +10,6 @@ vignette: >
 
 This document contains a quick overview of how to use the interface in the _Mapper_ package to fully customize the _mapper_ construction. The focus on this document is on package functionality and usage, as opposed the theory the _Mapper_ framework was founded on, and as such discusses _Mapper_ from a strictly algorithmic / computational perspective. 
 
-```{r}
-m <- MapperRef$new(X = noisy_circle)$
-  use_filter(filter= f_x)$
-  use_cover(cover = "fixed interval", number_intervals = 5, percent_overlap = 20)
-```
-
-
 # Quickstart 
 
 ```{r setup, echo=FALSE}
@@ -43,16 +36,16 @@ library("Mapper")
 left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
 f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
 m <- mapper(X = noisy_circle, filter_values = f_x, 
-            cover_params = list(typename="fixed interval", number_intervals=10L, percent_overlap=50),
+            cover_params = list(typename="fixed interval", number_intervals=5L, percent_overlap=50),
             measure = "euclidean", 
-            cluster_params = list(cl="single", threshold = 0.0))
+            cluster_params = list(cl="single"))
 print(m)
 ```
 By default, the core information of the $1$-skeleton of the `Mapper` construction is returned, including:
   
   1. The vertices, and the points (by index) comprising their corresponding connected components.
   
-  2. An adjacency representation of the mapper 
+  2. Some adjacency representation of the mapper graph
   
   3. A map between the index set of the cover and the vertices
 
@@ -119,23 +112,24 @@ If you supply a single value when the filter dimensionality $> 1$, the argument 
 print(cover)
 ```
 
-Once parameterized, the cover may be explicitly constructed via the `construct_cover` member, before sending to Mapper. The `construct_cover` function uses the given set of parameters to populate the intersection between the open sets in the cover and the given filter data.
+Once parameterized, the cover may be explicitly constructed via the `construct_cover` member, before passing back to the `MapperRef` instance. The `construct_cover` function uses the given set of parameters to populate the intersection between the open sets in the cover and the given filter data.
 
 ```{r}
 cover$construct_cover(filter = m$filter) ## Now the level sets are populated
 summary(cover$level_sets)
 ```
+`Mapper` accepts any cover that derives from the abstract `CoverRef` R6 class. Any such derived cover instance can be assigned to the `$cover` member.
 ```{r}
 m$cover <- cover
 ```
 
-`Mapper` accepts any cover that derives from the abstract `CoverRef` R6 class. To see a list of the `covers_available` method. 
+A few covering methods often used in practice are available. To see a list, use the `covers_available` method. 
 ```{r}
 ## Print the typename/identifer, the R6 generator, and the parameter names
-Mapper::covers_available()
+covers_available()
 ```
 
-If you want to use a cover outside of the ones offers by the package, feel free to derive a new type cover class (and submitting a pull request!).
+If you want to use a cover outside of the ones offers by the package, feel free to derive a new type cover class (and submitting a pull request!). There's also a [small tutorial](https://peekxc.github.io/Mapper/articles/UsingCustomCover.html) on how one might go about making their own. 
 
 ## Decomposing the preimages
 
@@ -182,77 +176,96 @@ m$use_distance_measure(measure = "euclidean")
 ```
 For a complete list of the distance/similarity measures supported, see `?proxy::pr_DB`.
 
-Notice the clustering function in this example was created as a [closure](https://en.wikipedia.org/wiki/Closure_(computer_programming)). Since closures [capture their enclosing environments](http://adv-r.had.co.nz/Functional-programming.html#functional-programming), they can be quite useful for e.g. storing auxiliary parameters option needed by the algorithm, checking for package dependencies (like above), caching precomputed information to for improved efficiency, etc. However, for the same reason, they are a common cause of a form of [memory leaking](http://adv-r.had.co.nz/memory.html#gc), so they should generally be used with caution.
+Notice the clustering function in this example was created as a [closure](https://en.wikipedia.org/wiki/Closure_(computer_programming)). Since closures [capture their enclosing environments](http://adv-r.had.co.nz/Functional-programming.html#functional-programming), they can be quite useful for e.g. storing auxiliary parameters, validating package dependencies (e.g. as above), caching information for improved efficiency, etc. 
+However, for the same reason, they are a common cause of a form of [memory leaking](http://adv-r.had.co.nz/memory.html#gc) if used carelessly, so they should be used with mindfully.
 
 #### Performing the decomposition
 
-Once the clustering algorithm has been picked, the pullback can be constructed.
+Once the clustering algorithm has been picked the pullback, also called the _inverse image_, can be constructed.
 ```{r}
 m$construct_pullback()
 ```
 
-This populates the vertices the _mapper_ construct and records a mapping between the index set of the cover and the corresponding vertices decomposed by the corresponding open set. 
+In the `Mapper` package, `$construct_pullback` applies the clustering algorithm to the preimages of given cover, populating the vertices the _mapper_ construct. A mapping between the index set and the vertex labels is also recorded. 
 
 ```{r}
-str(m$vertices)
+print(sapply(m$vertices, length))
 str(m$pullback)
 ```
 
-
 ## Constructing the k-skeleton 
 
-The final step to create a Mapper is to construct a geometric realization of nerve of the pullback: a simplicial complex. Internally, the simplicial complex is stored in a [Simplex Tree](https://hal.inria.fr/hal-00707901v1/document). The underlying simplex tree is exported as an [Rcpp Module](https://cran.r-project.org/web/packages/Rcpp/vignettes/Rcpp-modules.pdf), and is accessible via the `$simplicial_complex` member. 
+The final step to create a Mapper is to construct the geometric realization of the pullback cover: a simplicial complex. Internally, the simplicial complex _Mapper_ computes is stored in a [Simplex Tree](https://hal.inria.fr/hal-00707901v1/document). The underlying simplex tree is exported as an [Rcpp Module](https://cran.r-project.org/web/packages/Rcpp/vignettes/Rcpp-modules.pdf), and is accessible via the `$simplicial_complex` member. 
 ```{r}
 m$simplicial_complex
 ```
 
 The simplex tree is a type of trie specialized specifically for storing and running general algorithms on simplicial complexes. For more details on the simplex tree, see use `?simplextree`, or see the [package repository](https://github.com/peekxc/simplextree/), and references therein. 
 
-Often, instead of constructing the full-dimensional complex (where the dimension is governed by the maximum number of non-empty intersections in the cover), it's common to restrict the _mapper_ to the _k_-skeleton of the nerve instead. 
+The construction of the simplicial complex is achieved by creating a $k$-simplex for each non-empty $(k + 1)$-fold intersection. Often, instead of constructing the full-dimensional complex (where the dimension is governed by the maximum number of non-empty intersections in the cover), it's common to restrict the _mapper_ to the _k_-skeleton of the nerve instead. 
 
-For example, if ones wishes to reduce the _mapper_ to a graph, the $1$-skeleton may be computed as follows.
-```{r}
-m$construct_k_skeleton(k = 1L)
-m$simplicial_complex
-```
-
-Generally, this is sufficient. However, if necessary, the $k$-skeleton for any $k > 1$ can also be computed. 
-```{r}
-m$construct_k_skeleton(k = 2L)
-m$simplicial_complex
-```
-
-Note that `construct_k_skeleton` clears out the simplicial complex, the decomposed preimages, etc. and iteratively builds the nerve (up to the specified dimension) each time it's called. Alternatively, each dimension of the nerve can also be computed separately, so long as the previous dimension has been already been computed, i.e. 
+With the `Mapper` package, each dimension can be specified (and parameterized) independently, i.e. 
 
 ```{r}
-m$simplicial_complex$clear()
 m$construct_nerve(k = 0L)
 m$construct_nerve(k = 1L)
 # ... 
+m$simplicial_complex
 ```
 
-Using the `construct_nerve` method is only necessary if one wants to obtain finer control over the specific intersection checks. Just the the `construct_pullback` method, it optionally accepts a subset of indices which can be used to restrict the intersection computation to specific subsets of the data.  
+The reason for this design is that, for some practical applications, there may be dimension-dependent operations one may want to isolate. For example, if instead of modifying the complex directly, you want to just get the $k$-simplices that *would* be added to complex, i.e. had a non-empty intersection, you can specify `modify=FALSE`
 
+```{r}
+m$construct_nerve(k = 1L, modify = FALSE)
+```
+
+Just the the `$construct_pullback` method, `$construct_nerve` optionally accepts a subset of indices which can be used to restrict the intersection computation to specific subsets of the data. For example, the following only considers non-empty intersections between vertices whose connected components intersected the sets indexed by "(1)" and "(2)"
+
+```{r}
+## This checks the pairs given by: expand.grid(v1=m$pullback$`(1)`, v2=m$pullback$`(2)`)
+m$construct_nerve(k = 1L, indices = matrix(c("(1)", "(2)"), nrow = 1))
+```
+
+The `$construct_nerve` method allows one to obtain finer control over how exactly each dimension of the simplicial complex is constructed. If one just wants to construct $k$-simplices for all non-empty intersections up to some dimension of $k$, e.g. to reduce the _mapper_ to its graph representation, the $1$-skeleton may be computed as follows.
+```{r}
+m$construct_k_skeleton(k = 1L) ## equivalent 
+m$simplicial_complex
+```
+
+Each call to `construct_k_skeleton` is an idempotent operation: it can safely be called redundantly, and should always return the same result (assuming the clustering algorithm is deterministic). What this implies is that each call to `construct_k_skeleton` clears out the simplicial complex, decomposes the pullback into vertices, and then iteratively builds nerve up to the specified dimension. 
 
 ## Putting it all together 
 
-The above is a brief exposition into how to customize each component of the Mapper process. To facilitate easier parameterization and composability, by convention all the methods denoted with the `use_*` enact side-effects and return the instance invisibly. This enables a reduction of the Mapper `pipeline` to a sequence of chained operations:
+The above is a brief exposition into the various components of the `MapperRef` object. Generally speaking, obtaining an accurate representation of data may require careful parameterizing any or all of the components of the _Mapper_ pipeline. This package attempts to enable a modest level of configurability one might need to obtain that representation.
+
+To streamline this process, the `Mapper` packages relies on [method chaining](https://adv-r.hadley.nz/r6.html#method-chaining) to allow composability. That is, by convention, all the methods denoted with the `use_*` enact side-effects on the `MapperRef` object and return the instance invisibly. This enables a reduction of the Mapper `pipeline` to a sequence of chained operations:
 ```{r}
 m <- MapperRef$new(noisy_circle)$
   use_filter(filter = f_x)$
   use_cover(cover = "fixed interval", number_intervals = 5L, percent_overlap = 20)$
   use_distance_measure(measure = "euclidean")$
   use_clustering_algorithm(cl = "single")$
-  construct_k_skeleton(k=1L)
+  construct_pullback()$
+  construct_nerve(k = 0L)$
+  construct_nerve(k = 1L)
+```
+
+Practical defaults and wrappers are available to simplify this even further, e.g. the default distance measure is euclidean, the default clustering algorithm is single-linkage w/ a sensible cutting heuristic, etc. The above can also be constructed with:
+
+```{r}
+m <- MapperRef$new(noisy_circle)$
+  use_filter(filter = f_x)$
+  use_cover(number_intervals = 5L, percent_overlap = 20)$
+  construct_k_skeleton(k = 1L)
 ```
 
 If the Mapper is constantly being reparameterized, this interface is preferred over the more concise `mapper` call because of the efficiency that comes with mutability. To illustrate this, consider the case where you want to use a different distance measure for the clustering algorithm. To change the metric with the 'static' approach, one might do something like the following:
 ```{r}
 all_params <- list(
-  X = noisy_circle, filter_values = f_x, 
-  cover_params = list(typename="restrained rectangular", 
-                      number_intervals=10L, percent_overlap=50), 
-  cluster_params = list(cl="single", num_bins=10L)
+  X = noisy_circle, 
+  filter_values = f_x, 
+  cover_params = list(typename="fixed interval", number_intervals=10L, percent_overlap=50), 
+  cluster_params = list(cl="single", cutoff_method="histogram", num_bins=10L)
 )
 
 m_static1 <- do.call(mapper, append(all_params, list( measure = "euclidean")))
@@ -262,8 +275,9 @@ m_static2 <- do.call(mapper, append(all_params, list( measure = "mahalanobis")))
 Both function calls require the entire mapper to be reconstructed, including the cover, the allocation for the simplex tree, all initializers, etc. With reference semantics, you can keep all the same settings and just change what is needed. For example, the following switches the distance measure and exports `mapper` objects without reconstructing the cover:
 ```{r}
 m_dynamic <- lapply(c("euclidean", "mahalanobis"), function(measure){
-  m$use_distance_measure(measure)
-  m$compute_k_skeleton(k=1L)$exportMapper()
+  m$use_distance_measure(measure)$
+    construct_k_skeleton(k=1L)$
+    exportMapper()
 })
 ```
 
@@ -271,6 +285,7 @@ Note that, due to the a natural dependency chain that comes with Mapper, the pul
 ```{r}
 invisible(lapply(1:10, function(e_weight){
   m$construct_nerve(k = 1L, min_weight = e_weight)
+  # ... $exportMapper()
 }))
 ```
 In this case, compared to the static method, we save on having to recompute the cover, the clustering, and the construction of the pullback.
@@ -278,6 +293,13 @@ In this case, compared to the static method, we save on having to recompute the 
 ## Visualizing the Mapper 
 
 The `pixiplex` package provides a [htmlwidget](https://www.htmlwidgets.org/) implementation of a subset of the [pixi.js](https://www.pixijs.com/) geared for visualizing and interacting with simplicial complexes, which can be used to visualize the _mapper_ construction. An export option is available via the `$as_pixiplex` function, which provides a few default coloring and sizing options.
+```{r, eval=TRUE, echo=FALSE}
+m <- MapperRef$new(noisy_circle)$
+  use_filter(filter = f_x)$
+  use_cover(number_intervals = 5L, percent_overlap = 20)$
+  construct_k_skeleton(k = 1L)
+```
+
 ```{r, eval=TRUE, echo=TRUE}
 library("pixiplex")
 plot(m$as_pixiplex())

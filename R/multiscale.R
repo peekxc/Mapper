@@ -15,6 +15,8 @@
 #' The \code{time} parameter may be specified as "integer", "measure", or (average) "overlap". 
 #' Due to the restrictions on the cover this method assumes, these are all monotonically related to each other, 
 #' however they may produce visually different persistence diagrams. 
+#' @importFrom stats dist hclust median
+#' @importFrom utils head modifyList relist setTxtProgressBar tail txtProgressBar
 multiscale <- function(m, max_dim=1L, max_overlap = 50, time = c("integer", "measure", "overlap"), f = NULL, stats = FALSE){
   stopifnot(m$cover$typename == "Fixed Interval")## TODO: add maximum diameter condition
   stopifnot(!is.null(m$filter))

@@ -106,8 +106,8 @@ wrap_nloptr_solution <- function(res, idx, return_opt){
     gh = res$value,
     mu = res$par, 
     correspondences = list(
-      xy = apply(relist(res$par, idx), 1, which.max),
-      yx = apply(relist(res$par, idx), 2, which.max)
+      xy = apply(utils::relist(res$par, idx), 1, which.max),
+      yx = apply(utils::relist(res$par, idx), 2, which.max)
     )
   )
   if (return_opt){ tmp$optim_status <- res[c("global_solver", "local_solver", "convergence", "message")] }
@@ -119,8 +119,8 @@ wrap_roi_solution <- function(res, idx, return_opt){
     gh = res$objval, 
     mu = res$solution,
     correspondences = list(
-      xy = apply(relist(res$solution, idx), 1, which.max),
-      yx = apply(relist(res$solution, idx), 2, which.max)
+      xy = apply(utils::relist(res$solution, idx), 1, which.max),
+      yx = apply(utils::relist(res$solution, idx), 2, which.max)
     )
   )
   if (return_opt){ tmp$optim_status <- res[c("status", "message")] }

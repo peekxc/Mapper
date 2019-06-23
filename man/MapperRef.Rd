@@ -4,16 +4,16 @@
 \encoding{UTF-8}
 \name{MapperRef}
 \alias{MapperRef}
-\title{Mapper Reference Class (R6) implementation}
+\title{Mapper Reference Class (R6)}
 \format{An \code{\link{R6Class}} generator object}
 \usage{
-MapperRef
+MapperRef$new(X)
 }
 \value{
 Instance object of the \code{\link{MapperRef}} class with methods for building the mapper.
 }
 \description{
-R6 utility class that enables computing mappers efficiently.
+R6 class built for parameterizing and computing mappers efficiently.
 }
 \section{Fields}{
 
@@ -24,7 +24,7 @@ R6 utility class that enables computing mappers efficiently.
 
 \item{\code{clustering_algorithm}}{The clustering algorithm to use in the pullback.}
 
-\item{\code{measure}}{String value of the distance measure to use to compute distances in ambient space. Read-only. See \code{use_distance_measure} for more details.}
+\item{\code{measure}}{Distance measure to use to compute distances in ambient space. See \code{use_distance_measure} for more details.}
 
 \item{\code{pullback}}{Mapping between the sets in the cover (by index) and the vertices (by id).}
 
@@ -35,11 +35,24 @@ R6 utility class that enables computing mappers efficiently.
 
 \section{Methods}{
 
-\describe{
-  \item{Documentation}{Full documentation available \href{https://peekxc.github.io/Mapper}{online}.}
-  \item{\code{new(X)}}{This method uses \code{parameter_1} to ...}
-  \item{\code{new(X)}}{This method uses \code{parameter_1} to ...}
+\itemize{
+  \item{\code{new(X)}: Creates a new \code{MapperRef} instance object. \code{X} must be a data matrix, or a function returning one.}
+  \item{\code{\link{use_filter}}: Specifies the filter.}
+  \item{\code{\link{use_distance_measure}}: Specifies the distance measure.}
+  \item{\code{\link{use_cover}}: Specifies the cover. Must be a \code{\link{CoverRef}} object.}
+  \item{\code{\link{use_clustering_algorithm}}: Specifies the algorithm to decompose the pullback.}
+  \item{\code{\link{construct_pullback}}: Decomposes the preimages into connected components.}
+  \item{\code{\link{construct_nerve}}: Constructs simplices at a given dimension.}
+  \item{\code{\link{construct_k_skeleton}}: Constructs the simplicial complex up to a given dimension.}
+  \item{\code{\link{as_igraph}}: Converts the 1-skeleton to an \code{\link[igraph:igraph]{igraph object}}.}
+  \item{\code{\link{as_pixiplex}}: Converts the simplicial complex to a \code{\link[pixiplex:pixiplex]{pixiplex object}}.}
+  \item{\code{\link{exportMapper}}: Exports the core information of the mapper construction.}
 }
+}
+
+\section{More information}{
+
+Full documentation available \href{https://peekxc.github.io/Mapper}{online}.
 }
 
 \references{
@@ -48,4 +61,4 @@ Gurjeet Singh, Facundo Mémoli, and Gunnar Carlsson. "Topological methods for th
 \author{
 Matt Piekenbrock, \email{matt.piekenbrock@gmail.com}
 }
-\keyword{keyword}
+\keyword{datasets}

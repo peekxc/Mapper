@@ -1,24 +1,34 @@
-#' Mapper Reference Class (R6) implementation
+#' Mapper Reference Class (R6)
 #' @docType class
-#' @description R6 utility class that enables computing mappers efficiently.
+#' @description R6 class built for parameterizing and computing mappers efficiently.
+#' @usage MapperRef$new(X)
 #' @format An \code{\link{R6Class}} generator object
-#' @keywords keyword
 #' @return Instance object of the \code{\link{MapperRef}} class with methods for building the mapper.
 #' 
 #' @field X The data matrix.
 #' @field cover The cover. 
 #' @field clustering_algorithm The clustering algorithm to use in the pullback. 
-#' @field measure String value of the distance measure to use to compute distances in ambient space. Read-only. See \code{use_distance_measure} for more details.  
+#' @field measure Distance measure to use to compute distances in ambient space. See \code{use_distance_measure} for more details.  
 #' @field pullback Mapping between the sets in the cover (by index) and the vertices (by id).  
 #' @field vertices The mapper vertices. 
 #' @field simplicial_complex A \code{\link[simplextree:simplextree]{simplex tree}} object.
 #' 
 #' @section Methods:
-#' \describe{
-#'   \item{Documentation}{Full documentation available \href{https://peekxc.github.io/Mapper}{online}.}
-#'   \item{\code{new(X)}}{This method uses \code{parameter_1} to ...}
-#'   \item{\code{new(X)}}{This method uses \code{parameter_1} to ...}
+#' \itemize{
+#'   \item{\code{new(X)}: Creates a new \code{MapperRef} instance object. \code{X} must be a data matrix, or a function returning one.}
+#'   \item{\code{\link{use_filter}}: Specifies the filter.}
+#'   \item{\code{\link{use_distance_measure}}: Specifies the distance measure.}
+#'   \item{\code{\link{use_cover}}: Specifies the cover. Must be a \code{\link{CoverRef}} object.}
+#'   \item{\code{\link{use_clustering_algorithm}}: Specifies the algorithm to decompose the pullback.}
+#'   \item{\code{\link{construct_pullback}}: Decomposes the preimages into connected components.}
+#'   \item{\code{\link{construct_nerve}}: Constructs simplices at a given dimension.}
+#'   \item{\code{\link{construct_k_skeleton}}: Constructs the simplicial complex up to a given dimension.}
+#'   \item{\code{\link{as_igraph}}: Converts the 1-skeleton to an \code{\link[igraph:igraph]{igraph object}}.}
+#'   \item{\code{\link{as_pixiplex}}: Converts the simplicial complex to a \code{\link[pixiplex:pixiplex]{pixiplex object}}.}
+#'   \item{\code{\link{exportMapper}}: Exports the core information of the mapper construction.}
 #' }
+#' @section More information:
+#' Full documentation available \href{https://peekxc.github.io/Mapper}{online}.
 #' 
 #' @import methods
 #' @importFrom Rcpp sourceCpp
@@ -221,13 +231,13 @@ MapperRef$set("public", "initialize", function(X){
 #'   \item{\strong{UMAP}}{ Uniform Manifold Approximation and Projection (with \code{\link[umap::umap]{umap}})}
 #' }
 #' Nearly all the pre-configured filters essentially call functions in other packages with
-#' somewhat reasonable default parameters to perform the mapping. If the package needed to compute the filter 
-#' is not installed, a prompt is given asking the user whether they would like to install it. Any 
-#' parameters supplied to \code{...} are passed to the corresponding filter function, and always 
-#' override pre-configured default parameters. \cr
+#' somewhat reasonable default parameters to perform the mapping. Any parameters supplied to \code{...} 
+#' are passed to the corresponding package function linked above, which override any default parameters. 
+#' If the package needed to compute the filter is not installed, a prompt is given asking the user 
+#' whether they would like to install it. \cr
 #' \cr
-#' \strong{NOTE:} The predefined filters are meant to be used for illustrative purposes only---this function 
-#' is \emph{not} meant to act as a comprensive interface to the functions each filter corresponds too.  
+#' \strong{NOTE:} The predefined filters are meant to be used for exploratory or illustrative purposes only---this function 
+#' is \emph{not} meant to act as a comprensive interface to the functions each filter corresponds too.
 MapperRef$set("public", "use_filter", function(filter=c("PC", "IC", "ECC", "KDE", "DTM", "MDS", "ISOMAP", "LE", "UMAP"), ...){
   if (is.function(filter)){ private$.filter <- filter } 
   else if (is.matrix(filter)){
@@ -359,7 +369,7 @@ MapperRef$set("public", "use_cover", function(cover="fixed interval", ...){
   self$cover <- switch(cover, 
     "fixed interval"=FixedIntervalCover$new(...)$construct_cover(self$filter), 
     "restrained interval"=RestrainedIntervalCover$new(...)$construct_cover(self$filter),
-    "adaptive"=AdaptiveCover$new(...)$construct_cover(self$filter),
+    # "adaptive"=AdaptiveCover$new(...)$construct_cover(self$filter),
     "ball"=BallCover$new(...)$construct_cover(self$filter),
     stop(sprintf("Unknown cover type: %s, please specify a cover typename listed in `covers_available()`", cover))
   )
@@ -431,8 +441,16 @@ MapperRef$set("public", "use_clustering_algorithm",
       # environment(self$clustering_algorithm) <- environment(self$initialize)
     } else if (is.function(cl)){
       ## Run given functions under the instance environment
-      parent.env(environment(cl)) <- environment(self$initialize)
-      self$clustering_algorithm <- cl
+      # parent.env(environment(cl)) <- environment(self$initialize)
+      # if (environmentName(environment(cl)) == "R_GlobalEnv"){
+      ## Unencloses the passed function parameters; based on pryr's 'unenclose' method 
+      env <- environment(cl)
+      sub <- function(x, env){
+        call <- substitute(substitute(x, env), list(x = x))
+        eval(call)
+      }
+      cl_sub <- self$clustering_algorithm <- eval(call("function", as.pairlist(formals(cl)), sub(body(cl), env)), parent.env(env))
+      self$add_function("clustering_algorithm", cl_sub)
     } else { stop("Invalid parameter type 'cl'") }
     invisible(self)
   }
@@ -440,15 +458,18 @@ MapperRef$set("public", "use_clustering_algorithm",
 
 ## construct_pullback ----
 #' @name construct_pullback 
-#' @title Computes the vertices of the mapper at a given index. 
-#' @description Executes the clustering algorithm for sets indexed by \code{pullback_ids}. 
-#' @details If ids are not supplied, the pullback is computed for all the sets in the cover.
-#' parameters passed via the '...' are passed to the clustering algorithm. \cr
+#' @title Constructs the (decomposed) pullback cover. 
+#' @description Executes the clustering algorithm on subsets of \code{X}, 
+#' @param pullback_ids indices of the \code{\link[Mapper:CoverRef]{covers}} \code{index_set}, or \code{NULL}.
+#' @param ... additional parameters to pass to the \code{clustering_algorithm}.
+#' @details This methods uses the function given by \code{clustering_algorithm} field to 
+#' decompose the preimages returned by the \code{cover} member into connected components, which are 
+#' stored as \code{vertices}. Indices may be passed to limit which sets are decomposed, otherwise 
+#' the sets in the cover all considered.
 #' \cr
-#' Note that this method removes the vertices associated with \code{pullback_ids} from the simplicial 
-#' complex, which subsequently also removes any of their cofaces. \cr
-#' \cr
-#' New vertices computed with \code{clustering_algorithm} have their ids generated by \code{generate_ids}.
+#' Note that this method removes the \code{vertices} associated with \code{pullback_ids}, but does not 
+#' modify the simplicial complex. 
+#' @seealso \code{\link{construct_k_skeleton}} \code{\link{construct_nerve}} \code{\link{use_clustering_algorithm}}
 MapperRef$set("public", "construct_pullback", function(pullback_ids=NULL, ...){
   stopifnot(!is.na(self$cover$level_sets))
   stopifnot(is.function(private$.clustering_algorithm))
@@ -477,7 +498,7 @@ MapperRef$set("public", "construct_pullback", function(pullback_ids=NULL, ...){
   # id_gen <- function(n){
   #   ## make cpp function smallest_not_in
   #   private$.vertices
-  #   as.integer(names(m$vertices))
+  #   as.integer(names(self$vertices))
   #   private$.simplicial_complex
   #   ids <- private$.simplicial_complex$generate_ids(n)
   #   private$.simplicial_complex$insert(as.list(ids))
@@ -522,8 +543,8 @@ MapperRef$set("public", "construct_nerve", function(k, indices = NULL, min_weigh
   stree_ptr <- private$.simplicial_complex$as_XPtr()
   params <- list(pullback_ids = indices, vertices = self$vertices, pullback = private$.pullback, stree = stree_ptr, modify = modify)
   if (k == 0){ 
-    if (!params$modify){ return(as.integer(names(m$vertices))) } 
-    build_0_skeleton(as.integer(names(m$vertices)), stree_ptr)
+    if (!params$modify){ return(as.integer(names(self$vertices))) } 
+    build_0_skeleton(as.integer(names(self$vertices)), stree_ptr)
     return(invisible(self))
   }
   else if (k == 1){ 
@@ -540,23 +561,21 @@ MapperRef$set("public", "construct_nerve", function(k, indices = NULL, min_weigh
   }  
 })
 
-## compute_k_skeleton ----
-#' @name compute_k_skeleton 
-#' @title Compute the K-skeleton 
+## construct_k_skeleton ----
+#' @name construct_k_skeleton 
+#' @title Constructs the k-skeleton
+#' @param k the maximal dimension to consider.
 #' @description Computes the k-skeleton of the mapper by computing the nerve of the 
-#' the pullback cover induced by the cover set by the \code{cover} member. \cr
+#' the pullback cover induced by the \code{cover} member. \cr
 #' \cr
 #' This function computes the k-skeleton inductively, e.g. by first computing the vertices, 
-#' then the edges, etc. Computing higher dimensions is supported, however may be significantly 
-#' slower than computing the 1-skeleton. 
+#' then the edges, etc. A check is performed to ensure the pullback has been decomposed, and 
+#' if not, then \code{\link{construct_pullback}} is called.
 #' @details For the details on how this is computed, see Singh et. al, section 3.2. 
-MapperRef$set("public", "construct_k_skeleton", function(k=1L, ...){
+MapperRef$set("public", "construct_k_skeleton", function(k=1L){
   stopifnot(k >= 0)
-  self$simplicial_complex$clear()
-  if (k >= 0L){ self$construct_pullback(...) }
-  if (k >= 1L){
-    for (k_i in seq(1L, k)){ self$construct_nerve(k = k_i) }
-  }
+  if (length(private$.vertices) == 0) { self$construct_pullback() }
+  for (k_i in seq(0L, k)){ self$construct_nerve(k = k_i) }
   invisible(self)
 })
 
@@ -693,23 +712,26 @@ MapperRef$set("public", "as_pixiplex", function(...){
     if (all(x == x[1])){ return(rep(1, length(x))) }
     else {  (x - min(x))/(max(x) - min(x)) }
   }
-  pp$nodes$color <- vertex_colors
-  pp$nodes$radius <- (15L - 5L)*normalize(vertex_sizes) + 5L
+  idx_match <- match(pp$nodes$id, as.integer(names(private$.vertices)))
+  pp$nodes$color <- vertex_colors[idx_match]
+  pp$nodes$radius <- ((15L - 5L)*normalize(vertex_sizes) + 5L)[idx_match]
   return(pp)
 })
 
 ## exportMapper ----
 #' @name exportMapper
-#' @title Exports mapper information 
+#' @title Exports minimal information about the Mapper
+#' @description This function exports a few core characteristics about the mapper complex as a list.
 #' @param graph_type export preference on the structure the graph output.
-#' @return list with the following members: 
+#' @return List with the following members: 
 #' \itemize{
-#' \item \emph{vertices} list of the indices of the original data the current vertex intersects with.
-#' \item \emph{graph} some adjacency representation of the mapper graph.
-#' \item \emph{level_sets} map connecting the which vertices belong to the preimage of the sets in the cover. 
+#'   \item \emph{vertices} list of the indices of the original data the current vertex intersects with.
+#'   \item \emph{graph} some adjacency representation of the mapper graph.
+#'   \item \emph{pullback} map connecting the index set of the cover and the vertices.
 #' }
+#' @details \code{graph_type} must be one of 'adjacency_matrix', 'adjacency_list', or 'edgelist'. 
 MapperRef$set("public", "exportMapper", function(graph_type=c("adjacency_matrix", "adjacency_list", "edgelist")){
-  result <- list(level_sets = private$.pullback, vertices = private$.vertices)
+  result <- list(pullback = private$.pullback, vertices = private$.vertices)
   if (missing(graph_type)){ graph_type <- "adjacency_matrix" }
   result$graph <- switch(graph_type, 
                          "adjacency_matrix"=self$simplicial_complex$as_adjacency_matrix(),
