@@ -1,9 +1,9 @@
 ## shiny_modules.R
 ## Author: Matt Piekenbrock
 
-#' MapperVis
-#' @description 'MapperVis' is a \code{\link[modules]{module}} containing \code{\link[shiny::callModule]{shiny modules}}
-#' that simplify making shiny applications with Mapper.
+## MapperVis
+## @description 'MapperVis' is a \code{\link[modules]{module}} containing \code{\link[shiny::callModule]{shiny modules}}
+## that simplify making shiny applications with Mapper.
 MapperVis <- modules::module({
   modules::import("utils", attach = FALSE)
   modules::import("shiny", attach = FALSE)

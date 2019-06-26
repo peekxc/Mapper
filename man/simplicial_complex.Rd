@@ -10,7 +10,6 @@ The relational information of the Mapper construction.
 The primary output of the Mapper method is a simplicial complex. With \code{\link{MapperRef}} objects, 
 the simplicial complex is stored as a \code{\link[simplextree]{simplextree}}. 
 \cr 
-The underlying complex is completely maintained by \code{\link{MapperRef}} methods 
-(e.g. \code{\link{compute_vertices}}, etc.). The complex may also be modified directly
-via \code{\link[simplextree]{simplextree}} methods.
+The underlying complex does not need to be modified by the user, i.e. is completely maintained by \code{\link{MapperRef}} methods 
+(e.g. \code{\link{construct_nerve}}, \code{\link{construct_k_skeleton}}, etc.).
 }

@@ -241,7 +241,7 @@ RCPP_MODULE(segment_tree_module) {
 // [[Rcpp::export]]
 IntegerVector test_merge(const List& data){
   std::vector< std::vector<int> > my_vec;
-  for (int i = 0; i < data.size(); ++i){
+  for (std::size_t i = 0; i < data.size(); ++i){
     IntegerVector v = data.at(i);
     my_vec.push_back(as< std::vector<int> >(v));
   }
@@ -252,7 +252,7 @@ IntegerVector test_merge(const List& data){
 // [[Rcpp::export]]
 IntegerVector test_merge2(const List& data){
   std::vector< std::vector<int> > my_vec;
-  for (int i = 0; i < data.size(); ++i){
+  for (std::size_t i = 0; i < data.size(); ++i){
     IntegerVector v = data.at(i);
     my_vec.push_back(as< std::vector<int> >(v));
   }

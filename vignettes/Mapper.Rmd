@@ -30,15 +30,16 @@ noisy_circle <- cbind(r*cos(t), r*sin(t))
 plot(noisy_circle, pch = 20, asp = 1, xlab = "X", ylab = "Y", main = "Circle")
 ```
 
-To get the __mapper__ of this circle, first supply the data via `X` and the mapped values via `filter_values`, along with the parameters to other components such as the cover and clustering parameters. See `?mapper` for more details. A summary is available with the default print method.
+To get the __mapper__ of this circle, first supply the data via `X` and the mapped values via `filter`, along with the parameters to other components such as the cover and clustering parameters. See `?mapper` for more details. A summary is available with the default print method.
 ```{r}
 library("Mapper")
 left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
 f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
-m <- mapper(X = noisy_circle, filter_values = f_x, 
-            cover_params = list(typename="fixed interval", number_intervals=5L, percent_overlap=50),
-            measure = "euclidean", 
-            cluster_params = list(cl="single"))
+m <- mapper(X = noisy_circle, 
+            filter = f_x, 
+            cover = list(typename="fixed interval", number_intervals=5L, percent_overlap=50),
+            distance_measure = "euclidean", 
+            clustering_algorithm = list(cl="single"))
 print(m)
 ```
 By default, the core information of the $1$-skeleton of the `Mapper` construction is returned, including:
@@ -53,7 +54,7 @@ This is, in essence, all the central information one needs to conduct a more in-
 
 # Building the Mapper piecewise 
 
-For most use-cases, the static method above is sufficient for getting a compact Mapper construction back. However, building the 'right' Mapper is usually a _process_ that requires parameter tuning in the form of e.g. alternative filter functions, 'fitted' clustering parameters, different covering geometries, etc. For large data sets, employing this iterative fitting process with the above method can be prohibitively expensive.
+For most use-cases, the static method above is sufficient for getting a compact Mapper construction back. However, building the 'right' Mapper is usually an _exploratory process_ that requires parameter tuning in the form of e.g. alternative filter functions, 'fitted' clustering parameters, different covering geometries, etc. Indeed, the _Mapper_ method itself is sometimes thought of as a tool for exploring properties of the data (as expressed via a filter), whose interconnections reflect some aspects of the metric structure. However, for large data sets, employing this iterative fitting process with the above wrapper method can be prohibitively expensive.
 
 To help facilitate this process, the _Mapper_ package uses `R6` class generators to decompose the components used to build the mapper. A few of the benefits `R6` classes include full encapsulation support, reference semantics for member fields, easy-to-employ parameter checking via active bindings, and composability via [method chaining](https://adv-r.hadley.nz/R6.html#method-chaining). More details available at [Hadleys Advanced R](https://adv-r.hadley.nz/r6.html#introduction-12) series or the [R6 documentation site](https://r6.r-lib.org/articles/Introduction.html).
 
@@ -263,13 +264,13 @@ If the Mapper is constantly being reparameterized, this interface is preferred o
 ```{r}
 all_params <- list(
   X = noisy_circle, 
-  filter_values = f_x, 
-  cover_params = list(typename="fixed interval", number_intervals=10L, percent_overlap=50), 
-  cluster_params = list(cl="single", cutoff_method="histogram", num_bins=10L)
+  filter = f_x, 
+  cover = list(cover="fixed interval", number_intervals=10L, percent_overlap=50), 
+  clustering_algorithm = list(cl="single", cutoff_method="histogram", num_bins=10L)
 )
 
-m_static1 <- do.call(mapper, append(all_params, list( measure = "euclidean")))
-m_static2 <- do.call(mapper, append(all_params, list( measure = "mahalanobis")))
+m_static1 <- do.call(mapper, append(all_params, list( distance_measure = "euclidean")))
+m_static2 <- do.call(mapper, append(all_params, list( distance_measure = "mahalanobis")))
 ```
 
 Both function calls require the entire mapper to be reconstructed, including the cover, the allocation for the simplex tree, all initializers, etc. With reference semantics, you can keep all the same settings and just change what is needed. For example, the following switches the distance measure and exports `mapper` objects without reconstructing the cover:
@@ -281,14 +282,14 @@ m_dynamic <- lapply(c("euclidean", "mahalanobis"), function(measure){
 })
 ```
 
-Note that, due to the a natural dependency chain that comes with Mapper, the pullback and nerve operations both needed to be recomputed, since the latter depends on the former, and the former (the pullback operation) depends on the distance measure. Determining what requires recomputation depends on how far up the dependency chain you go. For example, consider recomputing the 1-simplices with different intersection size thresholds.
+Note that, due to the a natural dependency chain that comes with Mapper, the pullback and nerve operations both needed to be recomputed (via `construct_k_skeleton`), since the latter depends on the former, and the former depends on the distance measure. Determining what requires recomputing depends on how far up the dependency chain you go. For example, consider recomputing the 1-simplices with different intersection size thresholds.
 ```{r}
 invisible(lapply(1:10, function(e_weight){
   m$construct_nerve(k = 1L, min_weight = e_weight)
   # ... $exportMapper()
 }))
 ```
-In this case, compared to the static method, we save on having to recompute the cover, the clustering, and the construction of the pullback.
+In this case, compared to the static method, we save on needing to recompute the cover, the clustering, and the construction of the pullback.
 
 ## Visualizing the Mapper 
 

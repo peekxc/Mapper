@@ -5,7 +5,7 @@
 \title{gromov hausdorff}
 \usage{
 gromov_hausdorff(d_X, d_Y, mu_X, mu_Y, p = 1, flb_solver = "glpk",
-  flb_only = FALSE, options = list(localsolver = "COBYLA", localtol =
+  flb_only = TRUE, options = list(localsolver = "COBYLA", localtol =
   1e-07), control = list(maxeval = 300), return_optimizer = FALSE)
 }
 \arguments{
@@ -17,13 +17,30 @@ gromov_hausdorff(d_X, d_Y, mu_X, mu_Y, p = 1, flb_solver = "glpk",
 
 \item{mu_Y}{(m-length) numeric vector giving the probability measure at each point of \code{Y}.}
 
+\item{p}{The norm to compute.}
+
 \item{flb_solver}{Which LOP ROI plugin solver to use to solve the lower bound approximation.}
 
 \item{flb_only}{If only crude approximation is needed, the lower bound can be returned. See details.}
 
-\item{control}{Inner options to pass to ROI_solves 'control' parameter.}
+\item{options}{Options to \code{\link[nloptr]{auglag}}. Ignored if \code{flb_only=TRUE}.}
 
-\item{roi_opt}{Outer options to pass to ROI_solve}
+\item{control}{Control options to pass \code{\link[nloptr]{auglag}}'s control.}
+
+\item{return_optimizer}{Whether to return the optimizer, or just the results.}
+}
+\value{
+If \code{flb_only} is set to TRUE, a list with components:
+\itemize{
+  \item gh The gromov-wasserstein distance.
+  \item mu The result of the optimization.
+  \item correspondences A surjective matching from X to Y and from Y to X. 
+}
+If \code{flb_only} is set to FALSE, a list of both the LOP and QOP optimization results are returned in the 
+above format.  
+
+\strong{NOTE:} The quadratic optimization problem (QOP) is non-convex, and requires solving for (n^2 x m^2) variables,
+which may be very computationally expensive to run. The FLB is an LOP of the same size.
 }
 \description{
 This function implements the discrete, extended version of gromov hausdorff distance proposed by 
@@ -33,12 +50,9 @@ Memoli in section 7 of (1) for comparing two measure-metric spaces.
 This function provides an implementation of the computational objective \emph{(Pp)} listed in Section 7 of (1), which 
 calculates an Lp approximition of Gromov-Hausdorff (i.e. wasserstein relaxation) distance between two measure-metric spaces. The first lower bound (FLB)
 is first computed via an LOP, and then the solution is used as the initialization point for the corresponding quadratic optimization 
-routine. This code utilizes the \emph{R Optimization Infrastructure}(\pkg{ROI}), and relies on having available at least one plugin 
-available for to solve the initial lower bound (a linear program) and the final optimization (cast as a generic nonlinear optimization). 
-Both solutions are returned to the user, unless \code{flb_only} is set to true, in which case only the FLB is returned. 
-
-\strong{NOTE:} The primary quadratic optimization problem (QOP) is non-convex, and requires solving for (n^2 x m^2) variables.
-Thus, the function may be very computationally expensive to run. The FLB is an LOP of the same size.
+routine. This code utilizes the \emph{R Optimization Infrastructure} (\pkg{ROI}), and relies on having available at least one plugin 
+available for to solve the initial lower bound (a linear program). If more than the lower bound is requested, the optimization 
+is cast as a generic nonlinear optimization.
 }
 \references{
 1. Mémoli, Facundo. "On the use of Gromov-Hausdorff distances for shape comparison." (2007).

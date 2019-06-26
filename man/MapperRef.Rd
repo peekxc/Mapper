@@ -7,7 +7,7 @@
 \title{Mapper Reference Class (R6)}
 \format{An \code{\link{R6Class}} generator object}
 \usage{
-MapperRef$new(X)
+MapperRef
 }
 \value{
 Instance object of the \code{\link{MapperRef}} class with methods for building the mapper.
@@ -15,12 +15,18 @@ Instance object of the \code{\link{MapperRef}} class with methods for building t
 \description{
 R6 class built for parameterizing and computing mappers efficiently.
 }
+\details{
+To creates a new \code{MapperRef} instance object, instantiate the class with the \code{\link[R6:R6Class]{R6 new}} operator. 
+Instantiation of a \code{MapperRef} objects requires a data matrix, or a function returning one.
+}
 \section{Fields}{
 
 \describe{
-\item{\code{X}}{The data matrix.}
+\item{\code{X}}{The data, as a function. Evaluation returns the data as a matrix.}
 
-\item{\code{cover}}{The cover.}
+\item{\code{filter}}{The filter, as a function. Evaluation returns the filtered data as a matrix.}
+
+\item{\code{cover}}{The cover (a \code{\link{CoverRef}} derived object).}
 
 \item{\code{clustering_algorithm}}{The clustering algorithm to use in the pullback.}
 
@@ -36,7 +42,6 @@ R6 class built for parameterizing and computing mappers efficiently.
 \section{Methods}{
 
 \itemize{
-  \item{\code{new(X)}: Creates a new \code{MapperRef} instance object. \code{X} must be a data matrix, or a function returning one.}
   \item{\code{\link{use_filter}}: Specifies the filter.}
   \item{\code{\link{use_distance_measure}}: Specifies the distance measure.}
   \item{\code{\link{use_cover}}: Specifies the cover. Must be a \code{\link{CoverRef}} object.}

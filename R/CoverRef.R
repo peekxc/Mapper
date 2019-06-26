@@ -137,7 +137,7 @@ covers_available <- function(){
     sprintf("Typename:%-20sGenerator:%-25sParameters:%-26s", "", "", ""),
     sprintf(line_format, "fixed interval", "FixedIntervalCover", paste0(c("number_intervals", "percent_overlap"), collapse = ", ")), 
     sprintf(line_format, "restrained interval", "RestrainedIntervalCover", paste0(c("number_intervals", "percent_overlap"), collapse = ", ")),
-    sprintf(line_format, "adaptive", "AdaptiveCover", paste0(c("number_intervals", "percent_overlap", "quantile_method"), collapse = ", ")),
+    # sprintf(line_format, "adaptive", "AdaptiveCover", paste0(c("number_intervals", "percent_overlap", "quantile_method"), collapse = ", ")),
     sprintf(line_format, "ball", "BallCover", paste0("epsilon", collapse = ", "))
   ))
 }

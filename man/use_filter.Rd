@@ -21,9 +21,9 @@ coordinate values, or one of the following predefined filters:
   \item{\strong{KDE}}{ Kernel Density Estimate (with \code{\link[ks:ks]{kde}})}
   \item{\strong{DTM}}{ Distance to measure (with \code{\link[TDA:dtm]{dtm}})}
   \item{\strong{MDS}}{ Classic (Metric) Multidimensional Scaling (with \code{\link[stats:cmdscale]{cmdscale}})}
-  \item{\strong{ISOMAP}}{ Isometric feature mapping (with \code{\link[vegan::isomap]{isomap}})}
-  \item{\strong{LE}}{ Laplacian Eigenmaps (with \code{\link[geigen::geigen]{geigen}})}
-  \item{\strong{UMAP}}{ Uniform Manifold Approximation and Projection (with \code{\link[umap::umap]{umap}})}
+  \item{\strong{ISOMAP}}{ Isometric feature mapping (with \code{\link[vegan:isomap]{isomap}})}
+  \item{\strong{LE}}{ Laplacian Eigenmaps (with \code{\link[geigen:geigen]{geigen}})}
+  \item{\strong{UMAP}}{ Uniform Manifold Approximation and Projection (with \code{\link[umap:umap]{umap}})}
 }
 Nearly all the pre-configured filters essentially call functions in other packages with
 somewhat reasonable default parameters to perform the mapping. Any parameters supplied to \code{...} 

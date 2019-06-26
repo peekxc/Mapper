@@ -5,24 +5,34 @@
 #' @param d_Y either a dist object, or (m x m) numeric metric distance matrix over \code{Y}. 
 #' @param mu_X (n-length) numeric vector giving the probability measure at each point of \code{X}. 
 #' @param mu_Y (m-length) numeric vector giving the probability measure at each point of \code{Y}.  
-#' @param flb_only If only crude approximation is needed, the lower bound can be returned. See details.
+#' @param p The norm to compute.
 #' @param flb_solver Which LOP ROI plugin solver to use to solve the lower bound approximation.
-#' @param roi_opt Outer options to pass to ROI_solve
-#' @param control Inner options to pass to ROI_solves 'control' parameter. 
+#' @param flb_only If only crude approximation is needed, the lower bound can be returned. See details.
+#' @param options Options to \code{\link[nloptr]{auglag}}. Ignored if \code{flb_only=TRUE}. 
+#' @param control Control options to pass \code{\link[nloptr]{auglag}}'s control.
+#' @param return_optimizer Whether to return the optimizer, or just the results.
+## @param roi_opt Outer options to pass to ROI_solve
 #' @references 1. Mémoli, Facundo. "On the use of Gromov-Hausdorff distances for shape comparison." (2007).
 #' @details This function provides an implementation of the computational objective \emph{(Pp)} listed in Section 7 of (1), which 
 #' calculates an Lp approximition of Gromov-Hausdorff (i.e. wasserstein relaxation) distance between two measure-metric spaces. The first lower bound (FLB)
 #' is first computed via an LOP, and then the solution is used as the initialization point for the corresponding quadratic optimization 
-#' routine. This code utilizes the \emph{R Optimization Infrastructure}(\pkg{ROI}), and relies on having available at least one plugin 
-#' available for to solve the initial lower bound (a linear program) and the final optimization (cast as a generic nonlinear optimization). 
-#' Both solutions are returned to the user, unless \code{flb_only} is set to true, in which case only the FLB is returned. 
+#' routine. This code utilizes the \emph{R Optimization Infrastructure} (\pkg{ROI}), and relies on having available at least one plugin 
+#' available for to solve the initial lower bound (a linear program). If more than the lower bound is requested, the optimization 
+#' is cast as a generic nonlinear optimization. 
+#' @return If \code{flb_only} is set to TRUE, a list with components:
+#' \itemize{
+#'   \item gh The gromov-wasserstein distance.
+#'   \item mu The result of the optimization.
+#'   \item correspondences A surjective matching from X to Y and from Y to X. 
+#' }
+#' If \code{flb_only} is set to FALSE, a list of both the LOP and QOP optimization results are returned in the 
+#' above format.  
 #' 
-#' \strong{NOTE:} The primary quadratic optimization problem (QOP) is non-convex, and requires solving for (n^2 x m^2) variables.
-#' Thus, the function may be very computationally expensive to run. The FLB is an LOP of the same size. 
-#' 
+#' \strong{NOTE:} The quadratic optimization problem (QOP) is non-convex, and requires solving for (n^2 x m^2) variables,
+#' which may be very computationally expensive to run. The FLB is an LOP of the same size. 
 #' @export 
 gromov_hausdorff <- function(d_X, d_Y, mu_X, mu_Y, p = 1,
-                             flb_solver="glpk", flb_only=FALSE, 
+                             flb_solver="glpk", flb_only=TRUE, 
                              options = list(localsolver="COBYLA", localtol = 1e-7), 
                              control = list(maxeval=300), 
                              return_optimizer = FALSE){
@@ -64,41 +74,45 @@ gromov_hausdorff <- function(d_X, d_Y, mu_X, mu_Y, p = 1,
   
   ## Solve the first lower bound
   flb <- ROI::ROI_solve(lop, solver = flb_solver)
-  if (flb_only) { return(wrap_solution(flb, idx, return_optimizer)) }
-  
-  ## Make the Q matrix of distances
-  Q <- gh_make_Q(d_X, d_Y)
-  
-  ## Setup objective function(s), gradients, etc. 
-  N <- n_x * n_y
-  f <- function(mu){
-    as.vector({ structure(mu, dim=c(1L, N)) %*% Q %*% structure(mu, dim=c(N, 1L)) })
+  if (flb_only) { return(wrap_roi_solution(flb, idx, return_optimizer)) }
+  else {
+    nloptr_installed <- requireNamespace("nloptr", quietly = TRUE)
+    if (!nloptr_installed){ stop("The quadratic optimization requires 'nloptr' to be installed.") }
+    
+    ## Make the Q matrix of distances
+    Q <- gh_make_Q(d_X, d_Y)
+    
+    ## Setup objective function(s), gradients, etc. 
+    N <- n_x * n_y
+    f <- function(mu){
+      as.vector({ structure(mu, dim=c(1L, N)) %*% Q %*% structure(mu, dim=c(N, 1L)) })
+    }
+    grad_f <- function(mu){ Q %*% matrix(mu, ncol = 1) }
+    heq <- function(mu){ (A %*% mu) - c(mu_X, mu_Y) } # rowSums(relist(mu, idx)) - c(mu_X, mu_Y)
+    # heqjac <- function(x) { nloptr::nl.jacobian(x, heq) }
+    
+    ## Minor fix to the FLB bounds to make optimization more stable. This usually isn't necessary. 
+    flb$solution[flb$solution < 0] <- 0.0
+    flb$solution[flb$solution > 1] <- 1.0
+    
+    ## Set solver options
+    { lb <- rep(0, n_x*n_y); ub <- rep(1, n_x*n_y) }
+    default_opts <- list(x0=flb$solution, fn = f, lower = lb, upper = ub, heq = heq)
+    default_opts$control <- modifyList(list(maxeval=300, stopval=flb$objval), control)
+    options <- modifyList(default_opts, val = options)
+    
+    ## Attach gradient function if COBYLA isn't used
+    if (options$localsolver %in% c("LBFGS", "MMA", "SLSQP")){
+      options$gr <- grad_f
+    }
+    
+    ## Use nloptr augmented lagrangian approach
+    al_res <- do.call(nloptr::auglag, options)
+    
+    ## Return results
+    return(list(lop_res = wrap_roi_solution(flb, idx, return_optimizer), 
+                qop_res = wrap_nloptr_solution(al_res, idx, return_optimizer)))
   }
-  grad_f <- function(mu){ Q %*% matrix(mu, ncol = 1) }
-  heq <- function(mu){ (A %*% mu) - c(mu_X, mu_Y) } # rowSums(relist(mu, idx)) - c(mu_X, mu_Y)
-  # heqjac <- function(x) { nloptr::nl.jacobian(x, heq) }
-  
-  ## Minor fix to the FLB bounds to make optimization more stable. This usually isn't necessary. 
-  flb$solution[flb$solution < 0] <- 0.0
-  flb$solution[flb$solution > 1] <- 1.0
-  
-  ## Set solver options
-  { lb <- rep(0, n_x*n_y); ub <- rep(1, n_x*n_y) }
-  default_opts <- list(x0=flb$solution, fn = f, lower = lb, upper = ub, heq = heq)
-  default_opts$control <- modifyList(list(maxeval=300, stopval=flb$objval), control)
-  options <- modifyList(default_opts, val = options)
-  
-  ## Attach gradient function if COBYLA isn't used
-  if (options$localsolver %in% c("LBFGS", "MMA", "SLSQP")){
-    options$gr <- grad_f
-  }
-
-  ## Use nloptr augmented lagrangian approach
-  al_res <- do.call(nloptr::auglag, options)
-
-  ## Return results
-  return(list(lop_res = wrap_roi_solution(flb, idx, return_optimizer), 
-              qop_res = wrap_nloptr_solution(al_res, idx, return_optimizer)))
 }
 
 wrap_nloptr_solution <- function(res, idx, return_opt){

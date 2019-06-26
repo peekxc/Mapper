@@ -9,13 +9,14 @@ vignette: >
 ---
 
 ## Introduction
+
 Perhaps one of the most important aspects of parameterizing Mapper is the choice of the cover.
 Given data $X$ and a continuous map $f : X \to Z$, the cover (often denoted as $\mathcal{U} = \{U_\alpha\}_{\alpha \in A}$) is constructed over the values of $Z$. Since $f$ is continuous, $\mathcal{U}$ also forms a cover of $X$. That is, the sets 
 
 $$\{ f^{-1}(U_\alpha), \alpha \in A \}$$
 form an open cover over $X$, i.e. $X \subseteq \bigcup\limits_{\alpha \in A} f^{-1}(U_\alpha)$. By applying a _partial clustering_ to each of these open sets in $X$, $f^{-1}(U_\alpha)$ decomposes into a set of path-connected components. These form the $0$-simplices of the resulting _mapper_ construction. 
 
-The `Mapper` package works with any covering strategy, so long as a few requirements are satisfied. All covers can be constructed either directly via their R6 generators, or more succinctly using the \code{$use_cover} member function associated with a \code{MapperRef} object. See \code{?MapperRef} for more details. A few frequently used methods are included in the package. Their typenames, generators, and parameters can be listed via: 
+The `Mapper` package theoretically can support any covering strategy, so long as a few requirements are satisfied. All covers can be constructed either directly via their R6 generators, or more succinctly using the \code{$use_cover} member function associated with a \code{MapperRef} object. See \code{?MapperRef} for more details. A few frequently used methods are included in the package. Their typenames, generators, and parameters can be listed via: 
 ```{r}
 Mapper::covers_available()
 ```
@@ -39,8 +40,8 @@ BallCoverEx <- R6::R6Class(
   inherit = CoverRef,
   public = list(
     epsilon=NA,   ## cover parameter    
-    initialize = function(filter_values, epsilon){
-      super$initialize(filter_values, typename="ball")
+    initialize = function(epsilon){
+      super$initialize(typename="ball")
       self$epsilon <- epsilon
     }
   )
@@ -54,38 +55,37 @@ __private`$`__
 
 - `__.index_set:__` character vector of keys that uniquely index the level sets
 
-- `__.filter_dim:__` constant representing the filter dimension
-
-- `__.filter_size:__` constant representing the number of points in the filter space
-
 - `__.typename:__` string identifier of the covering method
 
 Additional information can be found in the documentation of the base class, see `?CoverRef` for more details. 
 
 The only other required function to override is the `construct_cover` method. Below is an example that uses the `RANN` package to construct a cover. 
 ```{r}
-BallCoverEx$set("public", "construct_cover", function(){
+BallCoverEx$set("public", "construct_cover", function(filter, index=NULL){
+  ## Get filter values 
+  fv <- filter()
+  f_dim <- ncol(fv)
+  f_size <- nrow(fv)
+  
   ## Construct the balls
-  ball_cover  <- RANN::nn2(self$filter_values, searchtype = "radius", radius = self$epsilon)
+  ball_cover  <- RANN::nn2(fv, query = fv, searchtype = "radius", radius = self$epsilon)
   
   ## Union them together 
-  ds <- union_find(private$.filter_size)
+  ds <- union_find(f_size)
   apply(ball_cover$nn.idx, 1, function(idx){
     connected_idx <- idx[idx != 0] - 1L
-    if (length(connected_idx) > 0){
-      ds$union_all(connected_idx)
-    }
+    if (length(connected_idx) > 0){ ds$union_all(connected_idx) }
   })
   
   ## Construct the intersections between the open sets and the data
   cc <- ds$connected_components()
   self$index_set <- as.character(unique(cc))
-  ls <- lapply(self$index_set, function(idx){
-    which(cc == as.integer(idx))
-  })
+  ls <- lapply(self$index_set, function(idx){ which(cc == as.integer(idx)) })
   self$level_sets <- structure(ls, names=self$index_set)
   
-  ## Always return self 
+  ## If index is requested, return the preimages at that index, 
+  ## otherwise return the instance invisibly
+  if (!missing(index)){ return(self$level_sets[[index]]) }
   invisible(self)
 })
 ```

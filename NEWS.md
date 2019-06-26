@@ -1,4 +1,3 @@
-
 # Mapper 0.9.1
 - Moved filter aspect from cover to MapperRef class, added 9 popular filter functions and a 'use_filter' API
 - Can now construct arbitrary dimensional simplicial complexes

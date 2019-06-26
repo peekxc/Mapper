@@ -30,7 +30,7 @@ multiscale <- function(m, max_dim=1L, max_overlap = 50, time = c("integer", "mea
     preimage <- m$cover$construct_cover(m$filter, alpha)
     if (length(preimage) < 3){ return(0) }
     hcl <- hclust(dist(m$X(preimage)), method = "single")
-    Mapper::cutoff_first_threshold(hcl)
+    cutoff_first_threshold(hcl)
   })
   global_eps <- mean(Filter(function(x){ x != 0 }, eps_vals))
   
@@ -48,7 +48,7 @@ multiscale <- function(m, max_dim=1L, max_overlap = 50, time = c("integer", "mea
   # ls2 <- m$cover$level_sets
   
   ## Retrieve all distinct (interpolated) eps values
-  distinct <- Mapper:::nondecreasing_seq(indexed_cover$eps) # + .Machine$double.eps
+  distinct <- nondecreasing_seq(indexed_cover$eps) # + .Machine$double.eps
   
   ## Reduce to only indices that have overlap < max_overlap
   distinct <- local({
@@ -92,10 +92,10 @@ multiscale <- function(m, max_dim=1L, max_overlap = 50, time = c("integer", "mea
   #   abline(v = m$cover$interval_bounds()[,3], col = "red")
   #   abline(h = m$cover$interval_bounds()[,4], col = "red")
   # }
-  if (stats){
-    number_pullbacks <- 0L
-    number_edges 
-  }
+  # if (stats){
+  #   number_pullbacks <- 0L
+  #   number_edges 
+  # }
   
   pb <- txtProgressBar(min = 0, max = nrow(distinct$idx), style = 3)
   for (i in seq(nrow(distinct$idx))){
@@ -117,7 +117,7 @@ multiscale <- function(m, max_dim=1L, max_overlap = 50, time = c("integer", "mea
       
       ## Get the pullback ids of sets intersecting the pullback that just changed. 
       ## This is equivalent to getting the open sets intersecting the cofaces of the vertices in the current pullback to update.
-      adj_pids <- Mapper:::connected_pullbacks(pid_to_update, m$pullback, m$simplicial_complex$as_XPtr())
+      adj_pids <- connected_pullbacks(pid_to_update, m$pullback, m$simplicial_complex$as_XPtr())
       if (length(adj_pids) > 0){
         for (k in 1L:max_dim){
           pid_combs <- append(list(pid_to_update), lapply(1L:k, function(i){ adj_pids[[pid_to_update]] }))
@@ -190,9 +190,17 @@ multiscale <- function(m, max_dim=1L, max_overlap = 50, time = c("integer", "mea
   s_maps[bd_idx] <- sprintf("# %f", time[int_times])
   
   ## Aggregate results
-  initial <- simplextree::simplex_tree()
+  initial <- simplex_tree()
   initial$deserialize(initial_complex)
-  result <- list(initial_mapper = initial, simplicial_maps = s_maps, cluster_f = basic_cluster(global_eps))
+  result <- list(initial_mapper = initial, simplicial_maps = s_maps, cluster_f = (function(g_eps){
+    function(pid, idx){
+      if (0 %in% idx){ stop("0-based indices given. Expects 1-based.") }
+      if (is.null(idx) || length(idx) == 0){ return(NULL) }
+      if (length(idx) <= 2L){ return(rep(1L, length(idx))); }
+      base_hcl <- stats::hclust(parallelDist::parallelDist(self$X(idx)), method = "single")
+      cutree(base_hcl, h = g_eps)
+    }
+  })(global_eps))
   return(result)
 }
 
@@ -320,18 +328,6 @@ stable_clustering <- function(g_eps){
   return(cluster)
 }
 
-# clustering function based on global cut threshold
-basic_cluster <- function(g_eps){
-  function(pid, idx){
-    if (0 %in% idx){ stop("0-based indices given. Expects 1-based.") }
-    if (is.null(idx) || length(idx) == 0){ return(NULL) }
-    if (length(idx) <= 2L){ return(rep(1L, length(idx))); }
-    base_hcl <- hclust(parallelDist::parallelDist(self$X(idx)), method = "single")
-    cutree(base_hcl, h = g_eps)
-  }
-}
-
-
 construct_indexed_cover <- function(m, cover, ensure_unique = FALSE){
   ## Locals
   fv <- m$filter()
@@ -347,7 +343,7 @@ construct_indexed_cover <- function(m, cover, ensure_unique = FALSE){
   cover_multi_idx <- do.call(rbind, key_to_ind(cover$index_set))
   
   ## Encode points by both a flat and multi index. 
-  pt_flat_idx <- Mapper:::constructLevelSetIndex(fv, interval_bnds)
+  pt_flat_idx <- constructLevelSetIndex(fv, interval_bnds)
   pt_multi_idx <- cover_multi_idx[pt_flat_idx,,drop=FALSE]
   
   ## Calculate point-to-set distances to non-intersecting open sets
@@ -435,7 +431,7 @@ construct_indexed_cover <- function(m, cover, ensure_unique = FALSE){
     canonical_cuts = canonical_cuts ## already 0-based
   )
   ## Make the indexed cover
-  indexed_cover <- Mapper:::MultiScale$new(initializer)
+  indexed_cover <- MultiScale$new(initializer)
   return(indexed_cover)
 }
 

@@ -1,21 +1,22 @@
 #' Mapper Reference Class (R6)
 #' @docType class
 #' @description R6 class built for parameterizing and computing mappers efficiently.
-#' @usage MapperRef$new(X)
 #' @format An \code{\link{R6Class}} generator object
 #' @return Instance object of the \code{\link{MapperRef}} class with methods for building the mapper.
 #' 
-#' @field X The data matrix.
-#' @field cover The cover. 
+#' @field X The data, as a function. Evaluation returns the data as a matrix.  
+#' @field filter The filter, as a function. Evaluation returns the filtered data as a matrix.  
+#' @field cover The cover (a \code{\link{CoverRef}} derived object). 
 #' @field clustering_algorithm The clustering algorithm to use in the pullback. 
 #' @field measure Distance measure to use to compute distances in ambient space. See \code{use_distance_measure} for more details.  
 #' @field pullback Mapping between the sets in the cover (by index) and the vertices (by id).  
 #' @field vertices The mapper vertices. 
 #' @field simplicial_complex A \code{\link[simplextree:simplextree]{simplex tree}} object.
 #' 
+#' @details To creates a new \code{MapperRef} instance object, instantiate the class with the \code{\link[R6:R6Class]{R6 new}} operator. 
+#' Instantiation of a \code{MapperRef} objects requires a data matrix, or a function returning one.
 #' @section Methods:
 #' \itemize{
-#'   \item{\code{new(X)}: Creates a new \code{MapperRef} instance object. \code{X} must be a data matrix, or a function returning one.}
 #'   \item{\code{\link{use_filter}}: Specifies the filter.}
 #'   \item{\code{\link{use_distance_measure}}: Specifies the distance measure.}
 #'   \item{\code{\link{use_cover}}: Specifies the cover. Must be a \code{\link{CoverRef}} object.}
@@ -111,9 +112,8 @@ MapperRef$set("active", "vertices",
 #' @details The primary output of the Mapper method is a simplicial complex. With \code{\link{MapperRef}} objects, 
 #' the simplicial complex is stored as a \code{\link[simplextree]{simplextree}}. 
 #' \cr 
-#' The underlying complex is completely maintained by \code{\link{MapperRef}} methods 
-#' (e.g. \code{\link{compute_vertices}}, etc.). The complex may also be modified directly
-#' via \code{\link[simplextree]{simplextree}} methods. 
+#' The underlying complex does not need to be modified by the user, i.e. is completely maintained by \code{\link{MapperRef}} methods 
+#' (e.g. \code{\link{construct_nerve}}, \code{\link{construct_k_skeleton}}, etc.).
 MapperRef$set("active", "simplicial_complex", 
   function(value){
     if (missing(value)){ private$.simplicial_complex }
@@ -195,7 +195,6 @@ MapperRef$set("active", "measure",
         has_proxy <- requireNamespace("proxy", quietly = TRUE)
         available_measures <- if (has_proxy) proxy::pr_DB$get_entry_names() else c("euclidean", "maximum", "manhattan", "canberra", "binary", "minkowski")
         stopifnot(is.character(value), toupper(value) %in% toupper(available_measures))
-        dist_f <- ifelse(has_proxy, parallelDist::parallelDist, stats::dist)
         private$.measure <- value
       }
     }
@@ -226,9 +225,9 @@ MapperRef$set("public", "initialize", function(X){
 #'   \item{\strong{KDE}}{ Kernel Density Estimate (with \code{\link[ks:ks]{kde}})}
 #'   \item{\strong{DTM}}{ Distance to measure (with \code{\link[TDA:dtm]{dtm}})}
 #'   \item{\strong{MDS}}{ Classic (Metric) Multidimensional Scaling (with \code{\link[stats:cmdscale]{cmdscale}})}
-#'   \item{\strong{ISOMAP}}{ Isometric feature mapping (with \code{\link[vegan::isomap]{isomap}})}
-#'   \item{\strong{LE}}{ Laplacian Eigenmaps (with \code{\link[geigen::geigen]{geigen}})}
-#'   \item{\strong{UMAP}}{ Uniform Manifold Approximation and Projection (with \code{\link[umap::umap]{umap}})}
+#'   \item{\strong{ISOMAP}}{ Isometric feature mapping (with \code{\link[vegan:isomap]{isomap}})}
+#'   \item{\strong{LE}}{ Laplacian Eigenmaps (with \code{\link[geigen:geigen]{geigen}})}
+#'   \item{\strong{UMAP}}{ Uniform Manifold Approximation and Projection (with \code{\link[umap:umap]{umap}})}
 #' }
 #' Nearly all the pre-configured filters essentially call functions in other packages with
 #' somewhat reasonable default parameters to perform the mapping. Any parameters supplied to \code{...} 
@@ -346,8 +345,12 @@ MapperRef$set("public", "use_filter", function(filter=c("PC", "IC", "ECC", "KDE"
 })
 
 ## use_distance_measure ----
-## Sets the distance measure to use
-## Supports any measure in proxy::pr_DB$get_entry_names()
+#' @name  use_distance_measure
+#' @title Sets the distance measure to use
+#' @param measure The distance measure to use (string).
+#' @details Specifies the distance measure to use to compute distances when decomposing the preimages. 
+#' \code{measure} must be either one of ["euclidean", "maximum", "manhattan", "canberra", "binary", "minkowski"], or, 
+#' if the \pkg{proxy} package is installed, any measure in \code{proxy::pr_DB$get_entry_names()}. 
 MapperRef$set("public", "use_distance_measure", function(measure){
   self$measure <- measure
   invisible(self)

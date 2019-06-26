@@ -29,7 +29,7 @@ landmarks <- function(x, n, dist_method = "euclidean", seed_index = 1, shuffle_d
     landmark_min_dist <- rep(Inf, nrow(x))
     for (i in 2L:n){
       landmark_dist <- proxy::dist(x, x[landmark_idx[i-1L],,drop=FALSE], method = dist_method)
-      landmark_min_dist <- pmin(landmark_dist, min_dist)
+      landmark_min_dist <- pmin(landmark_dist, landmark_min_dist)
       potential_idx <- setdiff(seq(nrow(x)), landmark_idx[c(1:i)])
       landmark_idx[i] <- potential_idx[which.max(landmark_min_dist[potential_idx])]
     }
