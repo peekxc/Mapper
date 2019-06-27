@@ -63,7 +63,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Mapper</a>
-        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.8.0</span>
+        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.1</span>
       </span>
     </div>
 
@@ -92,6 +92,9 @@
       <a href="../articles/UsingCustomCover.html">Using a custom covering method</a>
     </li>
   </ul>
+</li>
+<li>
+  <a href="../news/index.html">Changelog</a>
 </li>
       </ul>
       
@@ -125,12 +128,8 @@
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>filter_values</th>
-      <td><p>(n x d) numeric matrix of values giving the results of the map.</p></td>
-    </tr>
-    <tr>
-      <th>typename</th>
-      <td><p>The name of the cover to use. Accepts any one of the typenames printed in the <code>available_covers</code>.</p></td>
+      <th>cover</th>
+      <td><p>Either a pre-configured cover, or name of the cover to use.</p></td>
     </tr>
     <tr>
       <th>...</th>
@@ -140,8 +139,9 @@
     
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>The cover is automatically constructed before being assigned to the calling Mappers <code>$cover</code> field.  
-If this is undesirable, create the cover using the appropriate R6 class generators and assign to <code>$cover</code> field directly.</p>
+    <p>The <code>cover</code> parameter can be any <code><a href='CoverRef.html'>CoverRef</a></code>-derived instance (e.g. a <code><a href='FixedIntervalCover.html'>FixedIntervalCover</a></code>), 
+or one of the cover typenames listed in the <code><a href='covers_available.html'>covers_available</a>()</code>. 
+If a typename is given, the cover is automatically constructed before being assigned to the <code>$cover</code> field.</p>
     
 
   </div>

@@ -12,34 +12,31 @@ reference:
     General package utility functions, or related topological algorithms.  
   contents:
   - '`mapper`'
-  - '`plot.Mapper`'
-  - '`print.Mapper`'
   - '`covers_available`'
   - '`cutoff_first_bin`'
   - '`bin_color`'
-  - '`dashboard`'
   - '`hausdorff_distance`'
 - title: MapperRef methods
   desc: >
-    Member functions associated with the MapperRef R6 class.  
+    Members associated with the MapperRef R6 class.  
   contents: 
   - '`MapperRef`'
-  - '`as_grapher`'
-  - '`as_igraph`'
-  - '`compute_vertices`'
-  - '`compute_edges`'
-  - '`compute_k_skeleton`'
+  - '`pullback`'
   - '`use_cover`'
   - '`use_clustering_algorithm`'
+  - '`as_igraph`'
+  - '`as_pixiplex`'
+  - '`construct_pullback`'
+  - '`compute_edges`'
+  - '`compute_k_skeleton`'
   - '`exportMapper`'
 - title: Cover generators 
   desc: >
     R6 generators which can be used to construct covers over the filter space.  
   contents:
   - '`CoverRef`'
-  - '`FixedRectangularCover`'
-  - '`RestrainedRectangularCover`'
-  - '`AdaptiveCover`'
+  - '`FixedIntervalCover`'
+  - '`RestrainedIntervalCover`'
   - '`BallCover`'
 - title: Data structures 
   desc: > 

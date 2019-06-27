@@ -3,6 +3,7 @@ Type: Package
 Title: Topological Data Analysis using Mapper
 Version: 0.9.1
 Date: 2019-06-23
+Author: Matt Piekenbrock
 Authors@R: c(person("Matt", "Piekenbrock", email = "matt.piekenbrock@gmail.com", role = c("aut", "cre", "cph")))
 Maintainer: Matt Piekenbrock <matt.piekenbrock@gmail.com>
 Description: An efficient implementation of the Mapper algorithm, and other related algorithms and tools used in Topological Data Analysis. 

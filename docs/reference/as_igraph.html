@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Exports the 1-skeleton as an igraph object. — as_igraph • Mapper</title>
+<title>Exports Mapper as an igraph object. — as_igraph • Mapper</title>
 
 <!-- jquery -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
@@ -30,9 +30,9 @@
 
 
 
-<meta property="og:title" content="Exports the 1-skeleton as an igraph object. — as_igraph" />
+<meta property="og:title" content="Exports Mapper as an igraph object. — as_igraph" />
 
-<meta property="og:description" content="uses the igraph library." />
+<meta property="og:description" content="Exports the 1-skeleton to a graph using the igraph library." />
 <meta name="twitter:card" content="summary" />
 
 <meta name="robots" content="noindex">
@@ -63,7 +63,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Mapper</a>
-        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.8.0</span>
+        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.1</span>
       </span>
     </div>
 
@@ -93,6 +93,9 @@
     </li>
   </ul>
 </li>
+<li>
+  <a href="../news/index.html">Changelog</a>
+</li>
       </ul>
       
       <ul class="nav navbar-nav navbar-right">
@@ -109,24 +112,56 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Exports the 1-skeleton as an igraph object.</h1>
+    <h1>Exports Mapper as an igraph object.</h1>
     
     <div class="hidden name"><code>as_igraph.Rd</code></div>
     </div>
 
     <div class="ref-description">
     
-    <p>uses the igraph library.</p>
+    <p>Exports the 1-skeleton to a graph using the igraph library.</p>
     
     </div>
 
-        
+    
+    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
+    <table class="ref-arguments">
+    <colgroup><col class="name" /><col class="desc" /></colgroup>
+    <tr>
+      <th>vertex_scale</th>
+      <td><p>scaling function for the vertex sizes.</p></td>
+    </tr>
+    <tr>
+      <th>vertex_min</th>
+      <td><p>minimum vertex size.</p></td>
+    </tr>
+    <tr>
+      <th>vertex_min</th>
+      <td><p>maximum vertex size.</p></td>
+    </tr>
+    <tr>
+      <th>col_pal</th>
+      <td><p>color palette to color the vertices by.</p></td>
+    </tr>
+    </table>
+    
+    <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
+
+    <p>By default, the vertices of the output graph are given "color", "size", and "label" 
+attributes. The vertex colors are colored according on a blue to red rainbow according 
+to their mean filter value (see <code><a href='bin_color.html'>bin_color</a></code>). The vertex sizes are scaled according 
+to the number of points they contain, scaled by <code>vertex_scale</code>, and bounded between 
+(<code>vertex_min</code>, <code>vertex_max</code>). The vertex labels are in the format "&lt;id&gt;:&lt;size&gt;".</p>
+    
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <h2>Contents</h2>
     <ul class="nav nav-pills nav-stacked">
-                </ul>
+      <li><a href="#arguments">Arguments</a></li>
+      
+      <li><a href="#details">Details</a></li>
+          </ul>
 
   </div>
 </div>

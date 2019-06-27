@@ -60,7 +60,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Mapper</a>
-        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.8.0</span>
+        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.1</span>
       </span>
     </div>
 
@@ -89,6 +89,9 @@
       <a href="../articles/UsingCustomCover.html">Using a custom covering method</a>
     </li>
   </ul>
+</li>
+<li>
+  <a href="../news/index.html">Changelog</a>
 </li>
       </ul>
       
@@ -133,12 +136,6 @@
       </tr><tr>
         
         <td>
-          <p><code><a href="plot.Mapper.html">plot(<i>&lt;Mapper&gt;</i>)</a></code> </p>
-        </td>
-        <td><p>S3 method for default plotting</p></td>
-      </tr><tr>
-        
-        <td>
           <p><code><a href="print.Mapper.html">print(<i>&lt;Mapper&gt;</i>)</a></code> </p>
         </td>
         <td><p>S3 method for default printing</p></td>
@@ -153,7 +150,7 @@
         <td>
           <p><code><a href="cutoff_first_bin.html">cutoff_first_bin()</a></code> </p>
         </td>
-        <td><p>cutoff_first_bin function</p></td>
+        <td><p>cutoff_first_bin</p></td>
       </tr><tr>
         
         <td>
@@ -185,37 +182,13 @@
         <td>
           <p><code><a href="MapperRef.html">MapperRef</a></code> </p>
         </td>
-        <td><p>Mapper Reference Class (R6) implementation</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="as_grapher.html">as_grapher</a></code> </p>
-        </td>
-        <td><p>Exports the 1-skeleton as a grapher object.</p></td>
+        <td><p>Mapper Reference Class (R6)</p></td>
       </tr><tr>
         
         <td>
           <p><code><a href="as_igraph.html">as_igraph</a></code> </p>
         </td>
-        <td><p>Exports the 1-skeleton as an igraph object.</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="compute_vertices.html">compute_vertices</a></code> </p>
-        </td>
-        <td><p>Computes the vertices of mapper.</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="compute_edges.html">compute_edges</a></code> </p>
-        </td>
-        <td><p>Computes the edges of the mapper.</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="compute_k_skeleton.html">compute_k_skeleton</a></code> </p>
-        </td>
-        <td><p>Computes the K-skeleton</p></td>
+        <td><p>Exports Mapper as an igraph object.</p></td>
       </tr><tr>
         
         <td>
@@ -233,7 +206,7 @@
         <td>
           <p><code><a href="exportMapper.html">exportMapper</a></code> </p>
         </td>
-        <td><p>Exports the essential mapper graph information</p></td>
+        <td><p>Exports minimal information about the Mapper</p></td>
       </tr>
     </tbody><tbody>
       <tr>
@@ -248,18 +221,6 @@
           <p><code><a href="CoverRef.html">CoverRef</a></code> </p>
         </td>
         <td><p>Cover abstract class</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="FixedRectangularCover.html">FixedRectangularCover</a></code> </p>
-        </td>
-        <td><p>Fixed Rectangular Cover</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="RestrainedRectangularCover.html">RestrainedRectangularCover</a></code> </p>
-        </td>
-        <td><p>Fixed Rectangular Cover</p></td>
       </tr><tr>
         
         <td>
@@ -283,9 +244,165 @@
       <tr>
         
         <td>
-          <p><code><a href="simplex_tree.html">simplex_tree()</a></code> </p>
+          <p><code><a href="AdaptiveCover.html">AdaptiveCover</a></code> </p>
         </td>
-        <td><p>Simplex Tree</p></td>
+        <td><p>Adaptive Cover</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="BallCover.html">BallCover</a></code> </p>
+        </td>
+        <td><p>Ball Cover</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="CoverRef.html">CoverRef</a></code> </p>
+        </td>
+        <td><p>Cover abstract class</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="FixedIntervalCover.html">FixedIntervalCover</a></code> </p>
+        </td>
+        <td><p>Fixed Interval Cover</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="Mapper.html">mapper()</a></code> </p>
+        </td>
+        <td><p>mapper</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="MapperRef.html">MapperRef</a></code> </p>
+        </td>
+        <td><p>Mapper Reference Class (R6)</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="RestrainedIntervalCover.html">RestrainedIntervalCover</a></code> </p>
+        </td>
+        <td><p>Restrained Interval Cover</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="as_igraph.html">as_igraph</a></code> </p>
+        </td>
+        <td><p>Exports Mapper as an igraph object.</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="as_pixiplex.html">as_pixiplex</a></code> </p>
+        </td>
+        <td><p>Exports the complex as a pixiplex object.</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="bin_color.html">bin_color()</a></code> </p>
+        </td>
+        <td><p>bin_color</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="construct_k_skeleton.html">construct_k_skeleton</a></code> </p>
+        </td>
+        <td><p>Constructs the k-skeleton</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="construct_nerve.html">construct_nerve</a></code> </p>
+        </td>
+        <td><p>Compute the nerve of the cover.</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="construct_pullback.html">construct_pullback</a></code> </p>
+        </td>
+        <td><p>Constructs the (decomposed) pullback cover.</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="cover.html">cover</a></code> </p>
+        </td>
+        <td><p>Mapper cover</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="covers_available.html">covers_available()</a></code> </p>
+        </td>
+        <td><p>Print available covers</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="cutoff_first_bin.html">cutoff_first_bin()</a></code> </p>
+        </td>
+        <td><p>cutoff_first_bin</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="cutoff_first_threshold.html">cutoff_first_threshold()</a></code> </p>
+        </td>
+        <td><p>cutoff_first_threshold</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="dashboard.html">dashboard()</a></code> </p>
+        </td>
+        <td><p>Mapper dashboard</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="exportMapper.html">exportMapper</a></code> </p>
+        </td>
+        <td><p>Exports minimal information about the Mapper</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="gromov_hausdorff.html">gromov_hausdorff()</a></code> </p>
+        </td>
+        <td><p>gromov hausdorff</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="hausdorff_distance.html">hausdorff_distance()</a></code> </p>
+        </td>
+        <td><p>Hausdorff Distance</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="landmarks.html">landmarks()</a></code> </p>
+        </td>
+        <td><p>landmarks</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="multiscale.html">multiscale()</a></code> </p>
+        </td>
+        <td><p>Multiscale Mapper</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="noisy_circle.html">noisy_circle</a></code> </p>
+        </td>
+        <td><p>1,500 noisy points sampled on the perimeter of a circle.</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="print.Mapper.html">print(<i>&lt;Mapper&gt;</i>)</a></code> </p>
+        </td>
+        <td><p>S3 method for default printing</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="segment_tree.html">segment_tree()</a></code> </p>
+        </td>
+        <td><p>Segment Tree</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="simplicial_complex.html">simplicial_complex</a></code> </p>
+        </td>
+        <td><p>Simplicial Complex</p></td>
       </tr><tr>
         
         <td>
@@ -295,9 +412,33 @@
       </tr><tr>
         
         <td>
-          <p><code><a href="segment_tree.html">segment_tree()</a></code> </p>
+          <p><code><a href="use_clustering_algorithm.html">use_clustering_algorithm</a></code> </p>
         </td>
-        <td><p>Segment Tree</p></td>
+        <td><p>Sets the clustering algorithm</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="use_cover.html">use_cover</a></code> </p>
+        </td>
+        <td><p>Selects one of the available covering methods to use.</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="use_distance_measure.html">use_distance_measure</a></code> </p>
+        </td>
+        <td><p>Sets the distance measure to use</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="use_filter.html">use_filter</a></code> </p>
+        </td>
+        <td><p>Sets the filter</p></td>
+      </tr><tr>
+        
+        <td>
+          <p><code><a href="wvs_us_wave6.html">wvs_us_wave6</a></code> </p>
+        </td>
+        <td><p>Subset of World Values Survey</p></td>
       </tr>
     </tbody>
     </table>

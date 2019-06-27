@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Exports the essential mapper graph information — exportMapper • Mapper</title>
+<title>Exports minimal information about the Mapper — exportMapper • Mapper</title>
 
 <!-- jquery -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
@@ -30,9 +30,9 @@
 
 
 
-<meta property="og:title" content="Exports the essential mapper graph information — exportMapper" />
+<meta property="og:title" content="Exports minimal information about the Mapper — exportMapper" />
 
-<meta property="og:description" content="Exports the essential mapper graph information" />
+<meta property="og:description" content="This function exports a few core characteristics about the mapper complex as a list." />
 <meta name="twitter:card" content="summary" />
 
 <meta name="robots" content="noindex">
@@ -63,7 +63,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Mapper</a>
-        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.8.0</span>
+        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.1</span>
       </span>
     </div>
 
@@ -93,6 +93,9 @@
     </li>
   </ul>
 </li>
+<li>
+  <a href="../news/index.html">Changelog</a>
+</li>
       </ul>
       
       <ul class="nav navbar-nav navbar-right">
@@ -109,14 +112,14 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Exports the essential mapper graph information</h1>
+    <h1>Exports minimal information about the Mapper</h1>
     
     <div class="hidden name"><code>exportMapper.Rd</code></div>
     </div>
 
     <div class="ref-description">
     
-    <p>Exports the essential mapper graph information</p>
+    <p>This function exports a few core characteristics about the mapper complex as a list.</p>
     
     </div>
 
@@ -132,12 +135,16 @@
     
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>list with the following members:</p><ul>
-<li><p>vertices list of the indices of the original data the current vertex intersects with.</p></li>
-<li><p>graph some adjacency representation of the mapper graph.</p></li>
-<li><p>level_sets map connecting the which vertices belong to the preimage of the sets in the cover.</p></li>
+    <p>List with the following members:</p><ul>
+<li><p><em>vertices</em> list of the indices of the original data the current vertex intersects with.</p></li>
+<li><p><em>graph</em> some adjacency representation of the mapper graph.</p></li>
+<li><p><em>pullback</em> map connecting the index set of the cover and the vertices.</p></li>
 </ul>
 
+    
+    <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
+
+    <p><code>graph_type</code> must be one of 'adjacency_matrix', 'adjacency_list', or 'edgelist'.</p>
     
 
   </div>
@@ -147,6 +154,8 @@
       <li><a href="#arguments">Arguments</a></li>
       
       <li><a href="#value">Value</a></li>
+
+      <li><a href="#details">Details</a></li>
           </ul>
 
   </div>

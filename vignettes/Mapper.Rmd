@@ -1,7 +1,10 @@
 ---
 author: "Matt Piekenbrock"
 title: "Using the Mapper Package"
-output: rmarkdown::html_vignette
+output: 
+  html_document:
+    keep_md: yes
+  rmarkdown::html_vignette: default
 vignette: >
   %\VignetteIndexEntry{Mapper}
   %\VignetteEngine{knitr::rmarkdown}
@@ -301,10 +304,14 @@ m <- MapperRef$new(noisy_circle)$
   construct_k_skeleton(k = 1L)
 ```
 
-```{r, eval=TRUE, echo=TRUE}
+```{r, eval=FALSE, echo=TRUE}
 library("pixiplex")
 plot(m$as_pixiplex())
 ```
+```{r, echo = FALSE, out.width='\\textwidth'}
+knitr::include_graphics("pixiplex_prev.png")
+```
+
 
 For more information, see the [package repository](https://github.com/peekxc/pixiplex).
 

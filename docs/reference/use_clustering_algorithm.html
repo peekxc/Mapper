@@ -32,7 +32,7 @@
 
 <meta property="og:title" content="Sets the clustering algorithm — use_clustering_algorithm" />
 
-<meta property="og:description" content="Sets a default hierarchical clustering algorithm." />
+<meta property="og:description" content="Sets the clustering algorithm used to construct the connected components in the pullback cover." />
 <meta name="twitter:card" content="summary" />
 
 <meta name="robots" content="noindex">
@@ -63,7 +63,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Mapper</a>
-        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.8.0</span>
+        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.1</span>
       </span>
     </div>
 
@@ -93,6 +93,9 @@
     </li>
   </ul>
 </li>
+<li>
+  <a href="../news/index.html">Changelog</a>
+</li>
       </ul>
       
       <ul class="nav navbar-nav navbar-right">
@@ -116,17 +119,51 @@
 
     <div class="ref-description">
     
-    <p>Sets a default hierarchical clustering algorithm.</p>
+    <p>Sets the clustering algorithm used to construct the connected components in the pullback cover.</p>
     
     </div>
 
-        
+    
+    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
+    <table class="ref-arguments">
+    <colgroup><col class="name" /><col class="desc" /></colgroup>
+    <tr>
+      <th>cl</th>
+      <td><p>Either one of the link criteria used in the <code><a href='https://www.rdocumentation.org/packages/stats/topics/hclust'>hclust</a></code> function (string) or a function. See details.</p></td>
+    </tr>
+    <tr>
+      <th>cutoff_method</th>
+      <td><p>Type of heuristic to determine cut value. See details. Ignored is <code>cl</code> is a function.</p></td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td><p>Additional parameters passed as defaults to the cutoff method. See details.</p></td>
+    </tr>
+    </table>
+    
+    <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
+
+    <p>If <code>cl</code> is a linkage criterion, a standard hierarchical clustering algorithm is used with suitable default parameters. 
+If it is a function, it must have a signature compatible with <code>function(X, idx, ...)</code> where <code>X</code> is the data matrix and <code>idx</code>
+is a vector of integer indices giving which subset of <code>X</code> to cluster over. The enclosing environment of <code>cl</code>
+is set to  <br /> 
+<br />
+The cutoff method may be one of either c("histogram", "continuous"). See <code><a href='cutoff_first_bin.html'>cutoff_first_bin</a></code> and <code><a href='cutoff_first_threshold.html'>cutoff_first_threshold</a></code>
+for what they each correspond to, respectively. Additional named parameters passed via <code>...</code> act as defaults to the cutting method chosen. 
+If not chosen, reasonable defaults are used. <br /> 
+<br />
+Additional named parameters passed via the dots in <code>$clustering_algorithm</code> 
+will taken precedence and override all previously set default settings.</p>
+    
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <h2>Contents</h2>
     <ul class="nav nav-pills nav-stacked">
-                </ul>
+      <li><a href="#arguments">Arguments</a></li>
+      
+      <li><a href="#details">Details</a></li>
+          </ul>
 
   </div>
 </div>
