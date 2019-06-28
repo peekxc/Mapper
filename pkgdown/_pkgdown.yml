@@ -16,6 +16,7 @@ reference:
   - '`cutoff_first_bin`'
   - '`bin_color`'
   - '`hausdorff_distance`'
+  - '`landmarks`'
 - title: MapperRef methods
   desc: >
     Members associated with the MapperRef R6 class.  

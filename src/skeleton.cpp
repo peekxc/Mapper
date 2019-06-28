@@ -26,7 +26,7 @@ List connected_pullbacks(std::vector< std::string > pullback_ids, const List& pu
   // Reverse the pullback maps (key, value) pairs into a new map
   std::map< size_t, std::set< std::string > > v_to_pb;  
   for (std::string& pid: all_pids){
-    const IntegerVector vids = pullback[pid];
+    const IntegerVector vids = as< IntegerVector >(pullback[pid]);
     for (size_t v: vids){ v_to_pb[v].insert( pid ); }
   }
   

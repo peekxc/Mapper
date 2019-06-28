@@ -1,20 +1,23 @@
 #' Mapper Reference Class (R6)
-#' @docType class
-#' @description R6 class built for parameterizing and computing mappers efficiently.
-#' @format An \code{\link{R6Class}} generator object
-#' @return Instance object of the \code{\link{MapperRef}} class with methods for building the mapper.
-#' 
-#' @field X The data, as a function. Evaluation returns the data as a matrix.  
-#' @field filter The filter, as a function. Evaluation returns the filtered data as a matrix.  
-#' @field cover The cover (a \code{\link{CoverRef}} derived object). 
-#' @field clustering_algorithm The clustering algorithm to use in the pullback. 
-#' @field measure Distance measure to use to compute distances in ambient space. See \code{use_distance_measure} for more details.  
-#' @field pullback Mapping between the sets in the cover (by index) and the vertices (by id).  
-#' @field vertices The mapper vertices. 
-#' @field simplicial_complex A \code{\link[simplextree:simplextree]{simplex tree}} object.
-#' 
-#' @details To creates a new \code{MapperRef} instance object, instantiate the class with the \code{\link[R6:R6Class]{R6 new}} operator. 
+#' @name MapperRef
+#' @description `MapperRef` is an \link{R6} class built for parameterizing and computing mappers efficiently.
+#' @section Details: To create a new \code{MapperRef} instance object, instantiate the class with the \code{\link[R6:R6Class]{R6 new}} operator. 
 #' Instantiation of a \code{MapperRef} objects requires a data matrix, or a function returning one.
+#' @section Usage:
+#' \preformatted{m = MapperRef$new(X)} 
+#' @section Arguments:
+#' \code{X} The data, either as a matrix, or a function that returns a matrix.
+#' @section Fields:
+#' \itemize{
+#'   \item{\strong{X}}: The data, as a function. Evaluation returns the data as a matrix.
+#'   \item{\strong{filter}}: The filter, as a function. Evaluation returns the filtered data as a matrix.  
+#'   \item{\strong{cover}}: The cover (a \code{\link{CoverRef}} derived object). 
+#'   \item{\strong{clustering_algorithm}} The clustering algorithm to use in the pullback.
+#'   \item{\strong{measure}} Distance measure to use to compute distances in ambient space. See \code{use_distance_measure} for more details.     
+#'   \item{\strong{pullback}} Mapping between the sets in the cover (by index) and the vertices (by id).  
+#'   \item{\strong{vertices}} The mapper vertices. 
+#'   \item{\strong{simplicial_complex}} A \code{\link[simplextree:simplextree]{simplex tree}} object.
+#' }
 #' @section Methods:
 #' \itemize{
 #'   \item{\code{\link{use_filter}}: Specifies the filter.}
@@ -31,13 +34,16 @@
 #' @section More information:
 #' Full documentation available \href{https://peekxc.github.io/Mapper}{online}.
 #' 
+#' @return Instance object of the \code{\link{MapperRef}} class with methods for building the mapper.
+#' 
 #' @import methods
 #' @importFrom Rcpp sourceCpp
-#'
 #' @author Matt Piekenbrock, \email{matt.piekenbrock@@gmail.com}
 #' @encoding UTF-8
 #' @references Gurjeet Singh, Facundo Mémoli, and Gunnar Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.
 #' @useDynLib Mapper
+NULL
+
 #' @export
 MapperRef <- R6::R6Class("MapperRef", 
   private = list(
