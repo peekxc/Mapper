@@ -10,7 +10,7 @@
 #' @export
 RestrainedIntervalCover <- R6::R6Class("RestrainedIntervalCover",
   inherit = CoverRef,
-  private = list(.number_intervals=NA, .percent_overlap=NA), 
+  private = list(.number_intervals=NULL, .percent_overlap=NULL), 
   lock_objects = TRUE
 )
 
@@ -53,8 +53,8 @@ RestrainedIntervalCover$set("active", "number_intervals",
 ## Validates the parameter settings
 ## validate ----
 RestrainedIntervalCover$set("public", "validate", function(filter){
-  stopifnot(!is.na(private$.percent_overlap))
-  stopifnot(!is.na(private$.number_intervals))
+  stopifnot(!is.null(private$.percent_overlap))
+  stopifnot(!is.null(private$.number_intervals))
   stopifnot(all(self$number_intervals > 0))
   stopifnot(all(self$percent_overlap >= 0), all(self$percent_overlap < 100))
   fv <- filter()

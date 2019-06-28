@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Sets the distance measure to use — use_distance_measure • Mapper</title>
+<title>Assigns a distance measure — use_distance_measure • Mapper</title>
 
 <!-- jquery -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
@@ -30,9 +30,9 @@
 
 
 
-<meta property="og:title" content="Sets the distance measure to use — use_distance_measure" />
+<meta property="og:title" content="Assigns a distance measure — use_distance_measure" />
 
-<meta property="og:description" content="Sets the distance measure to use" />
+<meta property="og:description" content="Assigns a distance measure to the MapperRef instance to use when compute distances in the data space." />
 <meta name="twitter:card" content="summary" />
 
 <meta name="robots" content="noindex">
@@ -112,14 +112,14 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Sets the distance measure to use</h1>
+    <h1>Assigns a distance measure</h1>
     
     <div class="hidden name"><code>use_distance_measure.Rd</code></div>
     </div>
 
     <div class="ref-description">
     
-    <p>Sets the distance measure to use</p>
+    <p>Assigns a distance measure to the <code><a href='MapperRef.html'>MapperRef</a></code> instance to use when compute distances in the data space.</p>
     
     </div>
 
@@ -131,15 +131,47 @@
       <th>measure</th>
       <td><p>The distance measure to use (string).</p></td>
     </tr>
+    <tr>
+      <th>...</th>
+      <td><p>Extra parameters passed to the distance function. See details.</p></td>
+    </tr>
     </table>
     
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>Specifies the distance measure to use to compute distances when decomposing the preimages. 
-<code>measure</code> must be either one of ["euclidean", "maximum", "manhattan", "canberra", "binary", "minkowski"], or, 
-if the <span class="pkg">proxy</span> package is installed, any measure in <code>proxy::pr_DB$get_entry_names()</code>.</p>
+    <p>The supplied <code>measure</code> must be either one of ["euclidean", "maximum", "manhattan", "canberra", "binary", "minkowski"], or, 
+if the <span class="pkg">proxy</span> package is installed, any measure in <code>proxy::pr_DB$get_entry_names()</code>.<br />
+<br />
+Additional parameters passed via <code>...</code> are passed to either <code><a href='https://www.rdocumentation.org/packages/stats/topics/dist'>dist</a></code> or, if installed, 
+<code><a href='https://www.rdocumentation.org/packages/parallelDist/topics/parDist'>parallelDist</a></code>. The former does not work with any measure in the <strong>proxy</strong> package, 
+whereas the latter should.</p>
+    
+    <h2 class="hasAnchor" id="usage"><a class="anchor" href="#usage"></a>Usage</h2>
+
+    
+    <pre>$use_distance_measure(measure)</pre>
+    
+    <h2 class="hasAnchor" id="see-also"><a class="anchor" href="#see-also"></a>See also</h2>
+
+    <div class='dont-index'><p><code><a href='https://www.rdocumentation.org/packages/parallelDist/topics/parDist'>parDist</a></code> <code><a href='https://www.rdocumentation.org/packages/proxy/topics/registry'>pr_DB</a></code></p></div>
     
 
+    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
+    <pre class="examples"><div class='input'><span class='fu'><a href='https://www.rdocumentation.org/packages/utils/topics/data'>data</a></span>(<span class='no'>noisy_circle</span>)
+<span class='no'>m</span> <span class='kw'>&lt;-</span> <span class='no'>MapperRef</span>$<span class='fu'>new</span>(<span class='no'>noisy_circle</span>)
+<span class='no'>m</span>$<span class='fu'><a href='use_filter.html'>use_filter</a></span>(<span class='no'>noisy_circle</span>[,<span class='fl'>1</span>])
+<span class='no'>m</span>$<span class='fu'><a href='use_cover.html'>use_cover</a></span>(<span class='st'>"fixed interval"</span>, <span class='kw'>number_intervals</span> <span class='kw'>=</span> <span class='fl'>5</span>, <span class='kw'>percent_overlap</span> <span class='kw'>=</span> <span class='fl'>25</span>)
+
+<span class='co'>## Constructs clusters with euclidean metric (default)</span>
+<span class='no'>m</span>$<span class='fu'>use_distance_measure</span>(<span class='st'>"euclidean"</span>)
+<span class='no'>m</span>$<span class='fu'><a href='construct_pullback.html'>construct_pullback</a></span>()
+
+<span class='co'>## Constructs clusters with p-norm (p = 1)</span>
+<span class='no'>m</span>$<span class='fu'>use_distance_measure</span>(<span class='st'>"Minkowski"</span>, <span class='kw'>p</span> <span class='kw'>=</span> <span class='fl'>1L</span>)
+<span class='no'>m</span>$<span class='fu'><a href='construct_pullback.html'>construct_pullback</a></span>()</div><span class='co'># NOT RUN {</span>
+<span class='co'>## To see list of available measures, use:</span>
+<span class='kw pkg'>proxy</span><span class='kw ns'>::</span><span class='no'><a href='https://www.rdocumentation.org/packages/proxy/topics/registry'>pr_DB</a></span>$<span class='fu'>get_entry_names</span>()
+<span class='co'># }</span></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <h2>Contents</h2>
@@ -147,7 +179,13 @@ if the <span class="pkg">proxy</span> package is installed, any measure in <code
       <li><a href="#arguments">Arguments</a></li>
       
       <li><a href="#details">Details</a></li>
-          </ul>
+
+      <li><a href="#usage">Usage</a></li>
+
+      <li><a href="#see-also">See also</a></li>
+      
+      <li><a href="#examples">Examples</a></li>
+    </ul>
 
   </div>
 </div>

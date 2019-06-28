@@ -79,7 +79,7 @@
 <div id="r-implementation-of-mapper" class="section level1">
 <div class="page-header"><h1 class="hasAnchor">
 <a href="#r-implementation-of-mapper" class="anchor"></a>R implementation of Mapper</h1></div>
-<p><a href="https://cran.r-project.org/packge=mapper"><img src="https://www.r-pkg.org/badges/version/mapper" alt="CRAN_Status_Badge"></a> <a href="https://ci.appveyor.com/project/peekxc/mapper"><img src="https://img.shields.io/appveyor/ci/peekxc/Mapper.svg?logo=windows&amp;logoColor=DDDDDD" alt="Appveyor Windows Build status"></a> <a href="https://travis-ci.com/peekxc/Mapper"><img src="https://img.shields.io/travis/com/peekxc/Mapper.svg?logo=Apple&amp;logoColor=DDDDDD&amp;env=BADGE=osx&amp;label=build&amp;branch=master" alt="Travis OS X Build status"></a> <a href="https://travis-ci.com/peekxc/Mapper"><img src="https://img.shields.io/travis/com/peekxc/Mapper.svg?logo=linux&amp;logoColor=DDDDDD&amp;env=BADGE=linux&amp;label=build&amp;branch=master" alt="Travis Linux X Build status"></a> [<img src="https://www.tidyverse.org/lifecycle/#maturing" alt="Package status">]</p>
+
 <p>The <code>Mapper</code> package provides an <a href="https://www.r-project.org/">R</a> implementation of the <em>Mapper</em> framework (see <a href="#mapper_paper">1</a>). The package includes:</p>
 <p><img src="reference/figures/mapper_logo.png" width="150" style="margin-left: 15px;" align="right"></p>
 <ul>
@@ -98,7 +98,7 @@
 <a href="#installation" class="anchor"></a>Installation</h4>
 <p>Install the <code>Mapper</code> package from github as follows:</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/library">require</a></span>(<span class="st">"devtools"</span>)</a>
-<a class="sourceLine" id="cb1-2" data-line-number="2">devtools<span class="op">::</span><span class="kw"><a href="https://www.rdocumentation.org/packages/devtools/topics/install_github">install_github</a></span>(<span class="st">"peekxc/mapper"</span>)</a></code></pre></div>
+<a class="sourceLine" id="cb1-2" data-line-number="2">devtools<span class="op">::</span><span class="kw"><a href="https://www.rdocumentation.org/packages/devtools/topics/reexports">install_github</a></span>(<span class="st">"peekxc/mapper"</span>)</a></code></pre></div>
 <p>A CRAN release is planned for the near future.</p>
 </div>
 <div id="creating-a-complex" class="section level4">
@@ -179,16 +179,16 @@
 ##  $ (5) : num 6
 ##  $ (6) : num 7
 ##  $ (7) : num 8
-##  $ (8) : num [1:2] 9 10
-##  $ (9) : num [1:2] 11 12
-##  $ (10): num 13</code></pre>
+##  $ (8) : num 9
+##  $ (9) : num [1:2] 10 11
+##  $ (10): num 12</code></pre>
 <p>The simplicial complex is available via the <code>$simplicial_complex</code> member, and the points in contained in each vertex is available via the <code>$vertices</code> member.</p>
 <div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb14-1" data-line-number="1">m<span class="op">$</span>simplicial_complex</a></code></pre></div>
 <pre><code>## &lt; empty simplex tree &gt;</code></pre>
 <p>The complex is stored in a <a href="?simplex_tree">Simplex Tree</a> (see 2), and the vertices are stored are stored as a named list, where each name corresponds to the 0-simplex in the simplicial complex, and each value denotes a vector of the points indices that comprise the connected component.</p>
 <div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb16-1" data-line-number="1"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/lapply">sapply</a></span>(m<span class="op">$</span>vertices, length)</a></code></pre></div>
-<pre><code>## 13 12 11  2  9  6  7  1  5 10  8  4  3  0 
-## 25 10  9  9  8 14 13 10 14  7 13  8  7 25</code></pre>
+<pre><code>## 12 11  2  9  6  7  1  5 10  8  4  3  0 
+## 25 10  9 15 14 13 10 14  9 13  8  7 25</code></pre>
 <p>Once you’re satisfied with the clustering, you can construct the nerve by considering the <span class="math inline">\(k+1\)</span>-fold non-empty intersections between the sets in the pullback. It’s common to restrict the degree of the intersections considered, e.g. to ensure the <em>mapper</em> is a graph, use <span class="math inline">\(k=1\)</span>.</p>
 <div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb18-1" data-line-number="1">m<span class="op">$</span><span class="kw"><a href="reference/construct_nerve.html">construct_nerve</a></span>(<span class="dt">k =</span> 1L)</a>
 <a class="sourceLine" id="cb18-2" data-line-number="2"><span class="kw"><a href="https://www.rdocumentation.org/packages/graphics/topics/plot">plot</a></span>(m<span class="op">$</span>simplicial_complex)</a></code></pre></div>
@@ -212,8 +212,7 @@
 <div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb21-1" data-line-number="1"><span class="co">## Install with devtools::install_github("peekxc/pixiplex")</span></a>
 <a class="sourceLine" id="cb21-2" data-line-number="2"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/library">library</a></span>(<span class="st">"pixiplex"</span>)</a>
 <a class="sourceLine" id="cb21-3" data-line-number="3"><span class="kw"><a href="https://www.rdocumentation.org/packages/graphics/topics/plot">plot</a></span>(m<span class="op">$</span><span class="kw"><a href="reference/as_pixiplex.html">as_pixiplex</a></span>())</a></code></pre></div>
-<div id="pixiplex_vis" style="width:700px;height:432.632880098888px;" class="pixiplex_vis html-widget"></div>
-<script type="application/json" data-for="pixiplex_vis">{"x":{"plex":{"nodes":{"id":[0,1,2,3,4,5,6,7,8,9,10,11,12,13],"x":[0.344010173871636,0.708235098122284,0,0.676555152961511,0.0519664552815714,0.382440404492926,0.416522103247129,0.46156991734589,0.520458714796378,0.888661945287641,0.263572021664497,1,0.287606498287082,0.687098252814434],"y":[0,0.0607914776491852,0.0662197356060237,0.170581898453322,0.174748101225345,0.276914030276242,0.42744937151057,0.576693610208772,0.726850200005932,0.82123613103078,0.838238316795315,0.928818467178943,0.949457490634218,1]},"links":{"source":[0,0,1,2,3,4,5,6,7,8,8,9,10,11,12],"target":[1,2,3,4,5,5,6,7,8,9,10,11,12,13,13]}},"canvas":false,"api":[{"method":"setNodeStyle","node_ids":[0,1,2,3,4,5,6,7,8,9,10,11,12,13],"style":{"color":[255,24063,24063,55551,55551,65450,65326,3800832,11861760,16766976,16766976,16735488,16735488,16711680],"radius":[15,6.66666666666667,6.11111111111111,5,5.55555555555556,8.88888888888889,8.88888888888889,8.33333333333333,8.33333333333333,5.55555555555556,5,6.11111111111111,6.66666666666667,15],"alpha":[1,1,1,1,1,1,1,1,1,1,1,1,1,1]}}]},"evals":[],"jsHooks":[]}</script>
+<p><img src="articles/pixiplex_prev.png" width="\textwidth"></p>
 </div>
 <div id="references" class="section level2">
 <h2 class="hasAnchor">
@@ -289,7 +288,17 @@
 </ul>
 </div>
 
-  </div>
+  <div class="dev-status">
+<h2>Dev status</h2>
+<ul class="list-unstyled">
+<li><a href="https://cran.r-project.org/packge=mapper"><img src="https://www.r-pkg.org/badges/version/mapper" alt="CRAN_Status_Badge"></a></li>
+<li><a href="https://ci.appveyor.com/project/peekxc/mapper"><img src="https://img.shields.io/appveyor/ci/peekxc/Mapper.svg?logo=windows&amp;logoColor=DDDDDD" alt="Appveyor Windows Build status"></a></li>
+<li><a href="https://travis-ci.com/peekxc/Mapper"><img src="https://img.shields.io/travis/com/peekxc/Mapper.svg?logo=Apple&amp;logoColor=DDDDDD&amp;env=BADGE=osx&amp;label=build&amp;branch=master" alt="Travis OS X Build status"></a></li>
+<li><a href="https://travis-ci.com/peekxc/Mapper"><img src="https://img.shields.io/travis/com/peekxc/Mapper.svg?logo=linux&amp;logoColor=DDDDDD&amp;env=BADGE=linux&amp;label=build&amp;branch=master" alt="Travis Linux X Build status"></a></li>
+<li><a href="https://www.tidyverse.org/lifecycle/#maturing"><img src="https://img.shields.io/badge/lifecycle-maturing-blue.svg" alt="Package status"></a></li>
+</ul>
+</div>
+</div>
 </div>
 
 

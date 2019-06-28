@@ -32,12 +32,7 @@
 
 <meta property="og:title" content="Constructs the k-skeleton — construct_k_skeleton" />
 
-<meta property="og:description" content="Computes the k-skeleton of the mapper by computing the nerve of the 
-the pullback cover induced by the cover member. 
-
-This function computes the k-skeleton inductively, e.g. by first computing the vertices, 
-then the edges, etc. A check is performed to ensure the pullback has been decomposed, and 
-if not, then construct_pullback is called." />
+<meta property="og:description" content="Computes the k-skeleton of the mapper by computing the nerve of the pullback of cover member." />
 <meta name="twitter:card" content="summary" />
 
 <meta name="robots" content="noindex">
@@ -124,12 +119,7 @@ if not, then construct_pullback is called." />
 
     <div class="ref-description">
     
-    <p>Computes the k-skeleton of the mapper by computing the nerve of the 
-the pullback cover induced by the <code>cover</code> member. <br />
-<br />
-This function computes the k-skeleton inductively, e.g. by first computing the vertices, 
-then the edges, etc. A check is performed to ensure the pullback has been decomposed, and 
-if not, then <code><a href='construct_pullback.html'>construct_pullback</a></code> is called.</p>
+    <p>Computes the k-skeleton of the mapper by computing the nerve of the pullback of <code>cover</code> member.</p>
     
     </div>
 
@@ -145,7 +135,19 @@ if not, then <code><a href='construct_pullback.html'>construct_pullback</a></cod
     
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>For the details on how this is computed, see Singh et. al, section 3.2.</p>
+    <p>The primary output of the Mapper method is a simplicial complex. With <code><a href='MapperRef.html'>MapperRef</a></code> objects, 
+the simplicial complex is stored as a <code><a href='https://www.rdocumentation.org/packages/simplextree/topics/simplex_tree'>simplextree</a></code>. The underlying complex does not need to be modified by the user, i.e. is completely maintained by <code><a href='MapperRef.html'>MapperRef</a></code> methods 
+(e.g. this method, <code><a href='construct_nerve.html'>construct_nerve</a></code>, etc.). <br /> 
+<br /> 
+This function computes the k-skeleton inductively, e.g. by first computing the vertices, 
+then the edges, etc. up to the dimension specified. A check is performed to ensure the pullback has been decomposed, and 
+if not, then <code><a href='construct_pullback.html'>construct_pullback</a></code> is called. <br />
+<br />
+For an algorithmic description of this process, see Singh et. al, section 3.2.</p>
+    
+    <h2 class="hasAnchor" id="references"><a class="anchor" href="#references"></a>References</h2>
+
+    <p>Gurjeet Singh, Facundo Mémoli, and Gunnar Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.</p>
     
 
   </div>
@@ -155,6 +157,8 @@ if not, then <code><a href='construct_pullback.html'>construct_pullback</a></cod
       <li><a href="#arguments">Arguments</a></li>
       
       <li><a href="#details">Details</a></li>
+
+      <li><a href="#references">References</a></li>
           </ul>
 
   </div>

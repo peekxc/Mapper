@@ -14,22 +14,25 @@ reference:
   - '`mapper`'
   - '`covers_available`'
   - '`cutoff_first_bin`'
+  - '`cutoff_first_threshold`'
   - '`bin_color`'
   - '`hausdorff_distance`'
+  - '`gromov_hausdorff`'
   - '`landmarks`'
 - title: MapperRef methods
   desc: >
     Members associated with the MapperRef R6 class.  
   contents: 
   - '`MapperRef`'
-  - '`pullback`'
+  - '`use_filter`'
+  - '`use_distance_measure`'
   - '`use_cover`'
   - '`use_clustering_algorithm`'
+  - '`construct_pullback`'
+  - '`construct_nerve`'
+  - '`construct_k_skeleton`'
   - '`as_igraph`'
   - '`as_pixiplex`'
-  - '`construct_pullback`'
-  - '`compute_edges`'
-  - '`compute_k_skeleton`'
   - '`exportMapper`'
 - title: Cover generators 
   desc: >
@@ -43,7 +46,6 @@ reference:
   desc: > 
     Utility data structures exported as Rcpp modules. 
   contents: 
-  - '`simplex_tree`'
   - '`union_find`'
   - '`segment_tree`'
 

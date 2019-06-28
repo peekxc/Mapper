@@ -29,8 +29,8 @@
 #' @export CoverRef
 CoverRef <- R6::R6Class("CoverRef", 
   private = list(
-    .level_sets = NA,
-    .index_set = NA, 
+    .level_sets = NULL,
+    .index_set = NULL, 
     .typename = character(0)
   ), 
   lock_class = FALSE,  ## Feel free to add your own members

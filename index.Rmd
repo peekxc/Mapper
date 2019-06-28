@@ -6,7 +6,7 @@ output: html_document
 [![Appveyor Windows Build status](https://img.shields.io/appveyor/ci/peekxc/Mapper.svg?logo=windows&logoColor=DDDDDD)](https://ci.appveyor.com/project/peekxc/mapper)
 [![Travis OS X Build status](https://img.shields.io/travis/com/peekxc/Mapper.svg?logo=Apple&logoColor=DDDDDD&env=BADGE=osx&label=build&branch=master)](https://travis-ci.com/peekxc/Mapper)
 [![Travis Linux X Build status](https://img.shields.io/travis/com/peekxc/Mapper.svg?logo=linux&logoColor=DDDDDD&env=BADGE=linux&label=build&branch=master)](https://travis-ci.com/peekxc/Mapper)
-[![Package status](https://www.tidyverse.org/lifecycle/#maturing)]
+[![Package status](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://www.tidyverse.org/lifecycle/#maturing)
 
 ```{r setup, eval=TRUE, include=FALSE}
 library("Mapper")
@@ -176,10 +176,13 @@ plot(m$as_igraph())
 One of the standard way of visualizing __mappers__ is to size the vertices logarithmically according to how many points they have in them and colored based on the mean value of the points $f$ values. Each vertex is given a label of the form "x:y" where 'x' denotes the vertex id, and 'y' denotes the number of points in the vertex.  
 
 For more interactive visualization options, consider the (experimental) [pixiplex](https://github.com/peekxc/pixiplex) package. 
-```{r}
+```{r, eval=FALSE, echo=TRUE}
 ## Install with devtools::install_github("peekxc/pixiplex")
 library("pixiplex")
 plot(m$as_pixiplex())
+```
+```{r, echo = FALSE, out.width='\\textwidth'}
+knitr::include_graphics("vignettes/pixiplex_prev.png")
 ```
 
 ## References 

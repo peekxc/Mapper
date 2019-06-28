@@ -2,22 +2,29 @@
 #' @name MapperRef
 #' @description `MapperRef` is an \link{R6} class built for parameterizing and computing mappers efficiently.
 #' @section Details: To create a new \code{MapperRef} instance object, instantiate the class with the \code{\link[R6:R6Class]{R6 new}} operator. 
-#' Instantiation of a \code{MapperRef} objects requires a data matrix, or a function returning one.
+#' Instantiation of a \code{MapperRef} objects requires a data matrix, or a function returning one. \cr
+#' The primary output of the Mapper method is a simplicial complex. 
+#' \cr 
+#' The underlying complex does not need to be modified by the user, i.e. is completely maintained by \code{\link{MapperRef}} methods 
+#' (e.g. \code{\link{construct_nerve}}, \code{\link{construct_k_skeleton}}, etc.).
 #' @section Usage:
 #' \preformatted{m = MapperRef$new(X)} 
 #' @section Arguments:
-#' \code{X} The data, either as a matrix, or a function that returns a matrix.
+#' \itemize{
+#'    \item{\strong{X}}: The data, either as a matrix, or a function that returns a matrix.
+#' }
 #' @section Fields:
 #' \itemize{
 #'   \item{\strong{X}}: The data, as a function. Evaluation returns the data as a matrix.
 #'   \item{\strong{filter}}: The filter, as a function. Evaluation returns the filtered data as a matrix.  
 #'   \item{\strong{cover}}: The cover (a \code{\link{CoverRef}} derived object). 
-#'   \item{\strong{clustering_algorithm}} The clustering algorithm to use in the pullback.
-#'   \item{\strong{measure}} Distance measure to use to compute distances in ambient space. See \code{use_distance_measure} for more details.     
-#'   \item{\strong{pullback}} Mapping between the sets in the cover (by index) and the vertices (by id).  
-#'   \item{\strong{vertices}} The mapper vertices. 
-#'   \item{\strong{simplicial_complex}} A \code{\link[simplextree:simplextree]{simplex tree}} object.
+#'   \item{\strong{clustering_algorithm}}: The clustering algorithm to use in the pullback.
+#'   \item{\strong{measure}}: Distance measure to use to compute distances in ambient space. See \code{use_distance_measure} for more details.     
+#'   \item{\strong{pullback}}: Mapping between the sets in the cover (by index) and the vertices (by id).  
+#'   \item{\strong{vertices}}: The mapper vertices. 
+#'   \item{\strong{simplicial_complex}}: A \code{\link[simplextree:simplextree]{simplex tree}} object.
 #' }
+#' 
 #' @section Methods:
 #' \itemize{
 #'   \item{\code{\link{use_filter}}: Specifies the filter.}
@@ -34,7 +41,7 @@
 #' @section More information:
 #' Full documentation available \href{https://peekxc.github.io/Mapper}{online}.
 #' 
-#' @return Instance object of the \code{\link{MapperRef}} class with methods for building the mapper.
+#' @return \code{\link{MapperRef}} instance equipped with methods for building the mapper.
 #' 
 #' @import methods
 #' @importFrom Rcpp sourceCpp
@@ -47,15 +54,15 @@ NULL
 #' @export
 MapperRef <- R6::R6Class("MapperRef", 
   private = list(
-    .X = NA, 
-    .cover=NA, 
-    .clustering_algorithm=NA, 
-    .measure="euclidean", 
-    .vertices=list(),
-    .simplicial_complex = NA, 
-    .pullback=list(), 
-    .filter = NULL, 
-    .config = NA
+    .X = NULL, 
+    .filter = NULL,
+    .cover = NULL, 
+    .clustering_algorithm = NULL, 
+    .measure = "euclidean", 
+    .measure_opt = NULL, 
+    .pullback=list(),
+    .vertices = list(),
+    .simplicial_complex = NULL
   ),
   lock_class = FALSE,  ## Feel free to add your own members
   lock_objects = FALSE ## Or change existing ones 
@@ -78,15 +85,15 @@ MapperRef$set("active", "pullback",
 )
 
 ## cover ----
-#' @title Mapper cover
-#' @name cover
-#' @description Every \code{\link{MapperRef}} object requires a \code{\link{CoverRef}} object as 
-#' is \code{cover} member field. In the context of Mapper, a cover is used to discretize the filter 
-#' space into a partition, which is then used via a \emph{pullback} operation to construct the vertices. \cr 
-#' \cr 
-#' The \code{\link{MapperRef}} class makes no restrictions on the cover that is used; only that it fulfills the 
-#' requirements of being a valid \code{\link{CoverRef}} instance.
-#' @seealso \code{\link{CoverRef}} 
+## @title Mapper cover
+## @name cover
+## @description Every \code{\link{MapperRef}} object requires a \code{\link{CoverRef}} object as 
+## is \code{cover} member field. In the context of Mapper, a cover is used to discretize the filter 
+## space into a partition, which is then used via a \emph{pullback} operation to construct the vertices. \cr 
+## \cr 
+## The \code{\link{MapperRef}} class makes no restrictions on the cover that is used; only that it fulfills the 
+## requirements of being a valid \code{\link{CoverRef}} instance.
+## @seealso \code{\link{CoverRef}} 
 MapperRef$set("active", "cover", 
   function(value){ #function(fv, type = c("restrained rectangular"), ...)
     if (missing(value)){ private$.cover } 
@@ -112,14 +119,14 @@ MapperRef$set("active", "vertices",
 )
 
 ## simplicial_complex ----
-#' @title Simplicial Complex 
-#' @name simplicial_complex 
-#' @description The relational information of the Mapper construction. 
-#' @details The primary output of the Mapper method is a simplicial complex. With \code{\link{MapperRef}} objects, 
-#' the simplicial complex is stored as a \code{\link[simplextree]{simplextree}}. 
-#' \cr 
-#' The underlying complex does not need to be modified by the user, i.e. is completely maintained by \code{\link{MapperRef}} methods 
-#' (e.g. \code{\link{construct_nerve}}, \code{\link{construct_k_skeleton}}, etc.).
+## @title Simplicial Complex 
+## @name simplicial_complex 
+## @description The relational information of the Mapper construction. 
+## @details The primary output of the Mapper method is a simplicial complex. With \code{\link{MapperRef}} objects, 
+## the simplicial complex is stored as a \code{\link[simplextree]{simplextree}}. 
+## \cr 
+## The underlying complex does not need to be modified by the user, i.e. is completely maintained by \code{\link{MapperRef}} methods 
+## (e.g. \code{\link{construct_nerve}}, \code{\link{construct_k_skeleton}}, etc.).
 MapperRef$set("active", "simplicial_complex", 
   function(value){
     if (missing(value)){ private$.simplicial_complex }
@@ -195,7 +202,7 @@ MapperRef$set("active", "filter",
 ## measure ----
 ## Active binding for the distance measure
 MapperRef$set("active", "measure",
-    function(value){
+    function(value, ...){
       if (missing(value)){ private$.measure }
       else {
         has_proxy <- requireNamespace("proxy", quietly = TRUE)
@@ -247,6 +254,8 @@ MapperRef$set("public", "use_filter", function(filter=c("PC", "IC", "ECC", "KDE"
   if (is.function(filter)){ private$.filter <- filter } 
   else if (is.matrix(filter)){
     self$filter <- filter
+  } else if (is.numeric(filter) && is.vector(filter)){
+    self$filter <- matrix(filter, ncol = 1)
   } else if (is.character(filter)){
     filter <- toupper(filter)
     filter_types <- c("PC", "IC", "ECC", "KDE", "DTM", "MDS", "ISOMAP", "LE", "UMAP")
@@ -343,6 +352,8 @@ MapperRef$set("public", "use_filter", function(filter=c("PC", "IC", "ECC", "KDE"
     } else {
       stop(sprintf("Unknown filter: %s", filter))
     }
+  } else{
+    stop(sprintf("Unknown format of supplied filter. Must be either string, matrix, matrix-producing function, or vector.", filter))
   }
   # print.mapper_filter <- function(x){
   #   
@@ -351,14 +362,41 @@ MapperRef$set("public", "use_filter", function(filter=c("PC", "IC", "ECC", "KDE"
 })
 
 ## use_distance_measure ----
-#' @name  use_distance_measure
-#' @title Sets the distance measure to use
+#' @name use_distance_measure
+#' @title Assigns a distance measure
 #' @param measure The distance measure to use (string).
-#' @details Specifies the distance measure to use to compute distances when decomposing the preimages. 
-#' \code{measure} must be either one of ["euclidean", "maximum", "manhattan", "canberra", "binary", "minkowski"], or, 
-#' if the \pkg{proxy} package is installed, any measure in \code{proxy::pr_DB$get_entry_names()}. 
-MapperRef$set("public", "use_distance_measure", function(measure){
+#' @param ... Extra parameters passed to the distance function. See details. 
+#' @description Assigns a distance measure to the \code{\link{MapperRef}} instance to use when compute distances in the data space. 
+#' @details The supplied \code{measure} must be either one of ["euclidean", "maximum", "manhattan", "canberra", "binary", "minkowski"], or, 
+#' if the \pkg{proxy} package is installed, any measure in \code{proxy::pr_DB$get_entry_names()}.\cr
+#' \cr
+#' Additional parameters passed via \code{...} are passed to either \code{\link[stats]{dist}} or, if installed, 
+#' \code{\link[parallelDist]{parallelDist}}. The former does not work with any measure in the \strong{proxy} package, 
+#' whereas the latter should.
+#' @section Usage: 
+#' \preformatted{$use_distance_measure(measure)} 
+#' @examples 
+#' data(noisy_circle)
+#' m <- MapperRef$new(noisy_circle)
+#' m$use_filter(noisy_circle[,1])
+#' m$use_cover("fixed interval", number_intervals = 5, percent_overlap = 25)
+#' 
+#' ## Constructs clusters with euclidean metric (default)
+#' m$use_distance_measure("euclidean")
+#' m$construct_pullback() 
+#' 
+#' ## Constructs clusters with p-norm (p = 1)
+#' m$use_distance_measure("Minkowski", p = 1L)
+#' m$construct_pullback() 
+#' 
+#' \dontrun{
+#' ## To see list of available measures, use:
+#' proxy::pr_DB$get_entry_names()
+#' }
+#' @seealso \code{\link[parallelDist]{parDist}} \code{\link[proxy]{pr_DB}}
+MapperRef$set("public", "use_distance_measure", function(measure, ...){
   self$measure <- measure
+  if (!missing(...)){ private$.measure_opt <- list(...) }
   invisible(self)
 })
 
@@ -369,9 +407,24 @@ MapperRef$set("public", "use_distance_measure", function(measure){
 #' Convenience method to select, parameterize, and construct a cover and associate it with the calling objects \code{cover} field.   
 #' @param cover Either a pre-configured cover, or name of the cover to use. 
 #' @param ... Additional parameter values to pass to the covering generators initialize method. 
-#' @details The \code{cover} parameter can be any \code{\link{CoverRef}}-derived instance (e.g. a \code{\link{FixedIntervalCover}}), 
+#' @details Every \code{\link{MapperRef}} object requires a \code{\link{CoverRef}} object as 
+#' is \code{cover} member field. In the context of Mapper, a cover is used to discretize the filter 
+#' space into a partition, which is then used via a \emph{pullback} operation to construct the vertices. \cr 
+#' \cr 
+#' The \code{\link{MapperRef}} class makes no restrictions on the cover that is used; only that it fulfills the 
+#' requirements of being a valid \code{\link{CoverRef}} instance (e.g. a \code{\link{FixedIntervalCover}}), 
 #' or one of the cover typenames listed in the \code{\link{covers_available}()}. 
 #' If a typename is given, the cover is automatically constructed before being assigned to the \code{$cover} field.  
+#' @examples 
+#' data(noisy_circle)
+#' m <- MapperRef$new(noisy_circle)
+#' m$use_filter(noisy_circle[,1])
+#' m$use_cover("fixed interval", number_intervals = 5, percent_overlap = 25)
+#' 
+#' ## Alternative way to specify (and construct) the cover
+#' cover <- FixedIntervalCover$new(number_intervals = 5, percent_overlap = 25)
+#' cover$construct_cover(filter = m$filter)
+#' m$cover <- cover
 MapperRef$set("public", "use_cover", function(cover="fixed interval", ...){
   stopifnot(!is.null(self$filter))
   if (missing(cover)){ cover <- "fixed interval"}
@@ -427,7 +480,9 @@ MapperRef$set("public", "use_clustering_algorithm",
           ## Use parallelDist package if available
           has_pd <- requireNamespace("parallelDist", quietly = TRUE)
           dist_f <- ifelse(has_pd, parallelDist::parallelDist, stats::dist)
-          dist_x <- do.call(dist_f, list(x=self$X(idx), method=self$measure))
+          dist_params <- list(x=self$X(idx), method=tolower(self$measure))
+          if (!is.null(private$.measure_opt)){ dist_params <- append(dist_params, private$.measure_opt) }
+          dist_x <- do.call(dist_f, dist_params)
           
           ## Use fastcluster if available 
           has_fc <- requireNamespace("fastcluster", quietly = TRUE)
@@ -480,7 +535,7 @@ MapperRef$set("public", "use_clustering_algorithm",
 #' modify the simplicial complex. 
 #' @seealso \code{\link{construct_k_skeleton}} \code{\link{construct_nerve}} \code{\link{use_clustering_algorithm}}
 MapperRef$set("public", "construct_pullback", function(pullback_ids=NULL, ...){
-  stopifnot(!is.na(self$cover$level_sets))
+  stopifnot(!is.null(self$cover$level_sets))
   stopifnot(is.function(private$.clustering_algorithm))
   pids_supplied <- (!missing(pullback_ids) && !is.null(pullback_ids))
   if (pids_supplied){ stopifnot(all(pullback_ids %in% self$cover$index_set)) }
@@ -574,13 +629,18 @@ MapperRef$set("public", "construct_nerve", function(k, indices = NULL, min_weigh
 #' @name construct_k_skeleton 
 #' @title Constructs the k-skeleton
 #' @param k the maximal dimension to consider.
-#' @description Computes the k-skeleton of the mapper by computing the nerve of the 
-#' the pullback cover induced by the \code{cover} member. \cr
-#' \cr
+#' @description Computes the k-skeleton of the mapper by computing the nerve of the pullback of \code{cover} member.
+#' @details 
+#' The primary output of the Mapper method is a simplicial complex. With \code{\link{MapperRef}} objects, 
+#' the simplicial complex is stored as a \code{\link[simplextree]{simplextree}}. The underlying complex does not need to be modified by the user, i.e. is completely maintained by \code{\link{MapperRef}} methods 
+#' (e.g. this method, \code{\link{construct_nerve}}, etc.). \cr 
+#' \cr 
 #' This function computes the k-skeleton inductively, e.g. by first computing the vertices, 
-#' then the edges, etc. A check is performed to ensure the pullback has been decomposed, and 
-#' if not, then \code{\link{construct_pullback}} is called.
-#' @details For the details on how this is computed, see Singh et. al, section 3.2. 
+#' then the edges, etc. up to the dimension specified. A check is performed to ensure the pullback has been decomposed, and 
+#' if not, then \code{\link{construct_pullback}} is called. \cr
+#' \cr
+#' For an algorithmic description of this process, see Singh et. al, section 3.2. 
+#' @references Gurjeet Singh, Facundo Mémoli, and Gunnar Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.
 MapperRef$set("public", "construct_k_skeleton", function(k=1L){
   stopifnot(k >= 0)
   if (length(private$.vertices) == 0) { self$construct_pullback() }

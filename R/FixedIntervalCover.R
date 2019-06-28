@@ -16,7 +16,7 @@
 #' @export
 FixedIntervalCover <- R6::R6Class("FixedIntervalCover",
   inherit = CoverRef,
-  private = list(.number_intervals=NA, .percent_overlap=NA)
+  private = list(.number_intervals=NULL, .percent_overlap=NULL)
 )
 
 #' @export
@@ -58,8 +58,8 @@ FixedIntervalCover$set("active", "number_intervals",
 ## Validates the parameter settings
 ## validate ----
 FixedIntervalCover$set("public", "validate", function(filter){
-  stopifnot(!is.na(private$.percent_overlap))
-  stopifnot(!is.na(private$.number_intervals))
+  stopifnot(!is.null(private$.percent_overlap))
+  stopifnot(!is.null(private$.number_intervals))
   stopifnot(all(self$number_intervals > 0))
   stopifnot(all(self$percent_overlap >= 0), all(self$percent_overlap < 100))
   fv <- filter()
@@ -145,7 +145,7 @@ FixedIntervalCover$set("public", "construct_cover", function(filter, index=NULL)
     self$level_sets <- constructIsoAlignedLevelSets(fv, as.matrix(set_bnds))
     return(invisible(self)) ## return invisibly 
   } else {
-    if (!is.na(self$level_sets) && index %in% names(self$level_sets)){
+    if (!is.null(self$level_sets) && index %in% names(self$level_sets)){
       return(self$level_sets[[index]])
     } else {
       p_idx <- which(index == self$index_set)
@@ -160,7 +160,7 @@ FixedIntervalCover$set("public", "construct_cover", function(filter, index=NULL)
 ## the set of n unique (k+1)-fold intersections are required to construct the nerve. 
 ## neighborhood ----
 FixedIntervalCover$set("public", "neighborhood", function(filter, k){
-  stopifnot(!is.na(private$.index_set))
+  stopifnot(!is.null(private$.index_set))
   fv <- filter()
   if (k == 1){
     all_pairs <- t(combn(1L:length(private$.index_set), 2))

@@ -7,13 +7,19 @@
 \item{k}{the maximal dimension to consider.}
 }
 \description{
-Computes the k-skeleton of the mapper by computing the nerve of the 
-the pullback cover induced by the \code{cover} member. \cr
-\cr
-This function computes the k-skeleton inductively, e.g. by first computing the vertices, 
-then the edges, etc. A check is performed to ensure the pullback has been decomposed, and 
-if not, then \code{\link{construct_pullback}} is called.
+Computes the k-skeleton of the mapper by computing the nerve of the pullback of \code{cover} member.
 }
 \details{
-For the details on how this is computed, see Singh et. al, section 3.2.
+The primary output of the Mapper method is a simplicial complex. With \code{\link{MapperRef}} objects, 
+the simplicial complex is stored as a \code{\link[simplextree]{simplextree}}. The underlying complex does not need to be modified by the user, i.e. is completely maintained by \code{\link{MapperRef}} methods 
+(e.g. this method, \code{\link{construct_nerve}}, etc.). \cr 
+\cr 
+This function computes the k-skeleton inductively, e.g. by first computing the vertices, 
+then the edges, etc. up to the dimension specified. A check is performed to ensure the pullback has been decomposed, and 
+if not, then \code{\link{construct_pullback}} is called. \cr
+\cr
+For an algorithmic description of this process, see Singh et. al, section 3.2.
+}
+\references{
+Gurjeet Singh, Facundo Mémoli, and Gunnar Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.
 }

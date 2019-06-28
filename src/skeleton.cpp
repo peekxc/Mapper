@@ -21,7 +21,8 @@ List connected_pullbacks(std::vector< std::string > pullback_ids, const List& pu
   Rcpp::XPtr< SimplexTree > stree_ptr(stree);
 
   // Get all the pullback ids
-  vector< std::string > all_pids = as< vector< std::string > >(pullback.names());
+  StringVector pn = pullback.attr("names");
+  vector< std::string > all_pids = as< vector< std::string > >(pn);
   
   // Reverse the pullback maps (key, value) pairs into a new map
   std::map< size_t, std::set< std::string > > v_to_pb;  
@@ -396,7 +397,7 @@ List build_k_skeleton(CharacterMatrix pullback_ids, const List& pullback, List& 
   if (k < 2){ stop("'build_k_skeleton' is meant for building K-complexes for k > 1."); }
   if (pullback_ids.ncol() != k+1){ stop("Expecting (n x k+1) matrix fo pullback ids to compare."); }
   Rcpp::XPtr<SimplexTree> stree_ptr(stree); // Collect the simplex tree
-  using uint = unsigned int;
+  // using uint = unsigned int;
 
   // If requested, track which simplices were added
   vector< vector< idx_t > > simplices_added; 

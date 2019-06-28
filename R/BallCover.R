@@ -11,7 +11,7 @@
 BallCover <- R6::R6Class(
   classname = "BallCover",
   inherit = CoverRef,
-  public = list(epsilon=NA)
+  public = list(epsilon=NULL)
 )
 
 ## initialize ------
@@ -23,7 +23,7 @@ BallCover$set("public", "initialize", function(...){
 
 ## validate ------
 BallCover$set("public", "validate", function(filter){
-  stopifnot(!is.na(self$epsilon))
+  stopifnot(!is.null(self$epsilon))
 })
 
 ## format ----

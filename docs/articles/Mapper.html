@@ -74,7 +74,7 @@
 <!--/.navbar -->
 
       
-      </header><script src="Mapper_files/htmlwidgets-1.4/htmlwidgets.js"></script><script src="Mapper_files/pixiplex_vis-0.0.2/pixiplex.min.js"></script><script src="Mapper_files/pixiplex_vis-binding-0.2/pixiplex_vis.js"></script><div class="row">
+      </header><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1>Using the Mapper Package</h1>
@@ -314,8 +314,8 @@
 <p>The <code>pixiplex</code> package provides a <a href="https://www.htmlwidgets.org/">htmlwidget</a> implementation of a subset of the <a href="https://www.pixijs.com/">pixi.js</a> geared for visualizing and interacting with simplicial complexes, which can be used to visualize the <em>mapper</em> construction. An export option is available via the <code>$as_pixiplex</code> function, which provides a few default coloring and sizing options.</p>
 <div class="sourceCode" id="cb38"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb38-1" data-line-number="1"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/library">library</a></span>(<span class="st">"pixiplex"</span>)</a>
 <a class="sourceLine" id="cb38-2" data-line-number="2"><span class="kw"><a href="https://www.rdocumentation.org/packages/graphics/topics/plot">plot</a></span>(m<span class="op">$</span><span class="kw"><a href="../reference/as_pixiplex.html">as_pixiplex</a></span>())</a></code></pre></div>
-<div id="pixiplex_vis" style="width:700px;height:432.632880098888px;" class="pixiplex_vis html-widget"></div>
-<script type="application/json" data-for="pixiplex_vis">{"x":{"plex":{"nodes":{"id":[0,1,2,3,4,5,6,7],"x":[0.55912630568847,0.897021861883842,0.189111654765168,0,1,0.811461496354473,0.103861830783854,0.441525126423137],"y":[1,0.812500018307327,0.895175848345743,0.558745521586501,0.441622660201888,0.106040627175461,0.187994344204086,0]},"links":{"source":[0,0,1,2,3,4,5,6],"target":[1,2,4,3,6,5,7,7]}},"canvas":false,"api":[{"method":"setNodeStyle","node_ids":[0,1,2,3,4,5,6,7],"style":{"color":[255,63487,65532,65295,392960,16580352,15924992,16711680],"radius":[15,5.7909604519774,5.87570621468927,5.67796610169492,5,5.76271186440678,5.59322033898305,14.9152542372881],"alpha":[1,1,1,1,1,1,1,1]}}]},"evals":[],"jsHooks":[]}</script><p>For more information, see the <a href="https://github.com/peekxc/pixiplex">package repository</a>.</p>
+<p><img src="pixiplex_prev.png" width="\textwidth"></p>
+<p>For more information, see the <a href="https://github.com/peekxc/pixiplex">package repository</a>.</p>
 <p>For a static rendering of the <em>mapper</em>, one can use either the <code>as_igraph</code> method or, for higher-order complexes, the default S3 plot method available in the simplextree package (e.g. <code><a href="https://www.rdocumentation.org/packages/graphics/topics/plot">plot(m$simplicial_complex)</a></code>). Other options for visualization are an ongoing effort. If you have a particular visualization package you prefer, feel free to <a href="https://github.com/peekxc/Mapper">submit a issue or PR on the github repository</a>.</p>
 <!-- If the clustering function depends on internal components of the `MapperRef` class instance, the function will error when it is first called. Consider the exact same code as above, but this time parameterized by a field of the `MapperRef` instance. -->
 <!-- ```{r, eval = FALSE, echo = TRUE} -->
