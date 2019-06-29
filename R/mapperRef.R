@@ -674,7 +674,11 @@ MapperRef$set("public", "format", function(...){
 #' attributes. The vertex colors are colored according on a blue to red rainbow according 
 #' to their mean filter value (see \code{\link{bin_color}}). The vertex sizes are scaled according 
 #' to the number of points they contain, scaled by \code{vertex_scale}, and bounded between 
-#' (\code{vertex_min}, \code{vertex_max}). The vertex labels are in the format "<id>:<size>".
+#' (\code{vertex_min}, \code{vertex_max}). The vertex labels are in the format "<id>:<size>".\cr
+#' \cr
+#' The edges are colored similarly by the average filter value of the points intersecting
+#' both nodes they connect too.
+#' @return an igraph object.
 MapperRef$set("public", "as_igraph", function(vertex_scale=c("linear", "log"), vertex_min=10L, vertex_max=15L, col_pal="rainbow"){
   requireNamespace("igraph", quietly = TRUE)
   am <- private$.simplicial_complex$as_adjacency_matrix()
@@ -682,12 +686,14 @@ MapperRef$set("public", "as_igraph", function(vertex_scale=c("linear", "log"), v
   
   ## Color nodes and edges by a default rainbow palette
   rbw_pal <- rev(rainbow(100, start = 0, end = 4/6))
-  agg_val <- function(lst) { sapply(sapply(lst, function(idx){ 
-    apply(as.matrix(self$filter(idx), 1, mean)
-  }), mean) }
+  agg_val <- function(lst) {
+    sapply(sapply(lst, function(idx){ rowMeans(self$filter(idx)) }), mean)
+  }
   rbw_fun <- function(val) rbw_pal[cut(val, breaks = 100, labels = F)]
   agg_node_val <- agg_val(private$.vertices)
   igraph::vertex_attr(G, name = "color") <- rbw_fun(agg_node_val)
+  
+  ## Extract indices in the edges
   agg_edge <- apply(igraph::as_edgelist(G), 1, function(vids){
     intersect(private$.vertices[[vids[1]]], private$.vertices[[vids[2]]])
   })
