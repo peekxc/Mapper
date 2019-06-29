@@ -19,8 +19,10 @@ an igraph object.
 Exports the 1-skeleton to a graph using the igraph library.
 }
 \details{
-By default, the vertices of the output graph are given "color", "size", and "label" 
-attributes. The vertex colors are colored according on a blue to red rainbow according 
+This method converts the 1-skeleton of the Mapper to an igraph object, and assigns some 
+default visual properties. Namely, the vertex attributes "color", "size", and "label" and the 
+edge attribute "color" are assigned. 
+The vertex colors are colored according on the given color palette (default is rainbow) according 
 to their mean filter value (see \code{\link{bin_color}}). The vertex sizes are scaled according 
 to the number of points they contain, scaled by \code{vertex_scale}, and bounded between 
 (\code{vertex_min}, \code{vertex_max}). The vertex labels are in the format "<id>:<size>".\cr

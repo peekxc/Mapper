@@ -3,7 +3,6 @@
 - Can now construct arbitrary dimensional simplicial complexes
 - Removed grapher visualization method, added pixiplex as a replacement
 - Distinguished computation of the 'pullback' from the 'nerve' towards a cleaner modularity of components
-- Added first vignette describing application of Mapper for Shape Comparison
 
 # Mapper 0.9.0
 - Added many API-breaking changes, including: 

@@ -670,8 +670,10 @@ MapperRef$set("public", "format", function(...){
 #' @param vertex_min minimum vertex size. 
 #' @param vertex_min maximum vertex size. 
 #' @param col_pal color palette to color the vertices by. 
-#' @details By default, the vertices of the output graph are given "color", "size", and "label" 
-#' attributes. The vertex colors are colored according on a blue to red rainbow according 
+#' @details This method converts the 1-skeleton of the Mapper to an igraph object, and assigns some 
+#' default visual properties. Namely, the vertex attributes "color", "size", and "label" and the 
+#' edge attribute "color" are assigned. 
+#' The vertex colors are colored according on the given color palette (default is rainbow) according 
 #' to their mean filter value (see \code{\link{bin_color}}). The vertex sizes are scaled according 
 #' to the number of points they contain, scaled by \code{vertex_scale}, and bounded between 
 #' (\code{vertex_min}, \code{vertex_max}). The vertex labels are in the format "<id>:<size>".\cr
@@ -685,14 +687,13 @@ MapperRef$set("public", "as_igraph", function(vertex_scale=c("linear", "log"), v
   colnames(am) <- as.character(private$.simplicial_complex$vertices)
   G <- igraph::graph_from_adjacency_matrix(am, mode = "undirected", add.colnames = NULL) ## NULL makes named vertices
   
-  ## Color nodes and edges by a default rainbow palette
-  rbw_pal <- rev(rainbow(100, start = 0, end = 4/6))
-  agg_val <- function(lst) {
-    sapply(sapply(lst, function(idx){ rowMeans(self$filter(idx)) }), mean)
-  }
-  rbw_fun <- function(val) rbw_pal[cut(val, breaks = 100, labels = F)]
+  ## Coloring + aggregation functions
+  agg_val <- function(lst) { sapply(sapply(lst, function(idx){ rowMeans(self$filter(idx)) }), mean) } 
+  
+  ## Aggregate node filter values
+  v_idx <- match(private$.simplicial_complex$vertices, as.integer(names(self$vertices)))
   agg_node_val <- agg_val(private$.vertices)
-  igraph::vertex_attr(G, name = "color") <- rbw_fun(agg_node_val)
+  igraph::vertex_attr(G, name = "color") <- bin_color(agg_node_val[v_idx], col_pal = col_pal)
   
   ## Extract indices in the edges
   edges <- igraph::as_edgelist(G)
@@ -701,7 +702,7 @@ MapperRef$set("public", "as_igraph", function(vertex_scale=c("linear", "log"), v
     intersect(private$.vertices[[vids[1]]], private$.vertices[[vids[2]]])
   })
   agg_edge_val <- agg_val(edge_idx)
-  igraph::edge_attr(G, name = "color") <- rbw_fun(agg_edge_val)
+  igraph::edge_attr(G, name = "color") <- bin_color(agg_edge_val, col_pal = col_pal)
   
   ## Normalize between 0-1, unless all the same
   normalize <- function(x) { 
@@ -710,13 +711,12 @@ MapperRef$set("public", "as_igraph", function(vertex_scale=c("linear", "log"), v
   }
   if (missing(vertex_scale)){ vertex_scale <- "linear"}
   vertex_scale <- switch(vertex_scale, "linear"=identity, "log"=log)
-  vertex_sizes <- sapply(private$.vertices, length) 
-  igraph::vertex_attr(G, "size") <- (vertex_max - vertex_min)*normalize(vertex_scale(vertex_sizes)) + vertex_min
+  vertex_sizes <- sapply(private$.vertices, length)
+  igraph::vertex_attr(G, "size") <- (vertex_max - vertex_min)*normalize(vertex_scale(vertex_sizes[v_idx])) + vertex_min
 
   ## Fill in labels with id:size
-  igraph::vertex_attr(G, "label") <- apply(cbind(names(private$.vertices), vertex_sizes), 1, function(x){
-    paste0(x, collapse = ":")
-  })
+  v_labels <- cbind(names(private$.vertices)[v_idx], vertex_sizes[v_idx])
+  igraph::vertex_attr(G, "label") <- apply(v_labels, 1, function(x){ paste0(x, collapse = ":") })
   return(G)
 })
 
