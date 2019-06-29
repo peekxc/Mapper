@@ -34,7 +34,8 @@
 
 <meta property="og:description" content="Computes the mapper graph. Mapper is a tool for summarizing topological information from datasets and
 maps defined on them. It takes as input a set of 'point cloud' data, a (possibly lower dimensional) map defined on the data,
-and produces a topological summary of the data expressed through a cover equipped to the codomain of the map." />
+and produces a topological summary of the data expressed through a cover equipped to the codomain of the map. For more 
+information, see the references below." />
 <meta name="twitter:card" content="summary" />
 
 <meta name="robots" content="noindex">
@@ -65,7 +66,7 @@ and produces a topological summary of the data expressed through a cover equippe
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Mapper</a>
-        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.8.0</span>
+        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.1</span>
       </span>
     </div>
 
@@ -80,9 +81,6 @@ and produces a topological summary of the data expressed through a cover equippe
 <li>
   <a href="../articles/Mapper.html">Get started</a>
 </li>
-<li>
-  <a href="../reference/index.html">Reference</a>
-</li>
 <li class="dropdown">
   <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
     Articles
@@ -93,12 +91,29 @@ and produces a topological summary of the data expressed through a cover equippe
     <li>
       <a href="../articles/UsingCustomCover.html">Using a custom covering method</a>
     </li>
+    <li>
+      <a href="../articles/extra/community.html">Community contributed use-cases</a>
+    </li>
   </ul>
+</li>
+<li>
+  <a href="../reference/index.html">Reference</a>
+</li>
+<li>
+  <a href="../news/index.html">News</a>
+</li>
+<li>
+  <a href="../articles/extra/community.html">User contributed</a>
 </li>
       </ul>
       
       <ul class="nav navbar-nav navbar-right">
-        
+        <li>
+  <a href="https://github.com/peekxc/Mapper">
+    <span class="fa fa-github fa-lg"></span>
+     
+  </a>
+</li>
       </ul>
       
     </div><!--/.nav-collapse -->
@@ -112,7 +127,7 @@ and produces a topological summary of the data expressed through a cover equippe
   <div class="col-md-9 contents">
     <div class="page-header">
     <h1>mapper</h1>
-    
+    <small class="dont-index">Source: <a href='https://github.com/peekxc/Mapper/blob/master/R/mapper.R'><code>R/mapper.R</code></a></small>
     <div class="hidden name"><code>Mapper.Rd</code></div>
     </div>
 
@@ -120,14 +135,14 @@ and produces a topological summary of the data expressed through a cover equippe
     
     <p>Computes the mapper graph. Mapper is a tool for summarizing topological information from datasets and
 maps defined on them. It takes as input a set of 'point cloud' data, a (possibly lower dimensional) map defined on the data,
-and produces a topological summary of the data expressed through a cover equipped to the codomain of the map.</p>
+and produces a topological summary of the data expressed through a cover equipped to the codomain of the map. For more 
+information, see the references below.</p>
     
     </div>
 
-    <pre class="usage"><span class='fu'>mapper</span>(<span class='no'>X</span>, <span class='no'>filter_values</span>, <span class='kw'>cover_params</span> <span class='kw'>=</span> <span class='fu'><a href='https://www.rdocumentation.org/packages/base/topics/c'>c</a></span>(<span class='kw'>typename</span> <span class='kw'>=</span> <span class='st'>"fixed rectangular"</span>,
-  <span class='kw'>number_intervals</span> <span class='kw'>=</span> <span class='fl'>10L</span>, <span class='kw'>percent_overlap</span> <span class='kw'>=</span> <span class='fl'>35</span>), <span class='kw'>measure</span> <span class='kw'>=</span> <span class='st'>"euclidean"</span>,
-  <span class='kw'>cluster_params</span> <span class='kw'>=</span> <span class='fu'><a href='https://www.rdocumentation.org/packages/base/topics/c'>c</a></span>(<span class='kw'>cl</span> <span class='kw'>=</span> <span class='st'>"single"</span>, <span class='kw'>num_bins</span> <span class='kw'>=</span> <span class='fl'>10L</span>),
-  <span class='kw'>return_reference</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>)</pre>
+    <pre class="usage"><span class='fu'>mapper</span>(<span class='no'>X</span>, <span class='no'>filter</span>, <span class='kw'>cover</span> <span class='kw'>=</span> <span class='fu'><a href='https://www.rdocumentation.org/packages/base/topics/c'>c</a></span>(<span class='kw'>cover</span> <span class='kw'>=</span> <span class='st'>"fixed interval"</span>, <span class='kw'>number_intervals</span> <span class='kw'>=</span>
+  <span class='fl'>10L</span>, <span class='kw'>percent_overlap</span> <span class='kw'>=</span> <span class='fl'>35</span>), <span class='kw'>distance_measure</span> <span class='kw'>=</span> <span class='st'>"euclidean"</span>,
+  <span class='kw'>clustering_algorithm</span> <span class='kw'>=</span> <span class='fu'><a href='https://www.rdocumentation.org/packages/base/topics/c'>c</a></span>(<span class='kw'>cl</span> <span class='kw'>=</span> <span class='st'>"single"</span>), <span class='kw'>return_reference</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>)</pre>
     
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -137,19 +152,19 @@ and produces a topological summary of the data expressed through a cover equippe
       <td><p>Either an \(n x D\) data matrix.</p></td>
     </tr>
     <tr>
-      <th>filter_values</th>
-      <td><p>An \(n x d\) data matrix.</p></td>
+      <th>filter</th>
+      <td><p>An \(n x d\) data matrix, or a function.</p></td>
     </tr>
     <tr>
-      <th>cover_params</th>
+      <th>cover</th>
       <td><p>Named list of cover parameters. See details.</p></td>
     </tr>
     <tr>
-      <th>measure</th>
+      <th>distance_measure</th>
       <td><p>String indicating the measure in the data space. Accepts any in <a href='https://www.rdocumentation.org/packages/proxy/topics/registry'>pr_DB</a>.</p></td>
     </tr>
     <tr>
-      <th>cluster_params</th>
+      <th>clustering_algorithm</th>
       <td><p>Named list of clustering parameters. See details.</p></td>
     </tr>
     <tr>
@@ -160,23 +175,18 @@ and produces a topological summary of the data expressed through a cover equippe
     
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>By default, returns a <code>mapper</code> object, which is a named list with members <code>adjacency</code> (adjacency matrix for the edges),
-<code>vertices</code> (list with point membership indices), and list <code>level_sets</code> (list with vertex indices).
-Each vertex in <code>vertices</code> also records the flat index of the level set that vertex intersects, recorded as an attribute.</p>
-<p>If <code>return_reference</code> is TRUE, the <code>MapperRef</code> object is returned. This object can be used to fine-tune parts of the mapper construction.</p>
+    <p>If <code>return_reference</code> is TRUE, the <code>MapperRef</code> object is returned, otherwise a list given by <a href='exportMapper.html'>exportMapper</a></p>
     
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
     <p><code>mapper</code> is a generic function that concisely parameterizes the Mapper framework into a single function definition.
-This function serves as a convenience wrapper around the <a href='MapperRef.html'>MapperRef</a> R6 generator for users used to functional programming. 
-For finer control over the mapper construction, use <a href='MapperRef.html'>MapperRef</a> instead. If <code>return_reference</code> is TRUE, the 
-<a href='MapperRef.html'>MapperRef</a> instance used by this function is returned.</p>
-<p>The <code>cover_params</code> must be a named list of all of the parameters needed by the cover. 
-It must have a <code>typename</code> member matching one of the typenames listed in <a href='covers_available.html'>covers_available</a>, along with all of the 
-corresponding parameters for that cover type.</p>
-<p>The <code>cluster_params</code> must be a named list containing members <code>cl</code> (string) and <code>num_bins</code> (integer), where 
-<code>cl</code> is one of the linkage criterion used by <a href='https://www.rdocumentation.org/packages/stats/topics/hclust'>hclust</a>, and <code>num_bins</code> corresponds the binning argument in 
-the cutting heuristic <a href='cutoff_first_bin.html'>cutoff_first_bin</a>.</p>
+This function serves as a convenience wrapper around the <a href='MapperRef.html'>MapperRef</a> R6 generator for users that prefer a single 
+function to parameterize the construction. 
+For finer control over the mapper construction, it's recommended to use <a href='MapperRef.html'>MapperRef</a> instead. 
+If <code>return_reference</code> is TRUE, the <a href='MapperRef.html'>MapperRef</a> instance used by this function is returned.</p>
+<p>The <code>cover</code> must be a named list of all of the parameters needed by the cover, as is used in e.g. <a href='use_cover.html'>use_cover</a>.</p>
+<p>The <code>clustering_algorithm</code> must be a named list the parameters needed to parameterize the clustering algorith, as is used in e.g. 
+<a href='use_clustering_algorithm.html'>use_clustering_algorithm</a></p>
     
     <h2 class="hasAnchor" id="references"><a class="anchor" href="#references"></a>References</h2>
 
@@ -184,18 +194,18 @@ the cutting heuristic <a href='cutoff_first_bin.html'>cutoff_first_bin</a>.</p>
     
     <h2 class="hasAnchor" id="see-also"><a class="anchor" href="#see-also"></a>See also</h2>
 
-    <div class='dont-index'><p><code><a href='https://www.rdocumentation.org/packages/stats/topics/hclust'>hclust</a></code> <code><a href='cutoff_first_bin.html'>cutoff_first_bin</a></code></p></div>
+    <div class='dont-index'><p><code><a href='MapperRef.html'>MapperRef</a></code></p></div>
     
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
     <pre class="examples"><div class='input'><span class='fu'><a href='https://www.rdocumentation.org/packages/utils/topics/data'>data</a></span>(<span class='st'>"noisy_circle"</span>, <span class='kw'>package</span><span class='kw'>=</span><span class='st'>"Mapper"</span>)
 <span class='no'>left_pt</span> <span class='kw'>&lt;-</span> <span class='no'>noisy_circle</span>[<span class='fu'><a href='https://www.rdocumentation.org/packages/base/topics/which.min'>which.min</a></span>(<span class='no'>noisy_circle</span>[, <span class='fl'>1</span>]),]
 <span class='no'>f_x</span> <span class='kw'>&lt;-</span> <span class='fu'><a href='https://www.rdocumentation.org/packages/base/topics/matrix'>matrix</a></span>(<span class='fu'><a href='https://www.rdocumentation.org/packages/base/topics/apply'>apply</a></span>(<span class='no'>noisy_circle</span>, <span class='fl'>1</span>, <span class='kw'>function</span>(<span class='no'>pt</span>) (<span class='no'>pt</span> - <span class='no'>left_pt</span>)[<span class='fl'>1</span>]))
-
-<span class='no'>m</span> <span class='kw'>&lt;-</span> <span class='kw pkg'>Mapper</span><span class='kw ns'>::</span><span class='fu'><a href='https://www.rdocumentation.org/packages/Mapper/topics/Mapper'>mapper</a></span>(<span class='kw'>X</span> <span class='kw'>=</span> <span class='no'>noisy_circle</span>, <span class='kw'>filter_values</span> <span class='kw'>=</span> <span class='no'>f_x</span>,
-                    <span class='kw'>cover_params</span> <span class='kw'>=</span> <span class='fu'><a href='https://www.rdocumentation.org/packages/base/topics/list'>list</a></span>(<span class='kw'>typename</span><span class='kw'>=</span><span class='st'>"restrained rectangular"</span>, <span class='kw'>number_intervals</span><span class='kw'>=</span><span class='fl'>10L</span>, <span class='kw'>percent_overlap</span><span class='kw'>=</span><span class='fl'>50</span>),
-                    <span class='kw'>measure</span> <span class='kw'>=</span> <span class='st'>"euclidean"</span>,
-                    <span class='kw'>cluster_params</span> <span class='kw'>=</span> <span class='fu'><a href='https://www.rdocumentation.org/packages/base/topics/list'>list</a></span>(<span class='kw'>cl</span><span class='kw'>=</span><span class='st'>"single"</span>, <span class='kw'>num_bins</span><span class='kw'>=</span><span class='fl'>10L</span>))</div></pre>
+<span class='no'>m</span> <span class='kw'>&lt;-</span> <span class='fu'>mapper</span>(<span class='kw'>X</span> <span class='kw'>=</span> <span class='no'>noisy_circle</span>,
+            <span class='kw'>filter</span> <span class='kw'>=</span> <span class='no'>f_x</span>,
+            <span class='kw'>cover</span> <span class='kw'>=</span> <span class='fu'><a href='https://www.rdocumentation.org/packages/base/topics/list'>list</a></span>(<span class='kw'>cover</span><span class='kw'>=</span><span class='st'>"fixed interval"</span>, <span class='kw'>number_intervals</span><span class='kw'>=</span><span class='fl'>10L</span>, <span class='kw'>percent_overlap</span><span class='kw'>=</span><span class='fl'>50</span>),
+            <span class='kw'>distance_measure</span> <span class='kw'>=</span> <span class='st'>"euclidean"</span>,
+            <span class='kw'>clustering_algorithm</span> <span class='kw'>=</span> <span class='fu'><a href='https://www.rdocumentation.org/packages/base/topics/list'>list</a></span>(<span class='kw'>cl</span><span class='kw'>=</span><span class='st'>"single"</span>, <span class='kw'>threshold</span> <span class='kw'>=</span> <span class='fl'>0.0</span>))</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <h2>Contents</h2>
@@ -224,7 +234,7 @@ the cutting heuristic <a href='cutoff_first_bin.html'>cutoff_first_bin</a>.</p>
 </div>
 
 <div class="pkgdown">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.3.0.</p>
 </div>
       </footer>
    </div>

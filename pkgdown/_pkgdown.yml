@@ -6,46 +6,82 @@ development:
   destination: /
   version_label: danger
   version_tooltip: "Package under development"
+home:
+  strip_header: false
+navbar:
+  structure:
+    left:
+    - home
+    - intro
+    - articles
+    - reference
+    - news
+    - community
+    right: github
+  components:
+    home:
+      icon: fa-home fa-lg
+      href: index.html
+    intro:
+      text: Get started
+      href: articles/Mapper.html
+    articles:
+      text: Articles
+      menu:
+      - text: Using a custom covering method
+        href: articles/UsingCustomCover.html
+    reference:
+      text: Reference
+      href: reference/index.html
+    news:
+      text: News
+      href: news/index.html
+    community: 
+      text: User contributed
+      href: articles/extra/community.html
+    github:
+      icon: fa-github fa-lg
+      href: https://github.com/peekxc/Mapper
 reference:
 - title: General package functions
   desc: >
     General package utility functions, or related topological algorithms.  
   contents:
   - '`mapper`'
-  - '`plot.Mapper`'
-  - '`print.Mapper`'
   - '`covers_available`'
   - '`cutoff_first_bin`'
+  - '`cutoff_first_threshold`'
   - '`bin_color`'
-  - '`dashboard`'
   - '`hausdorff_distance`'
+  - '`gromov_hausdorff`'
+  - '`landmarks`'
 - title: MapperRef methods
   desc: >
-    Member functions associated with the MapperRef R6 class.  
+    Members associated with the MapperRef R6 class.  
   contents: 
   - '`MapperRef`'
-  - '`as_grapher`'
-  - '`as_igraph`'
-  - '`compute_vertices`'
-  - '`compute_edges`'
-  - '`compute_k_skeleton`'
+  - '`use_filter`'
+  - '`use_distance_measure`'
   - '`use_cover`'
   - '`use_clustering_algorithm`'
+  - '`construct_pullback`'
+  - '`construct_nerve`'
+  - '`construct_k_skeleton`'
+  - '`as_igraph`'
+  - '`as_pixiplex`'
   - '`exportMapper`'
 - title: Cover generators 
   desc: >
     R6 generators which can be used to construct covers over the filter space.  
   contents:
   - '`CoverRef`'
-  - '`FixedRectangularCover`'
-  - '`RestrainedRectangularCover`'
-  - '`AdaptiveCover`'
+  - '`FixedIntervalCover`'
+  - '`RestrainedIntervalCover`'
   - '`BallCover`'
 - title: Data structures 
   desc: > 
     Utility data structures exported as Rcpp modules. 
   contents: 
-  - '`simplex_tree`'
   - '`union_find`'
   - '`segment_tree`'
 

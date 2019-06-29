@@ -5,65 +5,59 @@
 \alias{mapper}
 \title{mapper}
 \usage{
-mapper(X, filter_values, cover_params = c(typename = "fixed rectangular",
-  number_intervals = 10L, percent_overlap = 35), measure = "euclidean",
-  cluster_params = c(cl = "single", num_bins = 10L),
-  return_reference = FALSE)
+mapper(X, filter, cover = c(cover = "fixed interval", number_intervals =
+  10L, percent_overlap = 35), distance_measure = "euclidean",
+  clustering_algorithm = c(cl = "single"), return_reference = FALSE)
 }
 \arguments{
 \item{X}{Either an \eqn{n x D} data matrix.}
 
-\item{filter_values}{An \eqn{n x d} data matrix.}
+\item{filter}{An \eqn{n x d} data matrix, or a function.}
 
-\item{cover_params}{Named list of cover parameters. See details.}
+\item{cover}{Named list of cover parameters. See details.}
 
-\item{measure}{String indicating the measure in the data space. Accepts any in \link[proxy]{pr_DB}.}
+\item{distance_measure}{String indicating the measure in the data space. Accepts any in \link[proxy]{pr_DB}.}
 
-\item{cluster_params}{Named list of clustering parameters. See details.}
+\item{clustering_algorithm}{Named list of clustering parameters. See details.}
 
 \item{return_reference}{Boolean whether or not to return the reference class used to construct Mapper. See \link[Mapper]{MapperRef}.}
 }
 \value{
-By default, returns a \code{mapper} object, which is a named list with members \code{adjacency} (adjacency matrix for the edges),
-\code{vertices} (list with point membership indices), and list \code{level_sets} (list with vertex indices).
-Each vertex in \code{vertices} also records the flat index of the level set that vertex intersects, recorded as an attribute.
-
-If \code{return_reference} is TRUE, the \code{MapperRef} object is returned. This object can be used to fine-tune parts of the mapper construction.
+If \code{return_reference} is TRUE, the \code{MapperRef} object is returned, otherwise a list given by \link{exportMapper}
 }
 \description{
 Computes the mapper graph. Mapper is a tool for summarizing topological information from datasets and
 maps defined on them. It takes as input a set of 'point cloud' data, a (possibly lower dimensional) map defined on the data,
-and produces a topological summary of the data expressed through a cover equipped to the codomain of the map.
+and produces a topological summary of the data expressed through a cover equipped to the codomain of the map. For more 
+information, see the references below.
 }
 \details{
 \code{mapper} is a generic function that concisely parameterizes the Mapper framework into a single function definition.
-This function serves as a convenience wrapper around the \link[Mapper]{MapperRef} R6 generator for users used to functional programming. 
-For finer control over the mapper construction, use \link[Mapper]{MapperRef} instead. If \code{return_reference} is TRUE, the 
-\link[Mapper]{MapperRef} instance used by this function is returned. 
+This function serves as a convenience wrapper around the \link[Mapper]{MapperRef} R6 generator for users that prefer a single 
+function to parameterize the construction. 
+For finer control over the mapper construction, it's recommended to use \link[Mapper]{MapperRef} instead. 
+If \code{return_reference} is TRUE, the \link[Mapper]{MapperRef} instance used by this function is returned. 
 
-The \code{cover_params} must be a named list of all of the parameters needed by the cover. 
-It must have a \code{typename} member matching one of the typenames listed in \link[Mapper]{covers_available}, along with all of the 
-corresponding parameters for that cover type.   
+The \code{cover} must be a named list of all of the parameters needed by the cover, as is used in e.g. \link{use_cover}. 
 
-The \code{cluster_params} must be a named list containing members \code{cl} (string) and \code{num_bins} (integer), where 
-\code{cl} is one of the linkage criterion used by \link[stats]{hclust}, and \code{num_bins} corresponds the binning argument in 
-the cutting heuristic \link[Mapper]{cutoff_first_bin}.
+The \code{clustering_algorithm} must be a named list the parameters needed to parameterize the clustering algorith, as is used in e.g. 
+\link{use_clustering_algorithm}
 }
 \examples{
 data("noisy_circle", package="Mapper")
 left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
 f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
-
-m <- Mapper::mapper(X = noisy_circle, filter_values = f_x, 
-                    cover_params = list(typename="restrained rectangular", number_intervals=10L, percent_overlap=50),
-                    measure = "euclidean", 
-                    cluster_params = list(cl="single", num_bins=10L))
+m <- mapper(X = noisy_circle, 
+            filter = f_x, 
+            cover = list(cover="fixed interval", number_intervals=10L, percent_overlap=50),
+            distance_measure = "euclidean", 
+            clustering_algorithm = list(cl="single", threshold = 0.0))
 }
 \references{
 Singh, Gurjeet, Facundo Memoli, and Gunnar E. Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.
 }
 \seealso{
-\code{\link[stats]{hclust}} \code{\link[Mapper]{cutoff_first_bin}}
+\code{\link[Mapper]{MapperRef}}
 }
 \author{
 Matt Piekenbrock, \email{matt.piekenbrock@gmail.com}

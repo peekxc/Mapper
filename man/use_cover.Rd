@@ -4,9 +4,7 @@
 \alias{use_cover}
 \title{Selects one of the available covering methods to use.}
 \arguments{
-\item{filter_values}{(n x d) numeric matrix of values giving the results of the map.}
-
-\item{typename}{The name of the cover to use. Accepts any one of the typenames printed in the \code{available_covers}.}
+\item{cover}{Either a pre-configured cover, or name of the cover to use.}
 
 \item{...}{Additional parameter values to pass to the covering generators initialize method.}
 }
@@ -14,6 +12,23 @@
 Convenience method to select, parameterize, and construct a cover and associate it with the calling objects \code{cover} field.
 }
 \details{
-The cover is automatically constructed before being assigned to the calling Mappers \code{$cover} field.  
-If this is undesirable, create the cover using the appropriate R6 class generators and assign to \code{$cover} field directly.
+Every \code{\link{MapperRef}} object requires a \code{\link{CoverRef}} object as 
+is \code{cover} member field. In the context of Mapper, a cover is used to discretize the filter 
+space into a partition, which is then used via a \emph{pullback} operation to construct the vertices. \cr 
+\cr 
+The \code{\link{MapperRef}} class makes no restrictions on the cover that is used; only that it fulfills the 
+requirements of being a valid \code{\link{CoverRef}} instance (e.g. a \code{\link{FixedIntervalCover}}), 
+or one of the cover typenames listed in the \code{\link{covers_available}()}. 
+If a typename is given, the cover is automatically constructed before being assigned to the \code{$cover} field.
+}
+\examples{
+data(noisy_circle)
+m <- MapperRef$new(noisy_circle)
+m$use_filter(noisy_circle[,1])
+m$use_cover("fixed interval", number_intervals = 5, percent_overlap = 25)
+
+## Alternative way to specify (and construct) the cover
+cover <- FixedIntervalCover$new(number_intervals = 5, percent_overlap = 25)
+cover$construct_cover(filter = m$filter)
+m$cover <- cover
 }

@@ -2,18 +2,21 @@
 % Please edit documentation in R/mapperRef.R
 \name{exportMapper}
 \alias{exportMapper}
-\title{Exports the essential mapper graph information}
+\title{Exports minimal information about the Mapper}
 \arguments{
 \item{graph_type}{export preference on the structure the graph output.}
 }
 \value{
-list with the following members: 
+List with the following members: 
 \itemize{
-\item vertices list of the indices of the original data the current vertex intersects with.
-\item graph some adjacency representation of the mapper graph.
-\item level_sets map connecting the which vertices belong to the preimage of the sets in the cover. 
+  \item \emph{vertices} list of the indices of the original data the current vertex intersects with.
+  \item \emph{graph} some adjacency representation of the mapper graph.
+  \item \emph{pullback} map connecting the index set of the cover and the vertices.
 }
 }
 \description{
-Exports the essential mapper graph information
+This function exports a few core characteristics about the mapper complex as a list.
+}
+\details{
+\code{graph_type} must be one of 'adjacency_matrix', 'adjacency_list', or 'edgelist'.
 }

@@ -1,11 +1,5 @@
-#include <Rcpp.h>
-using namespace Rcpp;
-
-// Allows indexing lower triangular (dist objects)
-#include <math.h>
-#define INDEX_TF(N,to,from) (N)*(to) - (to)*(to+1)/2 + (from) - (to) - (1) // expects 0-based, returns lower-triangular indices, must obey order to < from
-#define INDEX_TO(k, n) n - 2 - floor(sqrt(-8*k + 4*n*(n-1)-7)/2.0 - 0.5) // expects 0-based, returns 0-based
-#define INDEX_FROM(k, n, i) k + i + 1 - n*(n-1)/2 + (n-i)*((n-i)-1)/2 // expects 0-based, returns 0-based
+// dist_utilities.cpp
+#include "dist_utilities.h"
 
 // Given a 'dist' object (vector) and an integer vector of indices (1-based), create a new dist object
 // represented by the subset of 'dist' indexed by 'idx'
@@ -56,10 +50,6 @@ NumericVector concatDist(const NumericVector& dist, const int n_new, const Numer
   output.attr("Size") = n_pts;
   output.attr("class") = "dist";
   return(output);
-}
-
-inline double euc_dist(const NumericVector& v1, const NumericVector& v2){
-  return(sqrt(sum(pow(v2 - v1, 2))));
 }
 
 // For each point in Q, computes the pairwise euclidean distance to every point in R.

@@ -2,18 +2,30 @@
 % Please edit documentation in R/cutoff_methods.R
 \name{cutoff_first_bin}
 \alias{cutoff_first_bin}
-\title{cutoff_first_bin function}
+\title{cutoff_first_bin}
 \usage{
-cutoff_first_bin(hcl, diam, num_bins)
+cutoff_first_bin(hcl, num_bins, check_skew = TRUE)
 }
 \arguments{
 \item{hcl}{hierarchical clustering in the form an 'hclust' object.}
 
-\item{diam}{largest pairwise distance between the objects used to create the hierarchy.}
-
 \item{num_bins}{Controls how many bins there are in the histogram used to determine cutoff.}
+
+\item{check_skew}{Whether to check if the distribution is left-skewed. See details.}
+}
+\value{
+The cut-off value to use with \code{\link[stats]{cutree}}.
 }
 \description{
-Uses the heuristic from the original Mapper paper to cut a given hierarchical cluster tree at the
-threshold corresponding to the first empty of a histogram of the linkage distances.
+Uses the heuristic described in Section 3.1 of the original Mapper paper to cut a given hierarchical tree to produce a partitioning of the data.
+}
+\details{
+This method implements a cutting heuristic to determine the cut height in the given hierarchical tree \code{hcl}. 
+The cut value is chosen as the lowest break point corresponding to the first empty bin of a histogram of the linkage distances.
+The motivation for the heuristic is that its often observed empirically for 'nice' clustering situations that the majority of 
+linkage distances representing inter-cluster distances are relatively smooth, whereas the intra-cluster distances are sparse. 
+Intuitively, such a distribution may be thought as being right-skewed, and the first empty interval in a histogram of linkage
+distances may be a decent splot to cut the hierarchy. If \code{check_skew} is TRUE (default), the linkage distances are checked 
+that they are indeed right-skewed, and then the heuristic is used. If the distribution is left-skewed, the assumption for the 
+heuristic is not true, and the trivial clustering is returned instead.
 }

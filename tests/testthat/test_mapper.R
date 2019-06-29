@@ -5,11 +5,7 @@ testthat::context("Testing mapper")
 # skip_on_cran()
 
 ## Load noisy circle data 
-system.file(file.path("data", "noisy_circle.rdata"), package = "Mapper")
-
-## Define filter values equal to the distance from each point to the left-most point in the circle 
-left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
-f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
+data("noisy_circle", package = "Mapper")
 
 ## --------- Begin Tests --------- 
 ## Helper imported: am, check_neighborhoods, check_vertices, check_edges
@@ -17,21 +13,30 @@ f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
 test_that("Can construct MapperRef object", {
   m <- MapperRef$new(noisy_circle)
   expect_is(m, "MapperRef")
-  expect_equal(m$cover, NA)
   expect_is(m$simplicial_complex, "Rcpp_SimplexTree")
 })
 
 ## Let mapper object be global now
-m <- MapperRef$new(noisy_circle)
+m <- MapperRef$new(X = noisy_circle)
 
+## Define filter values equal to the distance from each point to the left-most point in the circle 
+test_that("Can assign filter values", {
+  left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
+  f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
+  expect_silent(m$use_filter(filter = f_x))
+  expect_true(is.function(m$filter))
+  expect_is(m$filter(), "matrix")
+})
+
+## Test cover construction
 test_that("Can construct CoverRef object", {
-  cover_params <- list(filter_values = matrix(f_x, ncol = 1), type="fixed rectangular", number_intervals=5L, percent_overlap=20)
+  cover_params <- list(cover="fixed interval", number_intervals=5L, percent_overlap=20)
   expect_silent(do.call(m$use_cover, cover_params))
   expect_is(m$cover, "CoverRef")
 })
 
 test_that("Can create clustering algorithm", {
-  cl_params <- list(cl = "single", num_bins = 10L)
+  cl_params <- list(cl = "single", threshold = 0.0)
   expect_silent(do.call(m$use_clustering_algorithm, cl_params))
   expect_is(m$clustering_algorithm, "function") 
 })
@@ -41,20 +46,44 @@ test_that("Can assign distance measure", {
   expect_is(m$measure, "character")
 })
   
-test_that("Can compute vertices", {
-  expect_silent(m$compute_vertices())
+test_that("Can construct pullback", {
+  expect_silent(m$construct_pullback())
   expect_is(m$vertices, "list")
-  expect_is(m$ls_vertex_map, "list")
+  expect_is(m$pullback, "list")
+  for (pid in names(m$pullback)){
+    pt_ids <- unname(unlist(m$vertices[ as.character(m$pullback[[pid]]) ]))
+    expect_equal(sort(pt_ids), sort(m$cover$construct_cover(filter = m$filter, index = pid)))
+  }
 })
 
-test_that("Can compute edge", {
-  expect_silent(m$compute_edges())
-  expect_equal(m$simplicial_complex$n_simplexes, c(8, 8))
+test_that("Can construct nerve", {
+  expect_silent(m$construct_nerve(1L))
+  expect_equal(m$simplicial_complex$n_simplices, c(8, 8))
 })
 
 ## Stricter check that tests every connected and non-connected edge
 test_that("Mapper is valid", {
   expect_true(check_edges(m))
 })
+
+## Check wrapper works 
+test_that("Mapper wrapper matches MapperRef object", {
+  left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
+  f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
+  m1 <- mapper(X = noisy_circle, 
+               filter = f_x,
+               cover = list(cover="fixed interval", number_intervals=5L, percent_overlap=50),
+               distance_measure = "euclidean",
+               clustering_algorithm = list(cl="single", threshold = 0.0), return_reference = TRUE)
+  m2 <- MapperRef$new(X = noisy_circle)$
+    use_filter(f_x)$
+    use_cover(cover="fixed interval", number_intervals=5L, percent_overlap=50)$
+    use_distance_measure("euclidean")$
+    use_clustering_algorithm(cl="single", cutoff_method = "continuous", threshold = 0.0)$
+    construct_k_skeleton(k = 1L)
+  testthat::expect_equal(m1, m2)
+})
+
+
 
 

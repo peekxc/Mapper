@@ -68,7 +68,7 @@ cover for details." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Mapper</a>
-        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.8.0</span>
+        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.1</span>
       </span>
     </div>
 
@@ -83,9 +83,6 @@ cover for details." />
 <li>
   <a href="../articles/Mapper.html">Get started</a>
 </li>
-<li>
-  <a href="../reference/index.html">Reference</a>
-</li>
 <li class="dropdown">
   <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
     Articles
@@ -96,12 +93,29 @@ cover for details." />
     <li>
       <a href="../articles/UsingCustomCover.html">Using a custom covering method</a>
     </li>
+    <li>
+      <a href="../articles/extra/community.html">Community contributed use-cases</a>
+    </li>
   </ul>
+</li>
+<li>
+  <a href="../reference/index.html">Reference</a>
+</li>
+<li>
+  <a href="../news/index.html">News</a>
+</li>
+<li>
+  <a href="../articles/extra/community.html">User contributed</a>
 </li>
       </ul>
       
       <ul class="nav navbar-nav navbar-right">
-        
+        <li>
+  <a href="https://github.com/peekxc/Mapper">
+    <span class="fa fa-github fa-lg"></span>
+     
+  </a>
+</li>
       </ul>
       
     </div><!--/.nav-collapse -->
@@ -115,7 +129,7 @@ cover for details." />
   <div class="col-md-9 contents">
     <div class="page-header">
     <h1>Cover abstract class</h1>
-    
+    <small class="dont-index">Source: <a href='https://github.com/peekxc/Mapper/blob/master/R/CoverRef.R'><code>R/CoverRef.R</code></a></small>
     <div class="hidden name"><code>CoverRef.Rd</code></div>
     </div>
 
@@ -140,22 +154,19 @@ cover for details.</p>
 
     
     <dl class='dl-horizontal'>
-<dt><code>filter_values</code></dt><dd><p>(n x d) matrix of filter values</p></dd>
-    <dt><code>typename</code></dt><dd><p>Unique string identifier for the covering.</p></dd>
+<dt><code>typename</code></dt><dd><p>Unique string identifier for the covering.</p></dd>
     <dt><code>index_set</code></dt><dd><p>character vector used to index the 'level_sets' list</p></dd>
-    <dt><code>level_sets</code></dt><dd><p>list of the</p></dd>
+    <dt><code>level_sets</code></dt><dd><p>list of the point in the preimages of the sets comprising the cover, indexed by the index set</p></dd>
 </dl>
     
     <h2 class="hasAnchor" id="private-variables"><a class="anchor" href="#private-variables"></a>Private variables</h2>
 
     
     <p>The following is a list of private variables available for derived classes. Each may be accessed 
-by the <code>private$</code> access method, see <code>?R6</code> for more details.</p><ul>
-<li><p>.level_setsnames list of indices in the original data set to cluster over.</p></li>
-<li><p>.index_setcharacter vector of keys that uniquely index the level sets.</p></li>
-<li><p>.filter_dimconstant representing the filter dimension.</p></li>
-<li><p>.filter_sizeconstant representing the number of points in the filter space.</p></li>
-<li><p>.typenamestring identifier of the covering method.</p></li>
+by the <code>private</code> environment. See <code>?R6</code> for more details.</p><ul>
+<li><p><em>.level_sets</em> named list, indexed by <code>.index_set</code>, whose values represent indices in the original data set to cluster over.</p></li>
+<li><p><em>.index_set</em> character vector of keys that uniquely index the level sets.</p></li>
+<li><p><em>.typename</em> unique string identifier of the covering method.</p></li>
 </ul>
     
 
@@ -182,7 +193,7 @@ by the <code>private$</code> access method, see <code>?R6</code> for more detail
 </div>
 
 <div class="pkgdown">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.3.0.</p>
 </div>
       </footer>
    </div>
