@@ -4,6 +4,8 @@ using namespace Rcpp;
 #include <vector>
 #include <array>
 #include <limits>
+#include <map>
+// [[Rcpp::plugins(cpp11)]]
 
 // Given a logical vector, returns an integer vector (1-based) of the positions in the vector which are true
 IntegerVector which_true( LogicalVector x) {
@@ -182,8 +184,6 @@ NumericMatrix createCoverMap(const List& ls1, const List& ls2, const int d){
   return(res);
 }
 
-#include <map>
-// [[Rcpp::plugins(cpp11)]]
 // [[Rcpp::export]]
 List edgelist_to_adjacencylist(const IntegerMatrix& el){
   const int n = el.nrow();
@@ -202,6 +202,7 @@ List edgelist_to_adjacencylist(const IntegerMatrix& el){
   return(wrap(vertex_map));
 }
 
+// Equivalent to R's which, but in C++
 IntegerVector which_cpp(const IntegerVector& x, int value) {
   int nx = x.size();
   std::vector<int> y;
@@ -211,37 +212,38 @@ IntegerVector which_cpp(const IntegerVector& x, int value) {
 }
 
 // Finds the first index (1-based) of x which equals the integer value given.
-// For some reason, I couldn't find this in R, and Position/Find is slow.
+// For some reason, I couldn't find an efficient version of this in R, and Position/Find is slow.
 // [[Rcpp::export]]
 int findFirstEqual(const IntegerVector& x, int value){
   IntegerVector::const_iterator start = x.begin();
   return(std::distance(start, std::find(start, x.end(), value)) + 1);
 }
 
-// Creates an adjacency list representing the simplicial mapping
-// [[Rcpp::export]]
-IntegerMatrix nodeMap(const IntegerVector& node_lsfi1, const IntegerVector& node_lsfi2, const IntegerMatrix& cover_map){
-  const int n = cover_map.nrow();
-  std::vector<int> from_node_comb = std::vector<int>();
-  std::vector<int> to_node_comb = std::vector<int>();
-  for (int i = 0; i < n; ++i){
-    const int from_idx = cover_map(i, 0), to_idx = cover_map(i, 1);
-    IntegerVector from_nodes = which_cpp(node_lsfi1, from_idx);
-    IntegerVector to_nodes = which_cpp(node_lsfi2, to_idx);
-    for (IntegerVector::const_iterator f = from_nodes.begin(); f != from_nodes.end(); ++f){
-      for (IntegerVector::const_iterator t = to_nodes.begin(); t != to_nodes.end(); ++t){
-        from_node_comb.push_back(*f);
-        to_node_comb.push_back(*t);
-      }
-    }
-  }
-  const int n2 = from_node_comb.size();
-  IntegerMatrix res = IntegerMatrix(n2, 2);
-  for (int i = 0; i < n2; ++i){
-    res(i, _) = IntegerVector::create(from_node_comb[i], to_node_comb[i]);
-  }
-  return(res);
-}
+
+
+// Creates an adjacency list connecting two lists of nodes...
+// IntegerMatrix nodeMap(const IntegerVector& node_lsfi1, const IntegerVector& node_lsfi2, const IntegerMatrix& cover_map){
+//   const int n = cover_map.nrow();
+//   std::vector<int> from_node_comb = std::vector<int>();
+//   std::vector<int> to_node_comb = std::vector<int>();
+//   for (int i = 0; i < n; ++i){
+//     const int from_idx = cover_map(i, 0), to_idx = cover_map(i, 1);
+//     IntegerVector from_nodes = which_cpp(node_lsfi1, from_idx);
+//     IntegerVector to_nodes = which_cpp(node_lsfi2, to_idx);
+//     for (IntegerVector::const_iterator f = from_nodes.begin(); f != from_nodes.end(); ++f){
+//       for (IntegerVector::const_iterator t = to_nodes.begin(); t != to_nodes.end(); ++t){
+//         from_node_comb.push_back(*f);
+//         to_node_comb.push_back(*t);
+//       }
+//     }
+//   }
+//   const int n2 = from_node_comb.size();
+//   IntegerMatrix res = IntegerMatrix(n2, 2);
+//   for (int i = 0; i < n2; ++i){
+//     res(i, _) = IntegerVector::create(from_node_comb[i], to_node_comb[i]);
+//   }
+//   return(res);
+// }
 
 // Computes the absolute distances from a given point to the closest endpoint of each level set. This distance should 
 // represent 1/2 the smallest interval length the target level set would have to be (via expansion) to intersect the given point.
@@ -275,14 +277,16 @@ List dist_to_boxes(const IntegerVector& positions, const double interval_length,
     current_position[0] = pos;
     
     // Only compute distances to level sets not intersecting the current point
-    std::set_difference(all_positions.begin(), all_positions.end(), current_position.begin(), current_position.end(), target_positions.begin());
+    std::set_difference(all_positions.begin(), all_positions.end(), 
+                        current_position.begin(), current_position.end(), 
+                        target_positions.begin());
     
     // Distance calculation
     std::transform(target_positions.begin(), target_positions.end(), target_distances.begin(), 
-                   [interval_length, pos, dtl, dtu](int target_position){
-                     if (target_position < pos){ return(dtl + (pos - target_position - 1) * interval_length); }
-                     else { return(dtu + (target_position - pos - 1) * interval_length); }
-                   });
+       [interval_length, pos, dtl, dtu](int target_position){
+         double offset = std::abs((target_position - pos - 1) * interval_length);
+         return (target_position < pos ? dtl + offset : dtu + offset);
+    });
     
     // Store results
     res_dist.row(i) = clone(target_distances);

@@ -1,15 +1,16 @@
 #' Mapper Package
-#' @description Provides an R/Rcpp implementation of Mapper and its related tools. 
+#' @description Provides an R/Rcpp implementation of Mapper and related tools. 
 #' The main documentation for the package can be found here: \url{https://peekxc.github.io/mapper/}.  
 #' @author Matt Piekenbrock
 #' @name Mapper
-#' @import Rcpp
+#' @import Rcpp simplextree
 #' @importFrom Rcpp evalCpp Module cpp_object_initializer
 #' @importFrom methods new
 #' @useDynLib Mapper, .registration = TRUE
 #' @docType package
 NULL
 
+# <- modules::use(file.path("R", "shiny_modules.R"))
 
 #' bin_color
 #' @param x A numeric vector whose magnitudes should be binned onto the color palette. 
@@ -19,8 +20,7 @@ NULL
 #' @details Given a numeric vector \code{x}, bins the values from low to high on a given color gradient. 
 #' Defaults to the reversed rainbow gradient, where blue == low, red == high.
 #' @export
-bin_color <- function(x, col_pal = "rainbow", 
-                     output_format = c("hex9", "hex7")){
+bin_color <- function(x, col_pal = "rainbow", output_format = c("hex9", "hex7")){
   if (missing(col_pal) || col_pal == "rainbow"){ col_pal <- rev(grDevices::rainbow(100L, start = 0, end = 4/6)) }
   col_res <- length(col_pal)
   binned_idx <- cut(x, breaks = col_res, labels = FALSE)
@@ -29,3 +29,5 @@ bin_color <- function(x, col_pal = "rainbow",
   else if (output_format == "hex7"){ return(substr(binned_colors, start = 0L, stop = 7L)) }
   else { stop("'output_format' must be one of 'hex9' or 'hex7'.") }
 }
+
+.filters_available <- c("PC", "IC", "ECC", "KDE", "DTM", "MDS", "ISOMAP", "LE", "UMAP")

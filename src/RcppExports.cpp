@@ -5,6 +5,28 @@
 
 using namespace Rcpp;
 
+// test_merge
+IntegerVector test_merge(const List& data);
+RcppExport SEXP _Mapper_test_merge(SEXP dataSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const List& >::type data(dataSEXP);
+    rcpp_result_gen = Rcpp::wrap(test_merge(data));
+    return rcpp_result_gen;
+END_RCPP
+}
+// test_merge2
+IntegerVector test_merge2(const List& data);
+RcppExport SEXP _Mapper_test_merge2(SEXP dataSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const List& >::type data(dataSEXP);
+    rcpp_result_gen = Rcpp::wrap(test_merge2(data));
+    return rcpp_result_gen;
+END_RCPP
+}
 // valid_pairs
 IntegerMatrix valid_pairs(const IntegerMatrix& level_set_pairs);
 RcppExport SEXP _Mapper_valid_pairs(SEXP level_set_pairsSEXP) {
@@ -108,19 +130,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// nodeMap
-IntegerMatrix nodeMap(const IntegerVector& node_lsfi1, const IntegerVector& node_lsfi2, const IntegerMatrix& cover_map);
-RcppExport SEXP _Mapper_nodeMap(SEXP node_lsfi1SEXP, SEXP node_lsfi2SEXP, SEXP cover_mapSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const IntegerVector& >::type node_lsfi1(node_lsfi1SEXP);
-    Rcpp::traits::input_parameter< const IntegerVector& >::type node_lsfi2(node_lsfi2SEXP);
-    Rcpp::traits::input_parameter< const IntegerMatrix& >::type cover_map(cover_mapSEXP);
-    rcpp_result_gen = Rcpp::wrap(nodeMap(node_lsfi1, node_lsfi2, cover_map));
-    return rcpp_result_gen;
-END_RCPP
-}
 // dist_to_boxes
 List dist_to_boxes(const IntegerVector& positions, const double interval_length, const int num_intervals, const NumericVector& dist_to_lower, const NumericVector& dist_to_upper);
 RcppExport SEXP _Mapper_dist_to_boxes(SEXP positionsSEXP, SEXP interval_lengthSEXP, SEXP num_intervalsSEXP, SEXP dist_to_lowerSEXP, SEXP dist_to_upperSEXP) {
@@ -173,92 +182,159 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// index_test
-List index_test(IntegerVector sizes);
-RcppExport SEXP _Mapper_index_test(SEXP sizesSEXP) {
+// gh_make_A
+IntegerMatrix gh_make_A(const IntegerMatrix& idx);
+RcppExport SEXP _Mapper_gh_make_A(SEXP idxSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< IntegerVector >::type sizes(sizesSEXP);
-    rcpp_result_gen = Rcpp::wrap(index_test(sizes));
+    Rcpp::traits::input_parameter< const IntegerMatrix& >::type idx(idxSEXP);
+    rcpp_result_gen = Rcpp::wrap(gh_make_A(idx));
     return rcpp_result_gen;
 END_RCPP
 }
-// nondecreasing_matrix
-NumericMatrix nondecreasing_matrix(const NumericMatrix& mat);
-RcppExport SEXP _Mapper_nondecreasing_matrix(SEXP matSEXP) {
+// gh_make_Q
+NumericMatrix gh_make_Q(const NumericMatrix& x_dist, const NumericMatrix& y_dist);
+RcppExport SEXP _Mapper_gh_make_Q(SEXP x_distSEXP, SEXP y_distSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const NumericMatrix& >::type mat(matSEXP);
-    rcpp_result_gen = Rcpp::wrap(nondecreasing_matrix(mat));
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type x_dist(x_distSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type y_dist(y_distSEXP);
+    rcpp_result_gen = Rcpp::wrap(gh_make_Q(x_dist, y_dist));
     return rcpp_result_gen;
 END_RCPP
 }
-// test_merge
-IntegerVector test_merge(const List& data);
-RcppExport SEXP _Mapper_test_merge(SEXP dataSEXP) {
+// all_correspondences
+NumericMatrix all_correspondences(const NumericVector& X, const NumericVector& Y);
+RcppExport SEXP _Mapper_all_correspondences(SEXP XSEXP, SEXP YSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const List& >::type data(dataSEXP);
-    rcpp_result_gen = Rcpp::wrap(test_merge(data));
+    Rcpp::traits::input_parameter< const NumericVector& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type Y(YSEXP);
+    rcpp_result_gen = Rcpp::wrap(all_correspondences(X, Y));
     return rcpp_result_gen;
 END_RCPP
 }
-// test_merge2
-IntegerVector test_merge2(const List& data);
-RcppExport SEXP _Mapper_test_merge2(SEXP dataSEXP) {
+// eccentricity
+NumericVector eccentricity(const NumericMatrix& from, const NumericMatrix& x, const int type, bool display_progress);
+RcppExport SEXP _Mapper_eccentricity(SEXP fromSEXP, SEXP xSEXP, SEXP typeSEXP, SEXP display_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const List& >::type data(dataSEXP);
-    rcpp_result_gen = Rcpp::wrap(test_merge2(data));
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type from(fromSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const int >::type type(typeSEXP);
+    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(eccentricity(from, x, type, display_progress));
     return rcpp_result_gen;
 END_RCPP
 }
-// check_connected
-IntegerVector check_connected(const IntegerVector ls_to_check, const List& ls_vertex_map, const List& vertices, SEXP stree);
-RcppExport SEXP _Mapper_check_connected(SEXP ls_to_checkSEXP, SEXP ls_vertex_mapSEXP, SEXP verticesSEXP, SEXP streeSEXP) {
+// landmark_maxmin
+IntegerVector landmark_maxmin(const NumericMatrix& x, const int n, const int seed, bool display_progress);
+RcppExport SEXP _Mapper_landmark_maxmin(SEXP xSEXP, SEXP nSEXP, SEXP seedSEXP, SEXP display_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const IntegerVector >::type ls_to_check(ls_to_checkSEXP);
-    Rcpp::traits::input_parameter< const List& >::type ls_vertex_map(ls_vertex_mapSEXP);
-    Rcpp::traits::input_parameter< const List& >::type vertices(verticesSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< const int >::type seed(seedSEXP);
+    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(landmark_maxmin(x, n, seed, display_progress));
+    return rcpp_result_gen;
+END_RCPP
+}
+// nondecreasing_seq
+List nondecreasing_seq(const List& lst);
+RcppExport SEXP _Mapper_nondecreasing_seq(SEXP lstSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const List& >::type lst(lstSEXP);
+    rcpp_result_gen = Rcpp::wrap(nondecreasing_seq(lst));
+    return rcpp_result_gen;
+END_RCPP
+}
+// connected_pullbacks
+List connected_pullbacks(std::vector< std::string > pullback_ids, const List& pullback, SEXP stree);
+RcppExport SEXP _Mapper_connected_pullbacks(SEXP pullback_idsSEXP, SEXP pullbackSEXP, SEXP streeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::vector< std::string > >::type pullback_ids(pullback_idsSEXP);
+    Rcpp::traits::input_parameter< const List& >::type pullback(pullbackSEXP);
     Rcpp::traits::input_parameter< SEXP >::type stree(streeSEXP);
-    rcpp_result_gen = Rcpp::wrap(check_connected(ls_to_check, ls_vertex_map, vertices, stree));
+    rcpp_result_gen = Rcpp::wrap(connected_pullbacks(pullback_ids, pullback, stree));
+    return rcpp_result_gen;
+END_RCPP
+}
+// decompose_preimages
+List decompose_preimages(const StringVector pullback_ids, const Function cluster_f, const Function level_set_f, const List& vertices, List& pullback);
+RcppExport SEXP _Mapper_decompose_preimages(SEXP pullback_idsSEXP, SEXP cluster_fSEXP, SEXP level_set_fSEXP, SEXP verticesSEXP, SEXP pullbackSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const StringVector >::type pullback_ids(pullback_idsSEXP);
+    Rcpp::traits::input_parameter< const Function >::type cluster_f(cluster_fSEXP);
+    Rcpp::traits::input_parameter< const Function >::type level_set_f(level_set_fSEXP);
+    Rcpp::traits::input_parameter< const List& >::type vertices(verticesSEXP);
+    Rcpp::traits::input_parameter< List& >::type pullback(pullbackSEXP);
+    rcpp_result_gen = Rcpp::wrap(decompose_preimages(pullback_ids, cluster_f, level_set_f, vertices, pullback));
     return rcpp_result_gen;
 END_RCPP
 }
 // build_0_skeleton
-List build_0_skeleton(const IntegerVector which_levels, const NumericMatrix& X, Function f, const List& level_sets, List& vertices, List& ls_vertex_map, SEXP stree);
-RcppExport SEXP _Mapper_build_0_skeleton(SEXP which_levelsSEXP, SEXP XSEXP, SEXP fSEXP, SEXP level_setsSEXP, SEXP verticesSEXP, SEXP ls_vertex_mapSEXP, SEXP streeSEXP) {
+void build_0_skeleton(const IntegerVector vids, SEXP st);
+RcppExport SEXP _Mapper_build_0_skeleton(SEXP vidsSEXP, SEXP stSEXP) {
 BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const IntegerVector >::type which_levels(which_levelsSEXP);
-    Rcpp::traits::input_parameter< const NumericMatrix& >::type X(XSEXP);
-    Rcpp::traits::input_parameter< Function >::type f(fSEXP);
-    Rcpp::traits::input_parameter< const List& >::type level_sets(level_setsSEXP);
-    Rcpp::traits::input_parameter< List& >::type vertices(verticesSEXP);
-    Rcpp::traits::input_parameter< List& >::type ls_vertex_map(ls_vertex_mapSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type stree(streeSEXP);
-    rcpp_result_gen = Rcpp::wrap(build_0_skeleton(which_levels, X, f, level_sets, vertices, ls_vertex_map, stree));
-    return rcpp_result_gen;
+    Rcpp::traits::input_parameter< const IntegerVector >::type vids(vidsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type st(stSEXP);
+    build_0_skeleton(vids, st);
+    return R_NilValue;
 END_RCPP
 }
 // build_1_skeleton
-void build_1_skeleton(const IntegerMatrix& ls_pairs, const int min_sz, const List& vertices, const List& ls_vertex_map, SEXP stree);
-RcppExport SEXP _Mapper_build_1_skeleton(SEXP ls_pairsSEXP, SEXP min_szSEXP, SEXP verticesSEXP, SEXP ls_vertex_mapSEXP, SEXP streeSEXP) {
+List build_1_skeleton(const CharacterMatrix& pullback_ids, const int min_sz, const List& vertices, const List& pullback, SEXP stree, const bool modify);
+RcppExport SEXP _Mapper_build_1_skeleton(SEXP pullback_idsSEXP, SEXP min_szSEXP, SEXP verticesSEXP, SEXP pullbackSEXP, SEXP streeSEXP, SEXP modifySEXP) {
 BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const IntegerMatrix& >::type ls_pairs(ls_pairsSEXP);
+    Rcpp::traits::input_parameter< const CharacterMatrix& >::type pullback_ids(pullback_idsSEXP);
     Rcpp::traits::input_parameter< const int >::type min_sz(min_szSEXP);
     Rcpp::traits::input_parameter< const List& >::type vertices(verticesSEXP);
-    Rcpp::traits::input_parameter< const List& >::type ls_vertex_map(ls_vertex_mapSEXP);
+    Rcpp::traits::input_parameter< const List& >::type pullback(pullbackSEXP);
     Rcpp::traits::input_parameter< SEXP >::type stree(streeSEXP);
-    build_1_skeleton(ls_pairs, min_sz, vertices, ls_vertex_map, stree);
+    Rcpp::traits::input_parameter< const bool >::type modify(modifySEXP);
+    rcpp_result_gen = Rcpp::wrap(build_1_skeleton(pullback_ids, min_sz, vertices, pullback, stree, modify));
+    return rcpp_result_gen;
+END_RCPP
+}
+// build_k_skeleton
+List build_k_skeleton(CharacterMatrix pullback_ids, const List& pullback, List& vertices, int k, SEXP stree, const bool modify);
+RcppExport SEXP _Mapper_build_k_skeleton(SEXP pullback_idsSEXP, SEXP pullbackSEXP, SEXP verticesSEXP, SEXP kSEXP, SEXP streeSEXP, SEXP modifySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< CharacterMatrix >::type pullback_ids(pullback_idsSEXP);
+    Rcpp::traits::input_parameter< const List& >::type pullback(pullbackSEXP);
+    Rcpp::traits::input_parameter< List& >::type vertices(verticesSEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type stree(streeSEXP);
+    Rcpp::traits::input_parameter< const bool >::type modify(modifySEXP);
+    rcpp_result_gen = Rcpp::wrap(build_k_skeleton(pullback_ids, pullback, vertices, k, stree, modify));
+    return rcpp_result_gen;
+END_RCPP
+}
+// build_flag_complex
+void build_flag_complex(const size_t k, SEXP stree);
+RcppExport SEXP _Mapper_build_flag_complex(SEXP kSEXP, SEXP streeSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const size_t >::type k(kSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type stree(streeSEXP);
+    build_flag_complex(k, stree);
     return R_NilValue;
 END_RCPP
 }
@@ -279,10 +355,11 @@ END_RCPP
 
 RcppExport SEXP _rcpp_module_boot_multiscale_module();
 RcppExport SEXP _rcpp_module_boot_segment_tree_module();
-RcppExport SEXP _rcpp_module_boot_simplex_tree_module();
 RcppExport SEXP _rcpp_module_boot_union_find_module();
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_Mapper_test_merge", (DL_FUNC) &_Mapper_test_merge, 1},
+    {"_Mapper_test_merge2", (DL_FUNC) &_Mapper_test_merge2, 1},
     {"_Mapper_valid_pairs", (DL_FUNC) &_Mapper_valid_pairs, 1},
     {"_Mapper_constructLevelSetIndex", (DL_FUNC) &_Mapper_constructLevelSetIndex, 2},
     {"_Mapper_constructIsoAlignedLevelSets", (DL_FUNC) &_Mapper_constructIsoAlignedLevelSets, 3},
@@ -291,22 +368,25 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Mapper_createCoverMap", (DL_FUNC) &_Mapper_createCoverMap, 3},
     {"_Mapper_edgelist_to_adjacencylist", (DL_FUNC) &_Mapper_edgelist_to_adjacencylist, 1},
     {"_Mapper_findFirstEqual", (DL_FUNC) &_Mapper_findFirstEqual, 2},
-    {"_Mapper_nodeMap", (DL_FUNC) &_Mapper_nodeMap, 3},
     {"_Mapper_dist_to_boxes", (DL_FUNC) &_Mapper_dist_to_boxes, 5},
     {"_Mapper_dist_subset", (DL_FUNC) &_Mapper_dist_subset, 2},
     {"_Mapper_concatDist", (DL_FUNC) &_Mapper_concatDist, 3},
     {"_Mapper_dist_from_to", (DL_FUNC) &_Mapper_dist_from_to, 2},
-    {"_Mapper_index_test", (DL_FUNC) &_Mapper_index_test, 1},
-    {"_Mapper_nondecreasing_matrix", (DL_FUNC) &_Mapper_nondecreasing_matrix, 1},
-    {"_Mapper_test_merge", (DL_FUNC) &_Mapper_test_merge, 1},
-    {"_Mapper_test_merge2", (DL_FUNC) &_Mapper_test_merge2, 1},
-    {"_Mapper_check_connected", (DL_FUNC) &_Mapper_check_connected, 4},
-    {"_Mapper_build_0_skeleton", (DL_FUNC) &_Mapper_build_0_skeleton, 7},
-    {"_Mapper_build_1_skeleton", (DL_FUNC) &_Mapper_build_1_skeleton, 5},
+    {"_Mapper_gh_make_A", (DL_FUNC) &_Mapper_gh_make_A, 1},
+    {"_Mapper_gh_make_Q", (DL_FUNC) &_Mapper_gh_make_Q, 2},
+    {"_Mapper_all_correspondences", (DL_FUNC) &_Mapper_all_correspondences, 2},
+    {"_Mapper_eccentricity", (DL_FUNC) &_Mapper_eccentricity, 4},
+    {"_Mapper_landmark_maxmin", (DL_FUNC) &_Mapper_landmark_maxmin, 4},
+    {"_Mapper_nondecreasing_seq", (DL_FUNC) &_Mapper_nondecreasing_seq, 1},
+    {"_Mapper_connected_pullbacks", (DL_FUNC) &_Mapper_connected_pullbacks, 3},
+    {"_Mapper_decompose_preimages", (DL_FUNC) &_Mapper_decompose_preimages, 5},
+    {"_Mapper_build_0_skeleton", (DL_FUNC) &_Mapper_build_0_skeleton, 2},
+    {"_Mapper_build_1_skeleton", (DL_FUNC) &_Mapper_build_1_skeleton, 6},
+    {"_Mapper_build_k_skeleton", (DL_FUNC) &_Mapper_build_k_skeleton, 6},
+    {"_Mapper_build_flag_complex", (DL_FUNC) &_Mapper_build_flag_complex, 2},
     {"_Mapper_intersectNodes", (DL_FUNC) &_Mapper_intersectNodes, 4},
     {"_rcpp_module_boot_multiscale_module", (DL_FUNC) &_rcpp_module_boot_multiscale_module, 0},
     {"_rcpp_module_boot_segment_tree_module", (DL_FUNC) &_rcpp_module_boot_segment_tree_module, 0},
-    {"_rcpp_module_boot_simplex_tree_module", (DL_FUNC) &_rcpp_module_boot_simplex_tree_module, 0},
     {"_rcpp_module_boot_union_find_module", (DL_FUNC) &_rcpp_module_boot_union_find_module, 0},
     {NULL, NULL, 0}
 };

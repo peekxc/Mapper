@@ -31,7 +31,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Mapper</a>
-        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.8.0</span>
+        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.1</span>
       </span>
     </div>
 
@@ -46,9 +46,6 @@
 <li>
   <a href="../articles/Mapper.html">Get started</a>
 </li>
-<li>
-  <a href="../reference/index.html">Reference</a>
-</li>
 <li class="dropdown">
   <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
     Articles
@@ -59,10 +56,29 @@
 <li>
       <a href="../articles/UsingCustomCover.html">Using a custom covering method</a>
     </li>
+    <li>
+      <a href="../articles/extra/community.html">Community contributed use-cases</a>
+    </li>
   </ul>
 </li>
+<li>
+  <a href="../reference/index.html">Reference</a>
+</li>
+<li>
+  <a href="../news/index.html">News</a>
+</li>
+<li>
+  <a href="../articles/extra/community.html">User contributed</a>
+</li>
       </ul>
-<ul class="nav navbar-nav navbar-right"></ul>
+<ul class="nav navbar-nav navbar-right">
+<li>
+  <a href="https://github.com/peekxc/Mapper">
+    <span class="fa fa-github fa-lg"></span>
+     
+  </a>
+</li>
+      </ul>
 </div>
 <!--/.nav-collapse -->
   </div>
@@ -78,7 +94,7 @@
                         <h4 class="author">Matt Piekenbrock</h4>
             
       
-      
+      <small class="dont-index">Source: <a href="https://github.com/peekxc/Mapper/blob/master/vignettes/UsingCustomCover.Rmd"><code>vignettes/UsingCustomCover.Rmd</code></a></small>
       <div class="hidden name"><code>UsingCustomCover.Rmd</code></div>
 
     </div>
@@ -90,12 +106,11 @@
 <a href="#introduction" class="anchor"></a>Introduction</h2>
 <p>Perhaps one of the most important aspects of parameterizing Mapper is the choice of the cover. Given data <span class="math inline">\(X\)</span> and a continuous map <span class="math inline">\(f : X \to Z\)</span>, the cover (often denoted as <span class="math inline">\(\mathcal{U} = \{U_\alpha\}_{\alpha \in A}\)</span>) is constructed over the values of <span class="math inline">\(Z\)</span>. Since <span class="math inline">\(f\)</span> is continuous, <span class="math inline">\(\mathcal{U}\)</span> also forms a cover of <span class="math inline">\(X\)</span>. That is, the sets</p>
 <p><span class="math display">\[\{ f^{-1}(U_\alpha), \alpha \in A \}\]</span> form an open cover over <span class="math inline">\(X\)</span>, i.e. <span class="math inline">\(X \subseteq \bigcup\limits_{\alpha \in A} f^{-1}(U_\alpha)\)</span>. By applying a <em>partial clustering</em> to each of these open sets in <span class="math inline">\(X\)</span>, <span class="math inline">\(f^{-1}(U_\alpha)\)</span> decomposes into a set of path-connected components. These form the <span class="math inline">\(0\)</span>-simplices of the resulting <em>mapper</em> construction.</p>
-<p>The <code>Mapper</code> package works with any covering strategy, so long as a few requirements are satisfied. All covers can be constructed either directly via their R6 generators, or more succinctly using the  member function associated with a  object. See  for more details. A few frequently used methods are included in the package. Their typenames, generators, and parameters can be listed via:</p>
+<p>The <code>Mapper</code> package theoretically can support any covering strategy, so long as a few requirements are satisfied. All covers can be constructed either directly via their R6 generators, or more succinctly using the  member function associated with a  object. See  for more details. A few frequently used methods are included in the package. Their typenames, generators, and parameters can be listed via:</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1">Mapper<span class="op">::</span><span class="kw"><a href="https://www.rdocumentation.org/packages/Mapper/topics/covers_available">covers_available</a></span>()</a></code></pre></div>
 <pre><code>## Typename:                    Generator:                         Parameters:                          
-##  fixed rectangular            FixedRectangularCover              number_intervals, percent_overlap
-##  restrained rectangular       RestrainedRectangularCover         number_intervals, percent_overlap
-##  adaptive                     AdaptiveCover                      number_intervals, percent_overlap, quantile_method
+##  fixed interval               FixedIntervalCover                 number_intervals, percent_overlap
+##  restrained interval          RestrainedIntervalCover            number_intervals, percent_overlap
 ##  ball                         BallCover                          epsilon</code></pre>
 </div>
 <div id="making-a-custom-cover" class="section level2">
@@ -113,8 +128,8 @@
 <a class="sourceLine" id="cb3-3" data-line-number="3">  <span class="dt">inherit =</span> CoverRef,</a>
 <a class="sourceLine" id="cb3-4" data-line-number="4">  <span class="dt">public =</span> <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/list">list</a></span>(</a>
 <a class="sourceLine" id="cb3-5" data-line-number="5">    <span class="dt">epsilon=</span><span class="ot">NA</span>,   <span class="co">## cover parameter    </span></a>
-<a class="sourceLine" id="cb3-6" data-line-number="6">    <span class="dt">initialize =</span> <span class="cf">function</span>(filter_values, epsilon){</a>
-<a class="sourceLine" id="cb3-7" data-line-number="7">      super<span class="op">$</span><span class="kw">initialize</span>(filter_values, <span class="dt">typename=</span><span class="st">"ball"</span>)</a>
+<a class="sourceLine" id="cb3-6" data-line-number="6">    <span class="dt">initialize =</span> <span class="cf">function</span>(epsilon){</a>
+<a class="sourceLine" id="cb3-7" data-line-number="7">      super<span class="op">$</span><span class="kw">initialize</span>(<span class="dt">typename=</span><span class="st">"ball"</span>)</a>
 <a class="sourceLine" id="cb3-8" data-line-number="8">      self<span class="op">$</span>epsilon &lt;-<span class="st"> </span>epsilon</a>
 <a class="sourceLine" id="cb3-9" data-line-number="9">    }</a>
 <a class="sourceLine" id="cb3-10" data-line-number="10">  )</a>
@@ -124,36 +139,37 @@
 <ul>
 <li><p><code>__.level_sets:__</code> list of data indices that intersect the open sets</p></li>
 <li><p><code>__.index_set:__</code> character vector of keys that uniquely index the level sets</p></li>
-<li><p><code>__.filter_dim:__</code> constant representing the filter dimension</p></li>
-<li><p><code>__.filter_size:__</code> constant representing the number of points in the filter space</p></li>
 <li><p><code>__.typename:__</code> string identifier of the covering method</p></li>
 </ul>
 <p>Additional information can be found in the documentation of the base class, see <code><a href="../reference/CoverRef.html">?CoverRef</a></code> for more details.</p>
 <p>The only other required function to override is the <code>construct_cover</code> method. Below is an example that uses the <code>RANN</code> package to construct a cover.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1">BallCoverEx<span class="op">$</span><span class="kw">set</span>(<span class="st">"public"</span>, <span class="st">"construct_cover"</span>, <span class="cf">function</span>(){</a>
-<a class="sourceLine" id="cb4-2" data-line-number="2">  <span class="co">## Construct the balls</span></a>
-<a class="sourceLine" id="cb4-3" data-line-number="3">  ball_cover  &lt;-<span class="st"> </span>RANN<span class="op">::</span><span class="kw"><a href="https://www.rdocumentation.org/packages/RANN/topics/nn2">nn2</a></span>(self<span class="op">$</span>filter_values, <span class="dt">searchtype =</span> <span class="st">"radius"</span>, <span class="dt">radius =</span> self<span class="op">$</span>epsilon)</a>
-<a class="sourceLine" id="cb4-4" data-line-number="4">  </a>
-<a class="sourceLine" id="cb4-5" data-line-number="5">  <span class="co">## Union them together </span></a>
-<a class="sourceLine" id="cb4-6" data-line-number="6">  ds &lt;-<span class="st"> </span><span class="kw"><a href="../reference/union_find.html">union_find</a></span>(private<span class="op">$</span>.filter_size)</a>
-<a class="sourceLine" id="cb4-7" data-line-number="7">  <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/apply">apply</a></span>(ball_cover<span class="op">$</span>nn.idx, <span class="dv">1</span>, <span class="cf">function</span>(idx){</a>
-<a class="sourceLine" id="cb4-8" data-line-number="8">    connected_idx &lt;-<span class="st"> </span>idx[idx <span class="op">!=</span><span class="st"> </span><span class="dv">0</span>] <span class="op">-</span><span class="st"> </span>1L</a>
-<a class="sourceLine" id="cb4-9" data-line-number="9">    <span class="cf">if</span> (<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/length">length</a></span>(connected_idx) <span class="op">&gt;</span><span class="st"> </span><span class="dv">0</span>){</a>
-<a class="sourceLine" id="cb4-10" data-line-number="10">      ds<span class="op">$</span><span class="kw">union_all</span>(connected_idx)</a>
-<a class="sourceLine" id="cb4-11" data-line-number="11">    }</a>
-<a class="sourceLine" id="cb4-12" data-line-number="12">  })</a>
-<a class="sourceLine" id="cb4-13" data-line-number="13">  </a>
-<a class="sourceLine" id="cb4-14" data-line-number="14">  <span class="co">## Construct the intersections between the open sets and the data</span></a>
-<a class="sourceLine" id="cb4-15" data-line-number="15">  cc &lt;-<span class="st"> </span>ds<span class="op">$</span><span class="kw">connected_components</span>()</a>
-<a class="sourceLine" id="cb4-16" data-line-number="16">  self<span class="op">$</span>index_set &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/character">as.character</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/unique">unique</a></span>(cc))</a>
-<a class="sourceLine" id="cb4-17" data-line-number="17">  ls &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/lapply">lapply</a></span>(self<span class="op">$</span>index_set, <span class="cf">function</span>(idx){</a>
-<a class="sourceLine" id="cb4-18" data-line-number="18">    <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/which">which</a></span>(cc <span class="op">==</span><span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/integer">as.integer</a></span>(idx))</a>
-<a class="sourceLine" id="cb4-19" data-line-number="19">  })</a>
-<a class="sourceLine" id="cb4-20" data-line-number="20">  self<span class="op">$</span>level_sets &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/structure">structure</a></span>(ls, <span class="dt">names=</span>self<span class="op">$</span>index_set)</a>
-<a class="sourceLine" id="cb4-21" data-line-number="21">  </a>
-<a class="sourceLine" id="cb4-22" data-line-number="22">  <span class="co">## Always return self </span></a>
-<a class="sourceLine" id="cb4-23" data-line-number="23">  <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/invisible">invisible</a></span>(self)</a>
-<a class="sourceLine" id="cb4-24" data-line-number="24">})</a></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1">BallCoverEx<span class="op">$</span><span class="kw">set</span>(<span class="st">"public"</span>, <span class="st">"construct_cover"</span>, <span class="cf">function</span>(filter, <span class="dt">index=</span><span class="ot">NULL</span>){</a>
+<a class="sourceLine" id="cb4-2" data-line-number="2">  <span class="co">## Get filter values </span></a>
+<a class="sourceLine" id="cb4-3" data-line-number="3">  fv &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/filter">filter</a></span>()</a>
+<a class="sourceLine" id="cb4-4" data-line-number="4">  f_dim &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/nrow">ncol</a></span>(fv)</a>
+<a class="sourceLine" id="cb4-5" data-line-number="5">  f_size &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/nrow">nrow</a></span>(fv)</a>
+<a class="sourceLine" id="cb4-6" data-line-number="6">  </a>
+<a class="sourceLine" id="cb4-7" data-line-number="7">  <span class="co">## Construct the balls</span></a>
+<a class="sourceLine" id="cb4-8" data-line-number="8">  ball_cover  &lt;-<span class="st"> </span>RANN<span class="op">::</span><span class="kw"><a href="https://www.rdocumentation.org/packages/RANN/topics/nn2">nn2</a></span>(fv, <span class="dt">query =</span> fv, <span class="dt">searchtype =</span> <span class="st">"radius"</span>, <span class="dt">radius =</span> self<span class="op">$</span>epsilon)</a>
+<a class="sourceLine" id="cb4-9" data-line-number="9">  </a>
+<a class="sourceLine" id="cb4-10" data-line-number="10">  <span class="co">## Union them together </span></a>
+<a class="sourceLine" id="cb4-11" data-line-number="11">  ds &lt;-<span class="st"> </span><span class="kw"><a href="../reference/union_find.html">union_find</a></span>(f_size)</a>
+<a class="sourceLine" id="cb4-12" data-line-number="12">  <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/apply">apply</a></span>(ball_cover<span class="op">$</span>nn.idx, <span class="dv">1</span>, <span class="cf">function</span>(idx){</a>
+<a class="sourceLine" id="cb4-13" data-line-number="13">    connected_idx &lt;-<span class="st"> </span>idx[idx <span class="op">!=</span><span class="st"> </span><span class="dv">0</span>] <span class="op">-</span><span class="st"> </span>1L</a>
+<a class="sourceLine" id="cb4-14" data-line-number="14">    <span class="cf">if</span> (<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/length">length</a></span>(connected_idx) <span class="op">&gt;</span><span class="st"> </span><span class="dv">0</span>){ ds<span class="op">$</span><span class="kw">union_all</span>(connected_idx) }</a>
+<a class="sourceLine" id="cb4-15" data-line-number="15">  })</a>
+<a class="sourceLine" id="cb4-16" data-line-number="16">  </a>
+<a class="sourceLine" id="cb4-17" data-line-number="17">  <span class="co">## Construct the intersections between the open sets and the data</span></a>
+<a class="sourceLine" id="cb4-18" data-line-number="18">  cc &lt;-<span class="st"> </span>ds<span class="op">$</span><span class="kw">connected_components</span>()</a>
+<a class="sourceLine" id="cb4-19" data-line-number="19">  self<span class="op">$</span>index_set &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/character">as.character</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/unique">unique</a></span>(cc))</a>
+<a class="sourceLine" id="cb4-20" data-line-number="20">  ls &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/lapply">lapply</a></span>(self<span class="op">$</span>index_set, <span class="cf">function</span>(idx){ <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/which">which</a></span>(cc <span class="op">==</span><span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/integer">as.integer</a></span>(idx)) })</a>
+<a class="sourceLine" id="cb4-21" data-line-number="21">  self<span class="op">$</span>level_sets &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/structure">structure</a></span>(ls, <span class="dt">names=</span>self<span class="op">$</span>index_set)</a>
+<a class="sourceLine" id="cb4-22" data-line-number="22">  </a>
+<a class="sourceLine" id="cb4-23" data-line-number="23">  <span class="co">## If index is requested, return the preimages at that index, </span></a>
+<a class="sourceLine" id="cb4-24" data-line-number="24">  <span class="co">## otherwise return the instance invisibly</span></a>
+<a class="sourceLine" id="cb4-25" data-line-number="25">  <span class="cf">if</span> (<span class="op">!</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/missing">missing</a></span>(index)){ <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/function">return</a></span>(self<span class="op">$</span>level_sets[[index]]) }</a>
+<a class="sourceLine" id="cb4-26" data-line-number="26">  <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/invisible">invisible</a></span>(self)</a>
+<a class="sourceLine" id="cb4-27" data-line-number="27">})</a></code></pre></div>
 <p>A <a href="https://en.wikipedia.org/wiki/Disjoint-set_data_structure">disjoint-set data structure</a> is used to track the intersections between each ball (see <code><a href="../reference/union_find.html">?union_find</a></code> for usage details). Note how the index set uniquely indexes the open sets. Although in this case the balls don’t necessarily represent the classical notion of a “level set”, the member is named that way due to their relaxed interpretation as such in the other covers.</p>
 </div>
 <div id="making-a-better-custom-cover" class="section level2">
@@ -191,7 +207,7 @@
 </div>
 
 <div class="pkgdown">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.3.0.</p>
 </div>
       </footer>
 </div>
