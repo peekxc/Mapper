@@ -1,9 +1,8 @@
 
 # Mapper 
-
-[![Appveyor Windows Build status](https://img.shields.io/appveyor/ci/peekxc/Mapper.svg?logo=windows&logoColor=DDDDDD)](https://ci.appveyor.com/project/peekxc/mapper)
-[![Travis OS X Build status](https://img.shields.io/travis/com/peekxc/Mapper.svg?logo=Apple&logoColor=DDDDDD&env=BADGE=osx&label=build&branch=master)](https://travis-ci.com/peekxc/Mapper)
-[![Travis Linux X Build status](https://img.shields.io/travis/com/peekxc/Mapper.svg?logo=linux&logoColor=DDDDDD&env=BADGE=linux&label=build&branch=master)](https://travis-ci.com/peekxc/Mapper)
+[![Appveyor Windows Build status](https://img.shields.io/appveyor/ci/peekxc/Mapper/master.svg?logo=windows&logoColor=DDDDDD)](https://ci.appveyor.com/project/peekxc/mapper)
+[![Travis OS X Build status](https://img.shields.io/travis/com/peekxc/Mapper/master.svg?logo=Apple&logoColor=DDDDDD&env=BADGE=osx&label=build)](https://travis-ci.com/peekxc/Mapper)
+[![Travis Linux X Build status](https://img.shields.io/travis/com/peekxc/Mapper/master.svg?logo=linux&logoColor=DDDDDD&env=BADGE=linux&label=build&branch=master)](https://travis-ci.com/peekxc/Mapper)
 
 This package provides a set of tools written in R/Rcpp for computing the _mapper_ construction, and other related algorithms. Mapper was originally introduced in the article 
 
