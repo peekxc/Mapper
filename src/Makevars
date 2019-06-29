@@ -1,5 +1,8 @@
-CC=gcc
-CXX=g++
-CXX_STD=CXX11
+CXX_STD = CXX11
+CC = gcc
+CXX = g++
+CXX11 = g++
+CXX1X = g++
+CXX14 = g++
 PKG_CXXFLAGS = -pedantic -Wall
 

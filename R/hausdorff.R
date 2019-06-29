@@ -22,10 +22,10 @@ hausdorff_distance <- function(m){
   stopifnot(n_vertex > 0)
   idx <- utils::combn(n_vertex, 2)
   d_h.vec <- apply(idx, 2, function(ii){
-    v1 <- m$vertices[[ii[1]]]
-    v2 <- m$vertices[[ii[2]]]
-    xy <- mean(RANN::nn2(data = m$X[v1,,drop=F], query = m$X[v2,,drop=F], k = 1)$nn.dist)
-    yx <- mean(RANN::nn2(data = m$X[v2,,drop=F], query = m$X[v1,,drop=F], k = 1)$nn.dist)
+    x1 <- m$X(m$vertices[[ii[1]]])
+    x2 <- m$X(m$vertices[[ii[2]]])
+    xy <- mean(RANN::nn2(data = x1, query = x2, k = 1)$nn.dist)
+    yx <- mean(RANN::nn2(data = x2, query = x1, k = 1)$nn.dist)
     max(xy, yx)
   })
   d_h.matrix <- matrix(0, nrow=n_vertex, ncol=n_vertex)

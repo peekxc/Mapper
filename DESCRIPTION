@@ -1,27 +1,29 @@
 Package: Mapper
 Type: Package
 Title: Topological Data Analysis using Mapper
-Version: 0.8.0
-Date: 2018-11-29
-Authors@R: c(person("Matt", "Piekenbrock", email = "matt.piekenbrock@gmail.com", role = c("aut", "cre", "cph")), 
-             person("Gurjeet","Singh", role = c("ctb","cph")))
-Author: Matt Piekenbrock [aut, cre, ctb],
-        Gurjeet Singh [ctb, cph]
+Version: 0.9.1
+Date: 2019-06-23
+Author: Matt Piekenbrock
+Authors@R: c(person("Matt", "Piekenbrock", email = "matt.piekenbrock@gmail.com", role = c("aut", "cre", "cph")))
 Maintainer: Matt Piekenbrock <matt.piekenbrock@gmail.com>
 Description: An efficient implementation of the Mapper algorithm, and other related algorithms and tools used in Topological Data Analysis. 
-Imports: R6, Rcpp, stats, methods 
-LinkingTo: Rcpp
-RcppModules: segment_tree_module, simplex_tree_module, union_find_module
-License: file LICENSE
-BugReports: https://github.com/peekxc/mapper
-Suggests: 
+Imports: R6, Rcpp, stats, methods, simplextree
+LinkingTo: Rcpp, RcppProgress, simplextree
+License: MIT + file LICENSE
+BugReports: https://github.com/peekxc/Mapper/issues
+Remotes: peekxc/simplextree, peekxc/pixiplex
+Suggests:
     igraph,
+    ROI, nloptr,
     htmlwidgets, shiny, DT,
     proxy, parallelDist, fastcluster, RANN,
-    testthat, knitr, rmarkdown
+    testthat, knitr, rmarkdown, 
+    pixiplex, 
+    modules
 Copyright: The Mapper method was originally developed by Gurjeet Singh, Facundo Mémoli, and Gunnar Carlsson. The software is Copyright by Matt Piekenbrock.
 Encoding: UTF-8
 LazyData: true
 VignetteBuilder: knitr
 SystemRequirements: C++11
 RoxygenNote: 6.1.0
+URL: https://github.com/peekxc/Mapper

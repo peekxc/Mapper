@@ -22,7 +22,8 @@ A stable CRAN release is planned for the future.
 
 Given a data set, define the filter function. Here is an example using the noisy points sampled from the perimeter of a circle, similar to the example given by Example 3.2 in the original paper.   
 ```R
-## Load the circle data set 
+## Load package + the circle data set 
+library("Mapper")
 data("noisy_circle", package = "Mapper")
 
 ## Define filter values equal to the distance from each point to the left-most point in the circle 
@@ -33,7 +34,7 @@ f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
 Visualize the data and the results of the map
 ```R
 layout(matrix(1:2, nrow=1))
-rbw <- rainbow(100, start=0,end=4/6)[cut(f_x, breaks=99, labels=FALSE)]
+rbw <- Mapper::bin_color(f_x)
 plot(noisy_circle, col = rbw)
 plot(cbind(f_x, 1L), pch = "|", col = rbw)
 ```

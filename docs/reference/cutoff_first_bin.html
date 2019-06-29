@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>cutoff_first_bin function — cutoff_first_bin • Mapper</title>
+<title>cutoff_first_bin — cutoff_first_bin • Mapper</title>
 
 <!-- jquery -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
@@ -30,10 +30,9 @@
 
 
 
-<meta property="og:title" content="cutoff_first_bin function — cutoff_first_bin" />
+<meta property="og:title" content="cutoff_first_bin — cutoff_first_bin" />
 
-<meta property="og:description" content="Uses the heuristic from the original Mapper paper to cut a given hierarchical cluster tree at the
-threshold corresponding to the first empty of a histogram of the linkage distances." />
+<meta property="og:description" content="Uses the heuristic described in Section 3.1 of the original Mapper paper to cut a given hierarchical tree to produce a partitioning of the data." />
 <meta name="twitter:card" content="summary" />
 
 <meta name="robots" content="noindex">
@@ -64,7 +63,7 @@ threshold corresponding to the first empty of a histogram of the linkage distanc
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Mapper</a>
-        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.8.0</span>
+        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.1</span>
       </span>
     </div>
 
@@ -79,9 +78,6 @@ threshold corresponding to the first empty of a histogram of the linkage distanc
 <li>
   <a href="../articles/Mapper.html">Get started</a>
 </li>
-<li>
-  <a href="../reference/index.html">Reference</a>
-</li>
 <li class="dropdown">
   <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
     Articles
@@ -92,12 +88,29 @@ threshold corresponding to the first empty of a histogram of the linkage distanc
     <li>
       <a href="../articles/UsingCustomCover.html">Using a custom covering method</a>
     </li>
+    <li>
+      <a href="../articles/extra/community.html">Community contributed use-cases</a>
+    </li>
   </ul>
+</li>
+<li>
+  <a href="../reference/index.html">Reference</a>
+</li>
+<li>
+  <a href="../news/index.html">News</a>
+</li>
+<li>
+  <a href="../articles/extra/community.html">User contributed</a>
 </li>
       </ul>
       
       <ul class="nav navbar-nav navbar-right">
-        
+        <li>
+  <a href="https://github.com/peekxc/Mapper">
+    <span class="fa fa-github fa-lg"></span>
+     
+  </a>
+</li>
       </ul>
       
     </div><!--/.nav-collapse -->
@@ -110,19 +123,18 @@ threshold corresponding to the first empty of a histogram of the linkage distanc
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>cutoff_first_bin function</h1>
-    
+    <h1>cutoff_first_bin</h1>
+    <small class="dont-index">Source: <a href='https://github.com/peekxc/Mapper/blob/master/R/cutoff_methods.R'><code>R/cutoff_methods.R</code></a></small>
     <div class="hidden name"><code>cutoff_first_bin.Rd</code></div>
     </div>
 
     <div class="ref-description">
     
-    <p>Uses the heuristic from the original Mapper paper to cut a given hierarchical cluster tree at the
-threshold corresponding to the first empty of a histogram of the linkage distances.</p>
+    <p>Uses the heuristic described in Section 3.1 of the original Mapper paper to cut a given hierarchical tree to produce a partitioning of the data.</p>
     
     </div>
 
-    <pre class="usage"><span class='fu'>cutoff_first_bin</span>(<span class='no'>hcl</span>, <span class='no'>diam</span>, <span class='no'>num_bins</span>)</pre>
+    <pre class="usage"><span class='fu'>cutoff_first_bin</span>(<span class='no'>hcl</span>, <span class='no'>num_bins</span>, <span class='kw'>check_skew</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>)</pre>
     
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -132,14 +144,29 @@ threshold corresponding to the first empty of a histogram of the linkage distanc
       <td><p>hierarchical clustering in the form an 'hclust' object.</p></td>
     </tr>
     <tr>
-      <th>diam</th>
-      <td><p>largest pairwise distance between the objects used to create the hierarchy.</p></td>
-    </tr>
-    <tr>
       <th>num_bins</th>
       <td><p>Controls how many bins there are in the histogram used to determine cutoff.</p></td>
     </tr>
+    <tr>
+      <th>check_skew</th>
+      <td><p>Whether to check if the distribution is left-skewed. See details.</p></td>
+    </tr>
     </table>
+    
+    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
+
+    <p>The cut-off value to use with <code><a href='https://www.rdocumentation.org/packages/stats/topics/cutree'>cutree</a></code>.</p>
+    
+    <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
+
+    <p>This method implements a cutting heuristic to determine the cut height in the given hierarchical tree <code>hcl</code>. 
+The cut value is chosen as the lowest break point corresponding to the first empty bin of a histogram of the linkage distances.
+The motivation for the heuristic is that its often observed empirically for 'nice' clustering situations that the majority of 
+linkage distances representing inter-cluster distances are relatively smooth, whereas the intra-cluster distances are sparse. 
+Intuitively, such a distribution may be thought as being right-skewed, and the first empty interval in a histogram of linkage
+distances may be a decent splot to cut the hierarchy. If <code>check_skew</code> is TRUE (default), the linkage distances are checked 
+that they are indeed right-skewed, and then the heuristic is used. If the distribution is left-skewed, the assumption for the 
+heuristic is not true, and the trivial clustering is returned instead.</p>
     
 
   </div>
@@ -147,7 +174,11 @@ threshold corresponding to the first empty of a histogram of the linkage distanc
     <h2>Contents</h2>
     <ul class="nav nav-pills nav-stacked">
       <li><a href="#arguments">Arguments</a></li>
-                </ul>
+      
+      <li><a href="#value">Value</a></li>
+
+      <li><a href="#details">Details</a></li>
+          </ul>
 
   </div>
 </div>
@@ -158,7 +189,7 @@ threshold corresponding to the first empty of a histogram of the linkage distanc
 </div>
 
 <div class="pkgdown">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.3.0.</p>
 </div>
       </footer>
    </div>
