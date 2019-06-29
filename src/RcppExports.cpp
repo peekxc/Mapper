@@ -353,9 +353,9 @@ BEGIN_RCPP
 END_RCPP
 }
 
-RcppExport SEXP _rcpp_module_boot_multiscale_module();
 RcppExport SEXP _rcpp_module_boot_segment_tree_module();
 RcppExport SEXP _rcpp_module_boot_union_find_module();
+RcppExport SEXP _rcpp_module_boot_multiscale_module();
 
 static const R_CallMethodDef CallEntries[] = {
     {"_Mapper_test_merge", (DL_FUNC) &_Mapper_test_merge, 1},
@@ -385,9 +385,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Mapper_build_k_skeleton", (DL_FUNC) &_Mapper_build_k_skeleton, 6},
     {"_Mapper_build_flag_complex", (DL_FUNC) &_Mapper_build_flag_complex, 2},
     {"_Mapper_intersectNodes", (DL_FUNC) &_Mapper_intersectNodes, 4},
-    {"_rcpp_module_boot_multiscale_module", (DL_FUNC) &_rcpp_module_boot_multiscale_module, 0},
     {"_rcpp_module_boot_segment_tree_module", (DL_FUNC) &_rcpp_module_boot_segment_tree_module, 0},
     {"_rcpp_module_boot_union_find_module", (DL_FUNC) &_rcpp_module_boot_union_find_module, 0},
+    {"_rcpp_module_boot_multiscale_module", (DL_FUNC) &_rcpp_module_boot_multiscale_module, 0},
     {NULL, NULL, 0}
 };
 

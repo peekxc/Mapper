@@ -35,24 +35,24 @@ Visualize the data and the results of the map
 ```R
 layout(matrix(1:2, nrow=1))
 rbw <- Mapper::bin_color(f_x)
-plot(noisy_circle, col = rbw)
-plot(cbind(f_x, 1L), pch = "|", col = rbw)
+plot(noisy_circle, col = rbw, main = "X", xlab = "", ylab = "")
+plot(cbind(f_x, 1L), pch = "|", col = rbw, main = "f(X)", xlab = "", ylab = "")
 ```
-![Noisy circle example](docs/reference/figures/noisy_circle.png)
+![Noisy circle example](man/figures/noisy_circle_sideplot.png)
 You can construct a _mapper_ with [R6 method chaining](https://adv-r.hadley.nz/r6.html#method-chaining)
 ```R
 ## Define the main via chaining R6 methods
 m <- MapperRef$new(noisy_circle)$
-  use_cover(filter_values = matrix(f_x), type="fixed rectangular", number_intervals=5L, percent_overlap=20)$
-  use_clustering_algorithm(cl = "single", num_bins = 10)$
-  use_distance_measure(measure = "euclidean")$
-  compute_k_skeleton(k=1L)
+  use_filter(filter = matrix(f_x))$
+  use_cover(cover="fixed interval", number_intervals=5L, percent_overlap=20)$
+  use_distance_measure(measure="euclidean")$
+  construct_k_skeleton(k=1L)
 m
 ```
 
 ```R
-Mapper construction for 1500 objects
-Cover: (typename = Fixed Rectangular, number intervals = [5], percent overlap = [20]%)
+Mapper construction with (8, 8) (0, 1)-simplices
+Fixed Interval Cover: (number intervals = [5], percent overlap = [20]%)
 ```
 
 The _mapper_ is stored in a [simplex tree](https://hal.inria.fr/hal-00707901v1/document). To get a quick overview of what the complex looks like use
@@ -91,14 +91,16 @@ The vertices of the _mapper_ are stored as a simple list
 View(m$vertices)
 ```
 
-To interactive with the graph, consider the [grapher](https://github.com/peekxc/grapher) library, ported from Ayasdis [grapher.js](https://github.com/ayasdi/grapher) library. 
+To interact with the graph, consider using the [pixiplex](https://github.com/peekxc/pixiplex) library.
 ```R
-library("grapher")
-m$as_grapher() 
+library("pixiplex")
+plot(m$as_pixiplex())
 ```
+
+![pixiplex circle example](vignettes/pixiplex_prev.png)
 
 ## Additional Information 
 
-More comprehensive documentation is available [here](https://peekxc.github.io/mapper/).
+More comprehensive documentation is available [here](https://peekxc.github.io/Mapper/).
 There's also a [vignette on using the package](https://peekxc.github.io/Mapper/articles/Mapper.html) that is more-depth.
 
