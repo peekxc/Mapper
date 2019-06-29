@@ -682,7 +682,8 @@ MapperRef$set("public", "format", function(...){
 MapperRef$set("public", "as_igraph", function(vertex_scale=c("linear", "log"), vertex_min=10L, vertex_max=15L, col_pal="rainbow"){
   requireNamespace("igraph", quietly = TRUE)
   am <- private$.simplicial_complex$as_adjacency_matrix()
-  G <- igraph::graph_from_adjacency_matrix(am, mode = "undirected", add.colnames = NA) 
+  colnames(am) <- as.character(private$.simplicial_complex$vertices)
+  G <- igraph::graph_from_adjacency_matrix(am, mode = "undirected", add.colnames = NULL) ## NULL makes named vertices
   
   ## Color nodes and edges by a default rainbow palette
   rbw_pal <- rev(rainbow(100, start = 0, end = 4/6))
@@ -694,10 +695,12 @@ MapperRef$set("public", "as_igraph", function(vertex_scale=c("linear", "log"), v
   igraph::vertex_attr(G, name = "color") <- rbw_fun(agg_node_val)
   
   ## Extract indices in the edges
-  agg_edge <- apply(igraph::as_edgelist(G), 1, function(vids){
+  edges <- igraph::as_edgelist(G)
+  edge_idx <- lapply(seq(nrow(edges)), function(i){
+    vids <- edges[i,]
     intersect(private$.vertices[[vids[1]]], private$.vertices[[vids[2]]])
   })
-  agg_edge_val <- agg_val(agg_edge)
+  agg_edge_val <- agg_val(edge_idx)
   igraph::edge_attr(G, name = "color") <- rbw_fun(agg_edge_val)
   
   ## Normalize between 0-1, unless all the same
