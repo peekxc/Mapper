@@ -6,6 +6,42 @@ development:
   destination: /
   version_label: danger
   version_tooltip: "Package under development"
+home:
+  strip_header: false
+navbar:
+  structure:
+    left:
+    - home
+    - intro
+    - articles
+    - reference
+    - news
+    - community
+    right: github
+  components:
+    home:
+      icon: fa-home fa-lg
+      href: index.html
+    intro:
+      text: Get started
+      href: articles/Mapper.html
+    articles:
+      text: Articles
+      menu:
+      - text: Using a custom covering method
+        href: articles/UsingCustomCover.html
+    reference:
+      text: Reference
+      href: reference/index.html
+    news:
+      text: News
+      href: news/index.html
+    community: 
+      text: User contributed
+      href: articles/extra/community.html
+    github:
+      icon: fa-github fa-lg
+      href: https://github.com/peekxc/Mapper
 reference:
 - title: General package functions
   desc: >

@@ -241,7 +241,10 @@ std::unordered_map< std::string, IntegerVector > lst2map(const List& lst){
   if (Rf_isNull(lst.names()) || lst.size() == 0){ return std::unordered_map< std::string, IntegerVector >(); }
   vector< std::string > keys = as< vector< std::string > >(lst.names());
   std::unordered_map< std::string, IntegerVector > res; 
-  for (auto c_key: keys){ res.emplace(c_key, lst[c_key]); }
+  for (auto c_key: keys){ 
+    IntegerVector v = as< IntegerVector >(lst[c_key]);
+    res.emplace(c_key, v); 
+  }
   return(res);
 }
 

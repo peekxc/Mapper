@@ -19,7 +19,7 @@
 <![endif]-->
 </head>
 <body>
-    <div class="container template-home">
+    <div class="container template-article">
       <header><div class="navbar navbar-default navbar-fixed-top" role="navigation">
   <div class="container">
     <div class="navbar-header">
@@ -46,9 +46,6 @@
 <li>
   <a href="articles/Mapper.html">Get started</a>
 </li>
-<li>
-  <a href="reference/index.html">Reference</a>
-</li>
 <li class="dropdown">
   <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
     Articles
@@ -59,13 +56,29 @@
 <li>
       <a href="articles/UsingCustomCover.html">Using a custom covering method</a>
     </li>
+    <li>
+      <a href="articles/extra/community.html">Community contributed use-cases</a>
+    </li>
   </ul>
 </li>
 <li>
-  <a href="news/index.html">Changelog</a>
+  <a href="reference/index.html">Reference</a>
+</li>
+<li>
+  <a href="news/index.html">News</a>
+</li>
+<li>
+  <a href="articles/extra/community.html">User contributed</a>
 </li>
       </ul>
-<ul class="nav navbar-nav navbar-right"></ul>
+<ul class="nav navbar-nav navbar-right">
+<li>
+  <a href="https://github.com/peekxc/Mapper">
+    <span class="fa fa-github fa-lg"></span>
+     
+  </a>
+</li>
+      </ul>
 </div>
 <!--/.nav-collapse -->
   </div>
@@ -75,13 +88,17 @@
 
       
       </header><div class="row">
-  <div class="contents col-md-9">
-<div id="r-implementation-of-mapper" class="section level1">
+  <div class="col-md-9 contents">
+    
+
+    
+    
+<div id="mapper" class="section level1">
 <div class="page-header"><h1 class="hasAnchor">
-<a href="#r-implementation-of-mapper" class="anchor"></a>R implementation of Mapper</h1></div>
+<a href="#mapper" class="anchor"></a>Mapper <img src="reference/figures/mapper_sticker.png" align="right" width="120">
+</h1></div>
 
 <p>The <code>Mapper</code> package provides an <a href="https://www.r-project.org/">R</a> implementation of the <em>Mapper</em> framework (see <a href="#mapper_paper">1</a>). The package includes:</p>
-<p><img src="reference/figures/mapper_logo.png" width="150" style="margin-left: 15px;" align="right"></p>
 <ul>
 <li><p>Efficient implementation of <em>Mapper</em> components using <a href="https://cran.r-project.org/web/packages/Rcpp/index.html">Rcpp</a></p></li>
 <li><p>Extendable <a href="https://github.com/r-lib/R6">R6 generators</a> for <em>Mappers</em> components</p></li>
@@ -90,20 +107,17 @@
 <li><p>Pre-configured tools for visualizing and interacting with <em>mappers</em></p></li>
 </ul>
 <p>The package is designed to make modifying or extending the <em>Mapper</em> method simple and efficient, without limiting its generality.</p>
-<div id="getting-started" class="section level3">
-<h3 class="hasAnchor">
-<a href="#getting-started" class="anchor"></a>Getting started</h3>
-<div id="installation" class="section level4">
-<h4 class="hasAnchor">
-<a href="#installation" class="anchor"></a>Installation</h4>
+<div id="installation" class="section level2">
+<h2 class="hasAnchor">
+<a href="#installation" class="anchor"></a>Installation</h2>
 <p>Install the <code>Mapper</code> package from github as follows:</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/library">require</a></span>(<span class="st">"devtools"</span>)</a>
 <a class="sourceLine" id="cb1-2" data-line-number="2">devtools<span class="op">::</span><span class="kw"><a href="https://www.rdocumentation.org/packages/devtools/topics/reexports">install_github</a></span>(<span class="st">"peekxc/mapper"</span>)</a></code></pre></div>
 <p>A CRAN release is planned for the near future.</p>
 </div>
-<div id="creating-a-complex" class="section level4">
-<h4 class="hasAnchor">
-<a href="#creating-a-complex" class="anchor"></a>Creating a complex</h4>
+<div id="getting-started" class="section level2">
+<h2 class="hasAnchor">
+<a href="#getting-started" class="anchor"></a>Getting started</h2>
 <p><em>Mapper</em> takes as input a point cloud <span class="math inline">\(X\)</span> and a reference map <span class="math inline">\(f : X \to Z\)</span>, and returns a topological summary of <span class="math inline">\(X\)</span> expressed via a cover equipped on the codomain of the map. For example, consider a point cloud sampled from an ‘eight-curve’ in <span class="math inline">\(\mathbb{R}^2\)</span>:</p>
 <p><span class="math display">\[g(t) = [\cos(t), \sin(t)\cos(t)],\; t \in \Big(-\frac{1}{2}\pi, \frac{3}{2}\pi\Big)\]</span> In the example below, the data set <span class="math inline">\(X\)</span> is created from equally spaced samples over <span class="math inline">\(t\)</span>, and the map chosen is simply the <span class="math inline">\(x\)</span>-coordinate of the shape, i.e. <span class="math inline">\(f(X) = Z = x_1\)</span>.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1">t &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/seq">seq</a></span>(<span class="op">-</span><span class="fl">0.5</span><span class="op">*</span>pi, (<span class="dv">3</span><span class="op">/</span><span class="dv">2</span>)<span class="op">*</span>pi, <span class="dt">length.out =</span> <span class="dv">100</span>) <span class="op">+</span><span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/Uniform">runif</a></span>(<span class="dv">100</span>, <span class="dt">max =</span> <span class="fl">0.01</span>)</a>
@@ -126,41 +140,40 @@
 <a class="sourceLine" id="cb3-3" data-line-number="3"><span class="st">  </span><span class="kw"><a href="reference/use_cover.html">use_cover</a></span>(<span class="dt">cover =</span> <span class="st">"fixed interval"</span>, <span class="dt">number_intervals =</span> <span class="dv">5</span>, <span class="dt">percent_overlap =</span> <span class="dv">20</span>)<span class="op">$</span></a>
 <a class="sourceLine" id="cb3-4" data-line-number="4"><span class="st">  </span><span class="kw"><a href="reference/use_clustering_algorithm.html">use_clustering_algorithm</a></span>(<span class="dt">cl =</span> <span class="st">"single"</span>)<span class="op">$</span></a>
 <a class="sourceLine" id="cb3-5" data-line-number="5"><span class="st">  </span><span class="kw"><a href="reference/construct_k_skeleton.html">construct_k_skeleton</a></span>(<span class="dt">k =</span> 1L)</a>
-<a class="sourceLine" id="cb3-6" data-line-number="6"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/print">print</a></span>(m)</a></code></pre></div>
-<pre><code>## Mapper construction with (7, 8) (0, 1)-simplices
-## Fixed Interval Cover: (number intervals = [5], percent overlap = [20]%)</code></pre>
+<a class="sourceLine" id="cb3-6" data-line-number="6"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/print">print</a></span>(m)</a>
+<a class="sourceLine" id="cb3-7" data-line-number="7"><span class="co">#&gt; Mapper construction with (7, 8) (0, 1)-simplices</span></a>
+<a class="sourceLine" id="cb3-8" data-line-number="8"><span class="co">#&gt; Fixed Interval Cover: (number intervals = [5], percent overlap = [20]%)</span></a></code></pre></div>
 <p>There are multiple options one may use to visualize <strong>mapper</strong>. A default plotting method is available using an <code>igraph</code> determined layout:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="kw"><a href="https://www.rdocumentation.org/packages/graphics/topics/plot">plot</a></span>(m<span class="op">$</span>simplicial_complex)</a></code></pre></div>
-<p><img src="index_files/figure-html/unnamed-chunk-4-1.png" width="700"></p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="kw"><a href="https://www.rdocumentation.org/packages/graphics/topics/plot">plot</a></span>(m<span class="op">$</span>simplicial_complex)</a></code></pre></div>
+<p><img src="index_files/figure-html/unnamed-chunk-5-1.png" width="700"></p>
 <p>For other visualization options, see below.</p>
-</div>
 <div id="customizing-mapper" class="section level4">
 <h4 class="hasAnchor">
 <a href="#customizing-mapper" class="anchor"></a>Customizing Mapper</h4>
 <p>Almost any component of the Mapper method can be customized.</p>
 <p>Want to change the metric? Pass the name of any proximity measure used in the <a href="https://cran.r-project.org/web/packages/proxy/index.html">proxy</a> package.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="co">## See ?proxy::pr_DB for more details.</span></a>
-<a class="sourceLine" id="cb6-2" data-line-number="2">m<span class="op">$</span><span class="kw"><a href="reference/use_distance_measure.html">use_distance_measure</a></span>(<span class="st">"manhattan"</span>) <span class="co">## This is stored as m$measure</span></a></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="co">## See ?proxy::pr_DB for more details.</span></a>
+<a class="sourceLine" id="cb5-2" data-line-number="2">m<span class="op">$</span><span class="kw"><a href="reference/use_distance_measure.html">use_distance_measure</a></span>(<span class="st">"manhattan"</span>) <span class="co">## This is stored as m$measure</span></a></code></pre></div>
 <p>Prefer a different <a href="https://en.wikipedia.org/wiki/Hierarchical_clustering#Linkage_criteria">linkage criteria</a> to cluster with? Any of the criteria used by <a href="https://stat.ethz.ch/R-manual/R-devel/library/stats/html/hclust.html">hclust</a> can be swapped in.</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" data-line-number="1">m<span class="op">$</span><span class="kw"><a href="reference/use_clustering_algorithm.html">use_clustering_algorithm</a></span>(<span class="dt">cl =</span> <span class="st">"average"</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1">m<span class="op">$</span><span class="kw"><a href="reference/use_clustering_algorithm.html">use_clustering_algorithm</a></span>(<span class="dt">cl =</span> <span class="st">"average"</span>)</a></code></pre></div>
 <p>Or, just replace the clustering algorithm entirely by supplying a function.</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" data-line-number="1"><span class="co">## If using a custom metric, just compute the distance matrix </span></a>
-<a class="sourceLine" id="cb8-2" data-line-number="2"><span class="co">## pid := open set index </span></a>
-<a class="sourceLine" id="cb8-3" data-line-number="3"><span class="co">## idx := point indices in the preimage of the open set indexed by 'pid' </span></a>
-<a class="sourceLine" id="cb8-4" data-line-number="4">m<span class="op">$</span><span class="kw"><a href="reference/use_clustering_algorithm.html">use_clustering_algorithm</a></span>(<span class="dt">cl =</span> <span class="cf">function</span>(pid, idx){</a>
-<a class="sourceLine" id="cb8-5" data-line-number="5">  dist_x &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/dist">dist</a></span>(self<span class="op">$</span><span class="kw">X</span>(idx), <span class="dt">method =</span> self<span class="op">$</span>measure)</a>
-<a class="sourceLine" id="cb8-6" data-line-number="6">  hc &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/hclust">hclust</a></span>(dist_x, <span class="dt">method =</span> <span class="st">"average"</span>)</a>
-<a class="sourceLine" id="cb8-7" data-line-number="7">  eps &lt;-<span class="st"> </span><span class="kw"><a href="reference/cutoff_first_threshold.html">cutoff_first_threshold</a></span>(hc)</a>
-<a class="sourceLine" id="cb8-8" data-line-number="8">  <span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/cutree">cutree</a></span>(hc, <span class="dt">h =</span> eps)</a>
-<a class="sourceLine" id="cb8-9" data-line-number="9">})</a></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" data-line-number="1"><span class="co">## If using a custom metric, just compute the distance matrix </span></a>
+<a class="sourceLine" id="cb7-2" data-line-number="2"><span class="co">## pid := open set index </span></a>
+<a class="sourceLine" id="cb7-3" data-line-number="3"><span class="co">## idx := point indices in the preimage of the open set indexed by 'pid' </span></a>
+<a class="sourceLine" id="cb7-4" data-line-number="4">m<span class="op">$</span><span class="kw"><a href="reference/use_clustering_algorithm.html">use_clustering_algorithm</a></span>(<span class="dt">cl =</span> <span class="cf">function</span>(pid, idx){</a>
+<a class="sourceLine" id="cb7-5" data-line-number="5">  dist_x &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/dist">dist</a></span>(self<span class="op">$</span><span class="kw">X</span>(idx), <span class="dt">method =</span> self<span class="op">$</span>measure)</a>
+<a class="sourceLine" id="cb7-6" data-line-number="6">  hc &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/hclust">hclust</a></span>(dist_x, <span class="dt">method =</span> <span class="st">"average"</span>)</a>
+<a class="sourceLine" id="cb7-7" data-line-number="7">  eps &lt;-<span class="st"> </span><span class="kw"><a href="reference/cutoff_first_threshold.html">cutoff_first_threshold</a></span>(hc)</a>
+<a class="sourceLine" id="cb7-8" data-line-number="8">  <span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/cutree">cutree</a></span>(hc, <span class="dt">h =</span> eps)</a>
+<a class="sourceLine" id="cb7-9" data-line-number="9">})</a></code></pre></div>
 <p>If you prefer a different covering, just assign a valid object inheriting from <code>CoverRef</code>.</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" data-line-number="1">m<span class="op">$</span><span class="kw"><a href="reference/use_cover.html">use_cover</a></span>(<span class="dt">cover=</span><span class="st">"fixed interval"</span>, <span class="dt">number_intervals =</span> 10L, <span class="dt">percent_overlap =</span> <span class="dv">50</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" data-line-number="1">m<span class="op">$</span><span class="kw"><a href="reference/use_cover.html">use_cover</a></span>(<span class="dt">cover=</span><span class="st">"fixed interval"</span>, <span class="dt">number_intervals =</span> 10L, <span class="dt">percent_overlap =</span> <span class="dv">50</span>)</a></code></pre></div>
 <p>A list of available covering methods, their correspondings parameters, and their generators can be printed as follows:</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" data-line-number="1"><span class="kw"><a href="reference/covers_available.html">covers_available</a></span>()</a></code></pre></div>
-<pre><code>## Typename:                    Generator:                         Parameters:                          
-##  fixed interval               FixedIntervalCover                 number_intervals, percent_overlap
-##  restrained interval          RestrainedIntervalCover            number_intervals, percent_overlap
-##  ball                         BallCover                          epsilon</code></pre>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" data-line-number="1"><span class="kw"><a href="reference/covers_available.html">covers_available</a></span>()</a>
+<a class="sourceLine" id="cb9-2" data-line-number="2"><span class="co">#&gt; Typename:                    Generator:                         Parameters:                          </span></a>
+<a class="sourceLine" id="cb9-3" data-line-number="3"><span class="co">#&gt;  fixed interval               FixedIntervalCover                 number_intervals, percent_overlap</span></a>
+<a class="sourceLine" id="cb9-4" data-line-number="4"><span class="co">#&gt;  restrained interval          RestrainedIntervalCover            number_intervals, percent_overlap</span></a>
+<a class="sourceLine" id="cb9-5" data-line-number="5"><span class="co">#&gt;  ball                         BallCover                          epsilon</span></a></code></pre></div>
 <p>Alternatively, you can create your own cover. See the article on <a href="articles/UsingCustomCover.html">how to make custom cover</a>.</p>
 <!-- The cover is composed of subsets of the data indexed by an __index set__ -->
 <!-- ```{r} -->
@@ -169,31 +182,30 @@
 <!-- <!-- These indices naturally act as keys into the collection of sets comprising the cover -->
 <p>–&gt; <!-- These indices can be used as keys into the collection of sets comprising the cover.  --> <!-- ```{r} --> <!-- all(m$cover$index_set %in% names(m$cover$level_sets)) --> <!-- ``` --></p>
 <p>Constructing the simplicial complex requires applying the <em>pullback</em> operation prior to constructing nerve. The pullback applies the clustering algorithm to subsets of the data given by the cover, which decomposes the data set into connected components. In Mapper, these connected components are represented as vertices. To view the mapping from open sets to vertices, use the <code>pullback</code> member:</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" data-line-number="1">m<span class="op">$</span><span class="kw"><a href="reference/construct_pullback.html">construct_pullback</a></span>()</a>
-<a class="sourceLine" id="cb12-2" data-line-number="2"><span class="kw"><a href="https://www.rdocumentation.org/packages/utils/topics/str">str</a></span>(m<span class="op">$</span>pullback)</a></code></pre></div>
-<pre><code>## List of 10
-##  $ (1) : num 0
-##  $ (2) : num [1:2] 1 2
-##  $ (3) : num [1:2] 3 4
-##  $ (4) : num 5
-##  $ (5) : num 6
-##  $ (6) : num 7
-##  $ (7) : num 8
-##  $ (8) : num 9
-##  $ (9) : num [1:2] 10 11
-##  $ (10): num 12</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" data-line-number="1">m<span class="op">$</span><span class="kw"><a href="reference/construct_pullback.html">construct_pullback</a></span>()</a>
+<a class="sourceLine" id="cb10-2" data-line-number="2"><span class="kw"><a href="https://www.rdocumentation.org/packages/utils/topics/str">str</a></span>(m<span class="op">$</span>pullback)</a>
+<a class="sourceLine" id="cb10-3" data-line-number="3"><span class="co">#&gt; List of 10</span></a>
+<a class="sourceLine" id="cb10-4" data-line-number="4"><span class="co">#&gt;  $ (1) : num 0</span></a>
+<a class="sourceLine" id="cb10-5" data-line-number="5"><span class="co">#&gt;  $ (2) : num [1:2] 1 2</span></a>
+<a class="sourceLine" id="cb10-6" data-line-number="6"><span class="co">#&gt;  $ (3) : num [1:2] 3 4</span></a>
+<a class="sourceLine" id="cb10-7" data-line-number="7"><span class="co">#&gt;  $ (4) : num 5</span></a>
+<a class="sourceLine" id="cb10-8" data-line-number="8"><span class="co">#&gt;  $ (5) : num 6</span></a>
+<a class="sourceLine" id="cb10-9" data-line-number="9"><span class="co">#&gt;  $ (6) : num 7</span></a>
+<a class="sourceLine" id="cb10-10" data-line-number="10"><span class="co">#&gt;  $ (7) : num 8</span></a>
+<a class="sourceLine" id="cb10-11" data-line-number="11"><span class="co">#&gt;  $ (8) : num [1:2] 9 10</span></a>
+<a class="sourceLine" id="cb10-12" data-line-number="12"><span class="co">#&gt;  $ (9) : num [1:2] 11 12</span></a>
+<a class="sourceLine" id="cb10-13" data-line-number="13"><span class="co">#&gt;  $ (10): num 13</span></a></code></pre></div>
 <p>The simplicial complex is available via the <code>$simplicial_complex</code> member, and the points in contained in each vertex is available via the <code>$vertices</code> member.</p>
-<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb14-1" data-line-number="1">m<span class="op">$</span>simplicial_complex</a></code></pre></div>
-<pre><code>## &lt; empty simplex tree &gt;</code></pre>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" data-line-number="1">m<span class="op">$</span>simplicial_complex</a>
+<a class="sourceLine" id="cb11-2" data-line-number="2"><span class="co">#&gt; &lt; empty simplex tree &gt;</span></a></code></pre></div>
 <p>The complex is stored in a <a href="?simplex_tree">Simplex Tree</a> (see 2), and the vertices are stored are stored as a named list, where each name corresponds to the 0-simplex in the simplicial complex, and each value denotes a vector of the points indices that comprise the connected component.</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb16-1" data-line-number="1"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/lapply">sapply</a></span>(m<span class="op">$</span>vertices, length)</a></code></pre></div>
-<pre><code>## 12 11  2  9  6  7  1  5 10  8  4  3  0 
-## 25 10  9 15 14 13 10 14  9 13  8  7 25</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" data-line-number="1"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/lapply">sapply</a></span>(m<span class="op">$</span>vertices, length)</a>
+<a class="sourceLine" id="cb12-2" data-line-number="2"><span class="co">#&gt; 13 12 11  2  9  6  7  1  5 10  8  4  3  0 </span></a>
+<a class="sourceLine" id="cb12-3" data-line-number="3"><span class="co">#&gt; 25 10  9  9  8 14 14  9 13  7 13  8  7 25</span></a></code></pre></div>
 <p>Once you’re satisfied with the clustering, you can construct the nerve by considering the <span class="math inline">\(k+1\)</span>-fold non-empty intersections between the sets in the pullback. It’s common to restrict the degree of the intersections considered, e.g. to ensure the <em>mapper</em> is a graph, use <span class="math inline">\(k=1\)</span>.</p>
-<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb18-1" data-line-number="1">m<span class="op">$</span><span class="kw"><a href="reference/construct_nerve.html">construct_nerve</a></span>(<span class="dt">k =</span> 1L)</a>
-<a class="sourceLine" id="cb18-2" data-line-number="2"><span class="kw"><a href="https://www.rdocumentation.org/packages/graphics/topics/plot">plot</a></span>(m<span class="op">$</span>simplicial_complex)</a></code></pre></div>
-<p><img src="index_files/figure-html/unnamed-chunk-13-1.png" width="700"></p>
-</div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb13-1" data-line-number="1">m<span class="op">$</span><span class="kw"><a href="reference/construct_nerve.html">construct_nerve</a></span>(<span class="dt">k =</span> 1L)</a>
+<a class="sourceLine" id="cb13-2" data-line-number="2"><span class="kw"><a href="https://www.rdocumentation.org/packages/graphics/topics/plot">plot</a></span>(m<span class="op">$</span>simplicial_complex)</a></code></pre></div>
+<p><img src="index_files/figure-html/unnamed-chunk-14-1.png" width="700"></p>
 </div>
 <div id="visualizing-the-mapper" class="section level3">
 <h3 class="hasAnchor">
@@ -201,18 +213,19 @@
 </h3>
 <p>To get a quick overview of what the <strong>mapper</strong> looks like, you can use the default plotting method above given by the <a href="https://github.com/peekxc/simplextree">simplextree package</a>.</p>
 <p>Alternatively, the <span class="math inline">\(1\)</span>-skeleton can be exported to any of the usual graph-type data structures.</p>
-<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb19-1" data-line-number="1">m<span class="op">$</span>simplicial_complex<span class="op">$</span><span class="kw">as_adjacency_matrix</span>()</a>
-<a class="sourceLine" id="cb19-2" data-line-number="2">m<span class="op">$</span>simplicial_complex<span class="op">$</span><span class="kw">as_adjacency_list</span>()</a>
-<a class="sourceLine" id="cb19-3" data-line-number="3">m<span class="op">$</span>simplicial_complex<span class="op">$</span><span class="kw">as_edge_list</span>()</a></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb14-1" data-line-number="1">m<span class="op">$</span>simplicial_complex<span class="op">$</span><span class="kw">as_adjacency_matrix</span>()</a>
+<a class="sourceLine" id="cb14-2" data-line-number="2">m<span class="op">$</span>simplicial_complex<span class="op">$</span><span class="kw">as_adjacency_list</span>()</a>
+<a class="sourceLine" id="cb14-3" data-line-number="3">m<span class="op">$</span>simplicial_complex<span class="op">$</span><span class="kw">as_edge_list</span>()</a></code></pre></div>
 <p>These graph data-structures can then be converted to <a href="https://igraph.org/r/">igraph</a> objects and customized however needed. A default export option is available:</p>
-<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb20-1" data-line-number="1"><span class="kw"><a href="https://www.rdocumentation.org/packages/graphics/topics/plot">plot</a></span>(m<span class="op">$</span><span class="kw"><a href="reference/as_igraph.html">as_igraph</a></span>())</a></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb15-1" data-line-number="1"><span class="kw"><a href="https://www.rdocumentation.org/packages/graphics/topics/plot">plot</a></span>(m<span class="op">$</span><span class="kw"><a href="reference/as_igraph.html">as_igraph</a></span>())</a></code></pre></div>
 <p><img src="reference/figures/igraph_ex.png" width="50%" style="text-align: center;"></p>
 <p>One of the standard way of visualizing <strong>mappers</strong> is to size the vertices logarithmically according to how many points they have in them and colored based on the mean value of the points <span class="math inline">\(f\)</span> values. Each vertex is given a label of the form “x:y” where ‘x’ denotes the vertex id, and ‘y’ denotes the number of points in the vertex.</p>
 <p>For more interactive visualization options, consider the (experimental) <a href="https://github.com/peekxc/pixiplex">pixiplex</a> package.</p>
-<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb21-1" data-line-number="1"><span class="co">## Install with devtools::install_github("peekxc/pixiplex")</span></a>
-<a class="sourceLine" id="cb21-2" data-line-number="2"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/library">library</a></span>(<span class="st">"pixiplex"</span>)</a>
-<a class="sourceLine" id="cb21-3" data-line-number="3"><span class="kw"><a href="https://www.rdocumentation.org/packages/graphics/topics/plot">plot</a></span>(m<span class="op">$</span><span class="kw"><a href="reference/as_pixiplex.html">as_pixiplex</a></span>())</a></code></pre></div>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb16-1" data-line-number="1"><span class="co">## Install with devtools::install_github("peekxc/pixiplex")</span></a>
+<a class="sourceLine" id="cb16-2" data-line-number="2"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/library">library</a></span>(<span class="st">"pixiplex"</span>)</a>
+<a class="sourceLine" id="cb16-3" data-line-number="3"><span class="kw"><a href="https://www.rdocumentation.org/packages/graphics/topics/plot">plot</a></span>(m<span class="op">$</span><span class="kw"><a href="reference/as_pixiplex.html">as_pixiplex</a></span>())</a></code></pre></div>
 <p><img src="articles/pixiplex_prev.png" width="\textwidth"></p>
+</div>
 </div>
 <div id="references" class="section level2">
 <h2 class="hasAnchor">
@@ -265,11 +278,13 @@
 </div>
   </div>
 
-  <div class="col-md-3" id="sidebar">
+  <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <div class="links">
 <h2>Links</h2>
 <ul class="list-unstyled">
-<li>Report a bug at <br><a href="https://github.com/peekxc/mapper">https://​github.com/​peekxc/​mapper</a>
+<li>Browse source code at <br><a href="https://github.com/peekxc/Mapper">https://​github.com/​peekxc/​Mapper</a>
+</li>
+<li>Report a bug at <br><a href="https://github.com/peekxc/Mapper/issues">https://​github.com/​peekxc/​Mapper/​issues</a>
 </li>
 </ul>
 </div>
@@ -288,7 +303,7 @@
 </ul>
 </div>
 
-  <div class="dev-status">
+      <div class="dev-status">
 <h2>Dev status</h2>
 <ul class="list-unstyled">
 <li><a href="https://cran.r-project.org/packge=mapper"><img src="https://www.r-pkg.org/badges/version/mapper" alt="CRAN_Status_Badge"></a></li>
@@ -299,6 +314,7 @@
 </ul>
 </div>
 </div>
+
 </div>
 
 
@@ -307,7 +323,7 @@
 </div>
 
 <div class="pkgdown">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.3.0.</p>
 </div>
       </footer>
 </div>
