@@ -38,80 +38,85 @@ gromov_hausdorff <- function(d_X, d_Y, mu_X, mu_Y, p = 1,
                              return_optimizer = FALSE){
   roi_installed <- requireNamespace("ROI", quietly = TRUE)
   if (!roi_installed){ stop("This function requires the R Optimization Infrastructure (ROI) package to be installed.") }
+  
+  ## Preprocessing
   stopifnot((sum(mu_X) - 1.0) < sqrt(.Machine$double.eps))
   stopifnot((sum(mu_Y) - 1.0) < sqrt(.Machine$double.eps))
   if (is.matrix(d_X)) { stopifnot(dim(d_X)[[1]] == dim(d_X)[[2]]) }
   else { stopifnot(is(d_X, "dist")); d_X <- as.matrix(d_X) }
   if (is.matrix(d_Y)) { stopifnot(dim(d_Y)[[1]] == dim(d_Y)[[2]]) }
   else { stopifnot(is(d_Y, "dist")); d_Y <- as.matrix(d_Y) }
-  
-  ## Useful variables
-  { n_x <- nrow(d_X); n_y <- nrow(d_Y) }
-  idx <- matrix(seq(n_x * n_y), nrow = n_x, ncol = n_y)
-  
-  ## Make constraints
-  A <- gh_make_A(idx-1L)
-  constraints <- ROI::L_constraint(L = A, dir = rep("==", n_x + n_y), rhs = c(mu_X, mu_Y))
-  
-  ## Make objective for FLB
-  s <- function(d_X, p, lambda){ apply(d_X, 1, function(d_i){ sum((d_i^p) * lambda)^(1/p) }) }
-  sp_X <- s(d_X, p = 1, lambda = mu_X)
-  sp_Y <- s(d_Y, p = 1, lambda = mu_Y)
-  flb_objective <- ROI::L_objective(as.vector(outer(1L:n_x, 1L:n_y, FUN = Vectorize(function(i,j){ abs(sp_X[i] - sp_Y[j]) }))))
-  
-  ## Bounds on mu
-  mu_bnds <- ROI::V_bound(li = seq(n_x*n_y), ui = seq(n_x*n_y), lb = rep(0, n_x*n_y), ub = rep(1,n_x*n_y))
-  
-  ## The lower-bound -- as a LOP
-  lop <- ROI::OP(objective = flb_objective, constraints = constraints, bounds = mu_bnds)
-  
-  ## Need to have a solver available
-  available_solvers <- ROI::ROI_applicable_solvers(lop)
-  if (is.null(available_solvers)){
-    stop("No applicable solvers found with ROI! The FLB is a linear optimization.")
-  } 
-  if (!missing(flb_solver)){ stopifnot(flb_solver %in% available_solvers) }
-  
-  ## Solve the first lower bound
-  flb <- ROI::ROI_solve(lop, solver = flb_solver)
-  if (flb_only) { return(wrap_roi_solution(flb, idx, return_optimizer)) }
-  else {
-    nloptr_installed <- requireNamespace("nloptr", quietly = TRUE)
-    if (!nloptr_installed){ stop("The quadratic optimization requires 'nloptr' to be installed.") }
+
+  ## Wrap in requireNamesapce to dismiss dependency warnings
+  if ( requireNamespace("ROI", quietly = TRUE) ){
+    ## Useful variables
+    { n_x <- nrow(d_X); n_y <- nrow(d_Y) }
+    idx <- matrix(seq(n_x * n_y), nrow = n_x, ncol = n_y)
     
-    ## Make the Q matrix of distances
-    Q <- gh_make_Q(d_X, d_Y)
+    ## Make constraints
+    A <- gh_make_A(idx-1L)
+    constraints <- ROI::L_constraint(L = A, dir = rep("==", n_x + n_y), rhs = c(mu_X, mu_Y))
     
-    ## Setup objective function(s), gradients, etc. 
-    N <- n_x * n_y
-    f <- function(mu){
-      as.vector({ structure(mu, dim=c(1L, N)) %*% Q %*% structure(mu, dim=c(N, 1L)) })
+    ## Make objective for FLB
+    s <- function(d_X, p, lambda){ apply(d_X, 1, function(d_i){ sum((d_i^p) * lambda)^(1/p) }) }
+    sp_X <- s(d_X, p = 1, lambda = mu_X)
+    sp_Y <- s(d_Y, p = 1, lambda = mu_Y)
+    flb_objective <- ROI::L_objective(as.vector(outer(1L:n_x, 1L:n_y, FUN = Vectorize(function(i,j){ abs(sp_X[i] - sp_Y[j]) }))))
+    
+    ## Bounds on mu
+    mu_bnds <- ROI::V_bound(li = seq(n_x*n_y), ui = seq(n_x*n_y), lb = rep(0, n_x*n_y), ub = rep(1,n_x*n_y))
+    
+    ## The lower-bound -- as a LOP
+    lop <- ROI::OP(objective = flb_objective, constraints = constraints, bounds = mu_bnds)
+    
+    ## Need to have a solver available
+    available_solvers <- ROI::ROI_applicable_solvers(lop)
+    if (is.null(available_solvers)){
+      stop("No applicable solvers found with ROI! The FLB is a linear optimization.")
+    } 
+    if (!missing(flb_solver)){ stopifnot(flb_solver %in% available_solvers) }
+    
+    ## Solve the first lower bound
+    flb <- ROI::ROI_solve(lop, solver = flb_solver)
+    if (flb_only) { return(wrap_roi_solution(flb, idx, return_optimizer)) }
+    else {
+      nloptr_installed <- requireNamespace("nloptr", quietly = TRUE)
+      if (!nloptr_installed){ stop("The quadratic optimization requires 'nloptr' to be installed.") }
+      
+      ## Make the Q matrix of distances
+      Q <- gh_make_Q(d_X, d_Y)
+      
+      ## Setup objective function(s), gradients, etc. 
+      N <- n_x * n_y
+      f <- function(mu){
+        as.vector({ structure(mu, dim=c(1L, N)) %*% Q %*% structure(mu, dim=c(N, 1L)) })
+      }
+      grad_f <- function(mu){ Q %*% matrix(mu, ncol = 1) }
+      heq <- function(mu){ (A %*% mu) - c(mu_X, mu_Y) } # rowSums(relist(mu, idx)) - c(mu_X, mu_Y)
+      # heqjac <- function(x) { nloptr::nl.jacobian(x, heq) }
+      
+      ## Minor fix to the FLB bounds to make optimization more stable. This usually isn't necessary. 
+      flb$solution[flb$solution < 0] <- 0.0
+      flb$solution[flb$solution > 1] <- 1.0
+      
+      ## Set solver options
+      { lb <- rep(0, n_x*n_y); ub <- rep(1, n_x*n_y) }
+      default_opts <- list(x0=flb$solution, fn = f, lower = lb, upper = ub, heq = heq)
+      default_opts$control <- modifyList(list(maxeval=300, stopval=flb$objval), control)
+      options <- modifyList(default_opts, val = options)
+      
+      ## Attach gradient function if COBYLA isn't used
+      if (options$localsolver %in% c("LBFGS", "MMA", "SLSQP")){
+        options$gr <- grad_f
+      }
+      
+      ## Use nloptr augmented lagrangian approach
+      al_res <- do.call(nloptr::auglag, options)
+      
+      ## Return results
+      return(list(lop_res = wrap_roi_solution(flb, idx, return_optimizer), 
+                  qop_res = wrap_nloptr_solution(al_res, idx, return_optimizer)))
     }
-    grad_f <- function(mu){ Q %*% matrix(mu, ncol = 1) }
-    heq <- function(mu){ (A %*% mu) - c(mu_X, mu_Y) } # rowSums(relist(mu, idx)) - c(mu_X, mu_Y)
-    # heqjac <- function(x) { nloptr::nl.jacobian(x, heq) }
-    
-    ## Minor fix to the FLB bounds to make optimization more stable. This usually isn't necessary. 
-    flb$solution[flb$solution < 0] <- 0.0
-    flb$solution[flb$solution > 1] <- 1.0
-    
-    ## Set solver options
-    { lb <- rep(0, n_x*n_y); ub <- rep(1, n_x*n_y) }
-    default_opts <- list(x0=flb$solution, fn = f, lower = lb, upper = ub, heq = heq)
-    default_opts$control <- modifyList(list(maxeval=300, stopval=flb$objval), control)
-    options <- modifyList(default_opts, val = options)
-    
-    ## Attach gradient function if COBYLA isn't used
-    if (options$localsolver %in% c("LBFGS", "MMA", "SLSQP")){
-      options$gr <- grad_f
-    }
-    
-    ## Use nloptr augmented lagrangian approach
-    al_res <- do.call(nloptr::auglag, options)
-    
-    ## Return results
-    return(list(lop_res = wrap_roi_solution(flb, idx, return_optimizer), 
-                qop_res = wrap_nloptr_solution(al_res, idx, return_optimizer)))
   }
 }
 

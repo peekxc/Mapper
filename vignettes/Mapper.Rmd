@@ -4,7 +4,7 @@ title: "Using the Mapper Package"
 output: 
   rmarkdown::html_vignette: default
   html_document:
-    keep_md: no
+    keep_md: true
 vignette: >
   %\VignetteIndexEntry{Mapper}
   %\VignetteEncoding{UTF-8}

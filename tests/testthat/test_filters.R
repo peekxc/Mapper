@@ -32,6 +32,8 @@ test_that("Eccentricity filter works", {
   expect_true(all(abs(m$filter() - f_x) < sqrt(.Machine$double.eps)))
 })
 
+## Removed from Suggests: fastICA, ks, TDA, vegan, geigen, umap,
+
 # ## Test independent component filter
 # test_that("Independent Components filter works", {
 #   expect_silent(m$use_filter(filter = "IC"))

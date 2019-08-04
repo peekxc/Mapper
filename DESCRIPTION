@@ -2,7 +2,7 @@ Package: Mapper
 Type: Package
 Title: Topological Data Analysis using Mapper
 Version: 0.9.2
-Date: 2019-08-03
+Date: 2019-08-04
 Author: Matt Piekenbrock
 Authors@R: c(person("Matt", "Piekenbrock", email = "matt.piekenbrock@gmail.com", role = c("aut", "cre", "cph")))
 Maintainer: Matt Piekenbrock <matt.piekenbrock@gmail.com>
@@ -14,15 +14,15 @@ BugReports: https://github.com/peekxc/Mapper/issues
 Remotes: peekxc/simplextree, peekxc/pixiplex
 Suggests:
     igraph,
-    ROI, nloptr,
-    htmlwidgets, shiny, DT,
-    proxy, parallelDist, fastcluster, RANN, fastICA, ks, TDA, vegan, geigen, umap, readobj,
+    proxy, parallelDist, fastcluster, RANN, 
     testthat, knitr, rmarkdown, 
-    rgl, pixiplex, 
-    modules
+    pixiplex, 
+    shiny, ROI, nloptr
+Additional_repositories: https://github.com/rstudio/shiny, https://github.com/cran/ROI, https://github.com/jyypma/nloptr
 Copyright: The Mapper method was originally developed by Gurjeet Singh, Facundo Mémoli, and Gunnar Carlsson. The software is Copyright by Matt Piekenbrock.
 Encoding: UTF-8
 LazyData: true
+NeedsCompilation: yes
 VignetteBuilder: knitr
 SystemRequirements: C++11
 RoxygenNote: 6.1.0

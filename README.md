@@ -13,10 +13,14 @@ This package provides a set of tools written in R/Rcpp for computing the _mapper
 The current development version can be installed with the [devtools](https://github.com/r-lib/devtools) package: 
 ```R
 require("devtools")
-devtools::install_gitub("peekxc/mapper")
+devtools::install_github("peekxc/Mapper")
 ```
 
 A stable CRAN release is planned for the future. 
+
+### Notes on installing
+
+For [some reason](https://www.r-bloggers.com/suggests-depends/), `R CMD check` installs all packages listed in the [Suggests](https://cran.r-project.org/doc/manuals/r-release/R-exts.html#Suggested-packages) field of the `DESCRIPTION` file. These must be installed, sometimes from source, without error across all platforms to make this package suitable for [CRAN](https://cran.r-project.org/). This package includes multiple examples in either vignettes or example code that use large libraries like e.g. `nloptr`, `geigen`, `rgl`, etc. whose purpose is more illustrative than necessary for the package to function. As a result, the packages listed in `Suggests` are kept to a minimum to use the `Mapper` package functionally. Please refer to the documentation of individual functions for that functions dependencies. 
 
 ## Usage
 
@@ -98,7 +102,7 @@ library("pixiplex")
 plot(m$as_pixiplex())
 ```
 
-![pixiplex circle example](vignettes/pixiplex_prev.png)
+![pixiplex circle example](vignettes/pixiplex_circle_ex.png)
 
 ## Additional Information 
 

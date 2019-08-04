@@ -35,7 +35,7 @@ Install the `Mapper` package from github as follows:
 
 ```{r, eval=FALSE}
 require("devtools")
-devtools::install_github("peekxc/mapper")
+devtools::install_github("peekxc/Mapper")
 ```
 
 A CRAN release is planned for the near future. 
@@ -52,19 +52,15 @@ For example, consider a point cloud sampled from an 'eight-curve' in $\mathbb{R}
 $$g(t) = [\cos(t), \sin(t)\cos(t)],\; t \in \Big(-\frac{1}{2}\pi, \frac{3}{2}\pi\Big)$$
 In the example below, the data set $X$ is created from equally spaced samples over $t$, and the map chosen is simply the $x$-coordinate of the shape, i.e. $f(X) = Z = x_1$.
 ```{r, echo=TRUE, fig.keep='none'}
-t <- seq(-0.5*pi, (3/2)*pi, length.out = 100) + runif(100, max = 0.01)
+t <- seq(-0.5*pi, (3/2)*pi, length.out = 100) + runif(100, min=0.01, max = 0.02)
 eight <- cbind(x1=cos(t), x2=sin(t)*cos(t))
 f_x <- matrix(cos(t))
 
-## Use a rainbow palette 
-rbw_col <- rainbow(length(f_x), start = 0, end = 4/6)
-col <- rbw_col[cut(f_x, length(f_x), labels = FALSE)]
-
 ## View the data along with the mapping 
 layout(matrix(1:2, nrow = 1))
-plot(eight, pch = 20, col = col, main = expression(X %subset% R^2))
+plot(eight, pch = 20, col = bin_color(f_x), main = expression(X %subset% R^2))
 stripchart(f_x, pch = "|", main = expression(f(X) %subset% R)) 
-points(cbind(f_x, 1), pch = "|", col = col, cex = 2)
+points(cbind(f_x, 1), pch = "|", col = bin_color(f_x), cex = 2)
 ```
 
 <img src="man/figures/figure_eight.png" width=100% />
@@ -106,6 +102,7 @@ Or, just replace the clustering algorithm entirely by supplying a function.
 ## If using a custom metric, just compute the distance matrix 
 ## pid := open set index 
 ## idx := point indices in the preimage of the open set indexed by 'pid' 
+## self := mapper instance object ('m' in this case)
 m$use_clustering_algorithm(cl = function(pid, idx, self){
   dist_x <- dist(self$X(idx), method = self$measure)
   hc <- hclust(dist_x, method = "average")
@@ -154,8 +151,15 @@ m$simplicial_complex
 
 The maximum dimension of the nerve is up to you. It's common restrict the *mapper* to $1$-skeleton.
 ```{r}
+m$construct_nerve(k = 0L)
 m$construct_nerve(k = 1L)
 plot(m$simplicial_complex)
+```
+
+By default, the `construct...` series of functions enact side-effects and return the instance invisibly, making them suitable to chain. If you want to inspect the result before modifying the instance, pass `modify=FALSE`. For example, to list the vertices that have a non-empty intersection:
+
+```{r}
+m$construct_nerve(k = 1L, modify = FALSE)
 ```
 
 The $1$-skeleton can be exported to any of the usual graph-type data structures.
@@ -164,7 +168,6 @@ m$simplicial_complex$as_adjacency_matrix()
 m$simplicial_complex$as_adjacency_list()
 m$simplicial_complex$as_edge_list()
 ```
-
 
 ### Visualizing the __mapper__
 

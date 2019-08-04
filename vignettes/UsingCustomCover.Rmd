@@ -4,7 +4,7 @@ title: "Using a custom covering method"
 output: 
   rmarkdown::html_vignette: default
   html_document:
-    keep_md: no
+    keep_md: true
 vignette: >
   %\VignetteIndexEntry{custom_cover}
   %\VignetteEngine{knitr::rmarkdown}

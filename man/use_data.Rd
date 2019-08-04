@@ -4,7 +4,7 @@
 \alias{use_data}
 \title{Sets the data}
 \arguments{
-\item{data}{either a data set name, a matrix, or a function. See details.}
+\item{data}{either a matrix, a function, or a data set name. See details.}
 
 \item{...}{additional parameters to pass to the filter function.}
 }
