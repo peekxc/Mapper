@@ -18,7 +18,6 @@ Suggests:
     testthat, knitr, rmarkdown, 
     pixiplex, 
     shiny, ROI, nloptr
-Additional_repositories: https://github.com/rstudio/shiny, https://github.com/cran/ROI, https://github.com/jyypma/nloptr
 Copyright: The Mapper method was originally developed by Gurjeet Singh, Facundo Mémoli, and Gunnar Carlsson. The software is Copyright by Matt Piekenbrock.
 Encoding: UTF-8
 LazyData: true
