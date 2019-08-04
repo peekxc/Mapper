@@ -20,7 +20,7 @@ A stable CRAN release is planned for the future.
 
 ## Usage
 
-Given a data set, define the filter function. Here is an example using the noisy points sampled from the perimeter of a circle, similar to the example given by Example 3.2 in the original paper.   
+Given a data set, the first step to Mapper is to define a filter function. Here is an example using the noisy points sampled from the perimeter of a circle, similar to the example given by Example 3.2 in the original paper.   
 ```R
 ## Load package + the circle data set 
 library("Mapper")
@@ -34,11 +34,11 @@ f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
 Visualize the data and the results of the map
 ```R
 layout(matrix(1:2, nrow=1))
-rbw <- Mapper::bin_color(f_x)
-plot(noisy_circle, col = rbw, main = "X", xlab = "", ylab = "")
-plot(cbind(f_x, 1L), pch = "|", col = rbw, main = "f(X)", xlab = "", ylab = "")
+plot(noisy_circle, col = bin_color(f_x), main = "X", xlab = "", ylab = "")
+plot(cbind(f_x, 1L), pch = "|", col = bin_color(f_x), main = "f(X)", xlab = "", ylab = "")
 ```
 ![Noisy circle example](man/figures/noisy_circle_sideplot.png)
+
 You can construct a _mapper_ with [R6 method chaining](https://adv-r.hadley.nz/r6.html#method-chaining)
 ```R
 ## Define the main via chaining R6 methods
@@ -47,7 +47,7 @@ m <- MapperRef$new(noisy_circle)$
   use_cover(cover="fixed interval", number_intervals=5L, percent_overlap=20)$
   use_distance_measure(measure="euclidean")$
   construct_k_skeleton(k=1L)
-m
+print(m)
 ```
 
 ```R
@@ -84,6 +84,7 @@ You can export to your favorite graph-based representation.
 m$simplicial_complex$as_adjacency_matrix()
 # ...or m$simplicial_complex$as_adjacency_list()
 # ...or m$simplicial_complex$as_edge_list()
+# ...or m$simplicial_complex$as_list() for higher-dimension complexes
 ```
 
 The vertices of the _mapper_ are stored as a simple list 

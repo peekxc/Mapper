@@ -63,7 +63,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Mapper</a>
-        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.1</span>
+        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.2</span>
       </span>
     </div>
 
@@ -85,6 +85,9 @@
     <span class="caret"></span>
   </a>
   <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="../articles/ShapeRecognition.html">Shape Recognition</a>
+    </li>
     <li>
       <a href="../articles/UsingCustomCover.html">Using a custom covering method</a>
     </li>
@@ -124,7 +127,7 @@
   <div class="col-md-9 contents">
     <div class="page-header">
     <h1>Sets the clustering algorithm</h1>
-    <small class="dont-index">Source: <a href='https://github.com/peekxc/Mapper/blob/master/R/MapperRef.R'><code>R/MapperRef.R</code></a></small>
+    <small class="dont-index">Source: <a href='https://github.com/peekxc/Mapper/blob/master/R/mapperRef.R'><code>R/mapperRef.R</code></a></small>
     <div class="hidden name"><code>use_clustering_algorithm.Rd</code></div>
     </div>
 
@@ -155,11 +158,12 @@
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
     <p>If <code>cl</code> is a linkage criterion, a standard hierarchical clustering algorithm is used with suitable default parameters. 
-If it is a function, it must have a signature compatible with <code>function(X, idx, ...)</code> where <code>X</code> is the data matrix and <code>idx</code>
-is a vector of integer indices giving which subset of <code>X</code> to cluster over. The enclosing environment of <code>cl</code>
-is set to  <br /> 
+If it is a function, it must have a signature compatible with <code>function(pid, idx, self, ...)</code> where 
+<code>pid</code> is the index of the (pullback) set to cluster (see <code>CoverRef</code>),  
+<code>idx</code> are the indices of the points in <code>X</code> to cluster on, and
+<code>self</code> is the <code>MapperRef</code> instance environment. 
 <br />
-The cutoff method may be one of either c("histogram", "continuous"). See <code><a href='cutoff_first_bin.html'>cutoff_first_bin</a></code> and <code><a href='cutoff_first_threshold.html'>cutoff_first_threshold</a></code>
+The cutoff method may be one of either c("continuous", "histogram"). See <code><a href='cutoff_first_bin.html'>cutoff_first_bin</a></code> and <code><a href='cutoff_first_threshold.html'>cutoff_first_threshold</a></code>
 for what they each correspond to, respectively. Additional named parameters passed via <code>...</code> act as defaults to the cutting method chosen. 
 If not chosen, reasonable defaults are used. <br /> 
 <br />

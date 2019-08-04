@@ -218,30 +218,28 @@ BEGIN_RCPP
 END_RCPP
 }
 // eccentricity
-NumericVector eccentricity(const NumericMatrix& from, const NumericMatrix& x, const int type, bool display_progress);
-RcppExport SEXP _Mapper_eccentricity(SEXP fromSEXP, SEXP xSEXP, SEXP typeSEXP, SEXP display_progressSEXP) {
+NumericVector eccentricity(const NumericMatrix& from, const NumericMatrix& x, const int type);
+RcppExport SEXP _Mapper_eccentricity(SEXP fromSEXP, SEXP xSEXP, SEXP typeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const NumericMatrix& >::type from(fromSEXP);
     Rcpp::traits::input_parameter< const NumericMatrix& >::type x(xSEXP);
     Rcpp::traits::input_parameter< const int >::type type(typeSEXP);
-    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(eccentricity(from, x, type, display_progress));
+    rcpp_result_gen = Rcpp::wrap(eccentricity(from, x, type));
     return rcpp_result_gen;
 END_RCPP
 }
 // landmark_maxmin
-IntegerVector landmark_maxmin(const NumericMatrix& x, const int n, const int seed, bool display_progress);
-RcppExport SEXP _Mapper_landmark_maxmin(SEXP xSEXP, SEXP nSEXP, SEXP seedSEXP, SEXP display_progressSEXP) {
+IntegerVector landmark_maxmin(const NumericMatrix& x, const int n, const int seed);
+RcppExport SEXP _Mapper_landmark_maxmin(SEXP xSEXP, SEXP nSEXP, SEXP seedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const NumericMatrix& >::type x(xSEXP);
     Rcpp::traits::input_parameter< const int >::type n(nSEXP);
     Rcpp::traits::input_parameter< const int >::type seed(seedSEXP);
-    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(landmark_maxmin(x, n, seed, display_progress));
+    rcpp_result_gen = Rcpp::wrap(landmark_maxmin(x, n, seed));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -375,8 +373,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Mapper_gh_make_A", (DL_FUNC) &_Mapper_gh_make_A, 1},
     {"_Mapper_gh_make_Q", (DL_FUNC) &_Mapper_gh_make_Q, 2},
     {"_Mapper_all_correspondences", (DL_FUNC) &_Mapper_all_correspondences, 2},
-    {"_Mapper_eccentricity", (DL_FUNC) &_Mapper_eccentricity, 4},
-    {"_Mapper_landmark_maxmin", (DL_FUNC) &_Mapper_landmark_maxmin, 4},
+    {"_Mapper_eccentricity", (DL_FUNC) &_Mapper_eccentricity, 3},
+    {"_Mapper_landmark_maxmin", (DL_FUNC) &_Mapper_landmark_maxmin, 3},
     {"_Mapper_nondecreasing_seq", (DL_FUNC) &_Mapper_nondecreasing_seq, 1},
     {"_Mapper_connected_pullbacks", (DL_FUNC) &_Mapper_connected_pullbacks, 3},
     {"_Mapper_decompose_preimages", (DL_FUNC) &_Mapper_decompose_preimages, 5},

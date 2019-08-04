@@ -49,11 +49,13 @@ List connected_pullbacks(std::vector< std::string > pullback_ids, const List& pu
 // apply the clustering function to the subset of X given by the level set, and returns a 
 // vector of index vector representing which points fell into which partition. 
 vector< IntegerVector > apply_clustering(std::string pid, const Function& level_set_f, const Function& cluster_f){
+  // Rcout << "Running pullbakc preimage" << std::endl;
   const IntegerVector preimages = level_set_f(pid);
   if (preimages.size() == 0){ 
     vector<IntegerVector> res; 
     return(res); 
   } 
+  // Rcout << "Running clustering" << std::endl;
   const IntegerVector cl_results = cluster_f(pid, preimages);
   // Rcout << "cluster results: " << cl_results << std::endl;
   const IntegerVector cl_idx = self_match(cl_results) - 1; // guarenteed to be 0-based contiguous indices
@@ -237,16 +239,16 @@ vector< size_t > smallest_not_in(const size_t n, vector< size_t > old_ids){
   return(new_ids);
 }
 
-std::unordered_map< std::string, IntegerVector > lst2map(const List& lst){
-  if (Rf_isNull(lst.names()) || lst.size() == 0){ return std::unordered_map< std::string, IntegerVector >(); }
-  vector< std::string > keys = as< vector< std::string > >(lst.names());
-  std::unordered_map< std::string, IntegerVector > res; 
-  for (auto c_key: keys){ 
-    IntegerVector v = as< IntegerVector >(lst[c_key]);
-    res.emplace(c_key, v); 
-  }
-  return(res);
-}
+// std::map< std::string, IntegerVector > lst2map(const List& lst){
+//   if (Rf_isNull(lst.names()) || lst.size() == 0){ return std::unordered_map< std::string, IntegerVector >(); }
+//   vector< std::string > keys = as< vector< std::string > >(lst.names());
+//   std::unordered_map< std::string, IntegerVector > res; 
+//   for (auto c_key: keys){ 
+//     IntegerVector v = as< IntegerVector >(lst[c_key]);
+//     res.emplace(c_key, v); 
+//   }
+//   return(res);
+// }
 
 // Decomposes the preimages into connected components according to a given clustering function.
 // This modifies both the vertex list and the pullback mapping. 
@@ -266,14 +268,24 @@ List decompose_preimages(
     const List& vertices, 
     List& pullback)
 {
-  using str_map = std::unordered_map< std::string, IntegerVector >; 
+  auto str_cmp = [](const std::string& a, const std::string& b) -> bool{ 
+    return(bool(std::stoi(a) < std::stoi(b)));
+  };
+  using str_map = std::map< std::string, IntegerVector, decltype(str_cmp) >; 
   
   // Extract the current set of vertices in C++ 
-  str_map mod_vertices = lst2map(vertices);
+  str_map mod_vertices = str_map(str_cmp); 
+  if (!Rf_isNull(vertices.names()) && as<List>(vertices.names()).size() > 0 ){
+    vector< std::string > keys = as< vector< std::string > >(vertices.names());
+    for (auto c_key: keys){ 
+      IntegerVector v = as< IntegerVector >(vertices[c_key]);
+      mod_vertices.emplace(c_key, v); 
+    }
+  }
   
   // Create lambda to extract the vertex ids as integers
   const auto vertex_ids = [&mod_vertices](){ 
-    using v_type = std::unordered_map< std::string, IntegerVector >::value_type;
+    using v_type = str_map::value_type;
     if (mod_vertices.empty()){ return(vector< size_t >()); }
     vector< size_t > vids(mod_vertices.size());
     std::transform(begin(mod_vertices), end(mod_vertices), begin(vids), [](v_type v){
@@ -288,14 +300,16 @@ List decompose_preimages(
     IntegerVector vids = pullback[pid];
     
     // Remove vids in vertex list, pullback, and simplex tree
-    // Rcout << "Removings vertices: " << vids << std::endl;
     // vertices = remove_by_id(vids, vertices);
-    for (auto id: vids){ mod_vertices.erase(std::to_string(id)); }
-
+    for (auto id: vids){ 
+      mod_vertices.erase(std::to_string(int(id))); 
+    }
     pullback[pid] = IntegerVector::create();
     
     // Apply the clustering to get the new vertices
+    // Rprintf("clustering: %s\n", pid.c_str());
     vector< IntegerVector > new_vertices = apply_clustering(pid, level_set_f, cluster_f);
+    //Rcout << "done clustering" << std::endl;
     
     if (new_vertices.size() == 0){
       pullback[pid] = IntegerVector::create();

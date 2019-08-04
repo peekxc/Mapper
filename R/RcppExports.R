@@ -69,12 +69,12 @@ all_correspondences <- function(X, Y) {
     .Call(`_Mapper_all_correspondences`, X, Y)
 }
 
-eccentricity <- function(from, x, type = 1L, display_progress = TRUE) {
-    .Call(`_Mapper_eccentricity`, from, x, type, display_progress)
+eccentricity <- function(from, x, type = 1L) {
+    .Call(`_Mapper_eccentricity`, from, x, type)
 }
 
-landmark_maxmin <- function(x, n, seed = 0L, display_progress = TRUE) {
-    .Call(`_Mapper_landmark_maxmin`, x, n, seed, display_progress)
+landmark_maxmin <- function(x, n, seed = 0L) {
+    .Call(`_Mapper_landmark_maxmin`, x, n, seed)
 }
 
 nondecreasing_seq <- function(lst) {

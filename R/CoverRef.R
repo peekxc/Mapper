@@ -1,30 +1,23 @@
 #' Cover abstract class
-#' 
+#' @aliases cover
 #' @description Reference Class (R6) implementation of a Cover. This class is meant to act as an abstract class to derive other 
 #' types of covering generators with. Minimally, a derived covering class must implement the
 #' 'construct_cover' method to populate the 'level_sets' list with point indices, and any parameters 
 #' that the derived class requires. 
 #' 
-#' Additional methods may also be added to improve the efficiency of the cover. See the vignette on creating a custom 
+#' Additional methods may also be added to improve the efficiency of the cover. 
+#' See the \href{https://peekxc.github.io/Mapper/articles/UsingCustomCover.html}{vignette} on creating a custom 
 #' cover for details. 
 #' 
-#' @section Private variables:
-#' The following is a list of private variables available for derived classes. Each may be accessed 
-#' by the \code{private} environment. See \code{?R6} for more details. 
+#' @section Fields:
+#' The following is a list of the fields available for derived classes. Each may be accessed 
+#' by the \code{self} environment. See \code{?R6} for more details. 
 #' \itemize{
-#'  \item{\emph{.level_sets}}{ named list, indexed by \code{.index_set}, whose values represent indices in the original data set to cluster over.}
-#'  \item{\emph{.index_set}}{ character vector of keys that uniquely index the level sets.}
-#'  \item{\emph{.typename}}{ unique string identifier of the covering method.}
+#'  \item{\emph{level_sets}:}{ named list, indexed by \code{index_set}, whose values represent indices in the original data set to cluster over.}
+#'  \item{\emph{index_set}:}{ character vector of keys that uniquely index the open sets of the cover.}
+#'  \item{\emph{typename}:}{ unique string identifier identifying the covering method.}
 #' }
-#'    
-#' @docType class
-#' @field typename Unique string identifier for the covering. 
-#' @field index_set character vector used to index the 'level_sets' list 
-#' @field level_sets list of the point in the preimages of the sets comprising the cover, indexed by the index set
 #' @format An \code{\link{R6Class}} generator object
-#' 
-#' @method level_sets_to_compare testing
-#' 
 #' @author Matt Piekenbrock
 #' @export CoverRef
 CoverRef <- R6::R6Class("CoverRef", 
@@ -100,12 +93,13 @@ CoverRef$set("public", "construct_cover", function(index=NULL){
 # })
 
 
-## Which level sets (in terms of their corresponding indices in the index set) should be compared 
-## in constructing the k-simplices? This can be customized based on the cover to (dramatically) reduce 
+## Which indices of the index set should be compared in constructing the k-simplices? 
+## This can be customized based on the cover to (dramatically) reduce 
 ## the number of intersection checks needed to generate the k-skeletons, where k >= 1. 
 ## Defaults to every pairwise combination of level sets. 
 ## neighborhood ----
-CoverRef$set("public", "neighborhood", function(k=1){
+CoverRef$set("public", "neighborhood", function(filter, k=1){
+  if (length(private$.index_set) <= 1L){ return(NULL) }
   k_combs <- t(combn(length(private$.index_set), k+1))
   relist(private$.index_set[k_combs], k_combs)
 })

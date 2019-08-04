@@ -1,7 +1,7 @@
 
 # Mapper <img src="man/figures/mapper_sticker.png" align="right" width=120 />
 
-[![CRAN\_Status\_Badge](https://www.r-pkg.org/badges/version/mapper)](https://cran.r-project.org/packge=mapper)
+![CRAN\_Status\_Badge](https://www.r-pkg.org/badges/version/mapper)
 [![Appveyor Windows Build
 status](https://img.shields.io/appveyor/ci/peekxc/Mapper.svg?logo=windows&logoColor=DDDDDD)](https://ci.appveyor.com/project/peekxc/mapper)
 [![Travis OS X Build
@@ -130,7 +130,7 @@ function.
 ## If using a custom metric, just compute the distance matrix 
 ## pid := open set index 
 ## idx := point indices in the preimage of the open set indexed by 'pid' 
-m$use_clustering_algorithm(cl = function(pid, idx){
+m$use_clustering_algorithm(cl = function(pid, idx, self){
   dist_x <- dist(self$X(idx), method = self$measure)
   hc <- hclust(dist_x, method = "average")
   eps <- cutoff_first_threshold(hc)
@@ -177,12 +177,12 @@ cover](articles/UsingCustomCover.html).
 <!-- all(m$cover$index_set %in% names(m$cover$level_sets)) -->
 <!-- ``` -->
 
-Constructing the simplicial complex requires applying the *pullback*
-operation prior to constructing nerve. The pullback applies the
+Prior to constructing the simplicial complex, *Mapper* requires applying
+the *pullback* operation. Computationally, the pullback applies the
 clustering algorithm to subsets of the data given by the cover, which
 decomposes the data set into connected components. In Mapper, these
-connected components are represented as vertices. To view the mapping
-from open sets to vertices, use the `pullback` member:
+connected components are represented as vertices. To view which vertices
+are mapped from the sets in the cover, use the `pullback` member:
 
 ``` r
 m$construct_pullback()
@@ -200,31 +200,28 @@ str(m$pullback)
 #>  $ (10): num 13
 ```
 
-The simplicial complex is available via the `$simplicial_complex`
-member, and the points in contained in each vertex is available via the
-`$vertices` member.
+The vertices are stored are stored as a named list. Each vertex contains
+a vector of the indices that representing the points that comprise the
+connected component.
+
+``` r
+sapply(m$vertices, length)
+#>  0  1  2  3  4  5  6  7  8  9 10 11 12 13 
+#> 25 10  9  7  8 13 14 14 13  8  7  9 10 25
+```
+
+Once you’re satisfied with the clustering, you can construct the nerve,
+the principal output of *Mapper*. The complex is stored in a [Simplex
+Tree](?simplex_tree) (see 2), which available via the
+`$simplicial_complex` member. Initially, the complex is empty:
 
 ``` r
 m$simplicial_complex
 #> < empty simplex tree >
 ```
 
-The complex is stored in a [Simplex Tree](?simplex_tree) (see 2), and
-the vertices are stored are stored as a named list, where each name
-corresponds to the 0-simplex in the simplicial complex, and each value
-denotes a vector of the points indices that comprise the connected
-component.
-
-``` r
-sapply(m$vertices, length)
-#> 13 12 11  2  9  6  7  1  5 10  8  4  3  0 
-#> 25 10  9  9  8 14 13 10 14  7 13  8  7 25
-```
-
-Once you’re satisfied with the clustering, you can construct the nerve
-by considering the \(k+1\)-fold non-empty intersections between the sets
-in the pullback. It’s common to restrict the degree of the intersections
-considered, e.g. to ensure the *mapper* is a graph, use \(k=1\).
+The maximum dimension of the nerve is up to you. It’s common restrict
+the *mapper* to \(1\)-skeleton.
 
 ``` r
 m$construct_nerve(k = 1L)
@@ -233,14 +230,8 @@ plot(m$simplicial_complex)
 
 ![](index_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
 
-### Visualizing the **mapper**
-
-To get a quick overview of what the **mapper** looks like, you can use
-the default plotting method above given by the [simplextree
-package](https://github.com/peekxc/simplextree).
-
-Alternatively, the \(1\)-skeleton can be exported to any of the usual
-graph-type data structures.
+The \(1\)-skeleton can be exported to any of the usual graph-type data
+structures.
 
 ``` r
 m$simplicial_complex$as_adjacency_matrix()
@@ -248,22 +239,21 @@ m$simplicial_complex$as_adjacency_list()
 m$simplicial_complex$as_edge_list()
 ```
 
-These graph data-structures can then be converted to
-[igraph](https://igraph.org/r/) objects and customized however needed. A
-default export option is
-available:
+### Visualizing the **mapper**
+
+To get a quick overview of what the **mapper** looks like, you can use
+the default plotting method above given by the [simplextree
+package](https://github.com/peekxc/simplextree).
+
+Alternatively, the \(1\)-skeleton can be automatically converted to
+[igraph](https://igraph.org/r/) objects and customized as
+needed.
 
 ``` r
-plot(m$as_igraph())
+plot(m$as_igraph(), vertex.label=NA)
 ```
 
-<img src="man/figures/igraph_ex.png" width=50% style="text-align: center;"/>
-
-One of the standard way of visualizing **mappers** is to size the
-vertices logarithmically according to how many points they have in them
-and colored based on the mean value of the points \(f\) values. Each
-vertex is given a label of the form “x:y” where ‘x’ denotes the vertex
-id, and ‘y’ denotes the number of points in the vertex.
+<!-- One of the standard way of visualizing __mappers__ is to size the vertices logarithmically according to how many points they have in them and colored based on the mean value of the points $f$ values. Each vertex is given a label of the form "x:y" where 'x' denotes the vertex id, and 'y' denotes the number of points in the vertex.   -->
 
 For more interactive visualization options, consider the (experimental)
 [pixiplex](https://github.com/peekxc/pixiplex) package.
@@ -274,7 +264,7 @@ library("pixiplex")
 plot(m$as_pixiplex())
 ```
 
-<img src="vignettes/pixiplex_prev.png" width="\textwidth" />
+<img src="index_files/figure-gfm/unnamed-chunk-17-1.png" width="\textwidth" />
 
 ## References
 

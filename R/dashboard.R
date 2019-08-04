@@ -16,7 +16,7 @@
 #' These values are automatically converted to color hex codes based on the current palette. If \code{node_color_f} isn't supplied, a few default color functions are supplied.
 dashboard <- function(M, X, node_color_f = "default", dash_config=list(node_min=5L, node_max=10L)){
   requireNamespace("shiny", quietly = TRUE)
-  requireNamespace("grapher", quietly = TRUE)
+  requireNamespace("pixiplex", quietly = TRUE)
   
   ## Make sure shorthand 'M' is defined
   # stopifnot(nrow(M$X) == nrow(X))

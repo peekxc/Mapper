@@ -13,8 +13,7 @@
 #' a fixed interval cover with a constant number of open sets, and uses a specific clustering algorithm. \cr
 #' \cr
 #' The \code{time} parameter may be specified as "integer", "measure", or (average) "overlap". 
-#' Due to the restrictions on the cover this method assumes, these are all monotonically related to each other, 
-#' however they may produce visually different persistence diagrams. 
+#' Each \code{time} unit is monotonically related to each other, however they may produce visually different persistence diagrams. 
 #' @importFrom stats dist hclust median
 #' @importFrom utils head modifyList relist setTxtProgressBar tail txtProgressBar
 multiscale <- function(m, max_dim=1L, max_overlap = 50, time = c("integer", "measure", "overlap"), f = NULL, stats = FALSE){
@@ -36,8 +35,9 @@ multiscale <- function(m, max_dim=1L, max_overlap = 50, time = c("integer", "mea
   
   ## Setup initial clustering 
   m$simplicial_complex$id_policy <- "compressed"
-  m$use_clustering_algorithm(cl = stable_clustering(global_eps), run_internal = TRUE)
-  m$construct_pullback()  
+  m$clustering_algorithm <- stable_clustering(global_eps)
+  m$construct_pullback()
+  m$construct_nerve(k = 0)
   initial_complex <- m$simplicial_complex$serialize()
   m$simplicial_complex$id_policy <- "unique"  ## All newly generated ids from eps -> infty should be unique across map
   environment(m$clustering_algorithm)[["setup"]] <- TRUE ## Allow simplicial maps to be captured
@@ -128,7 +128,7 @@ multiscale <- function(m, max_dim=1L, max_overlap = 50, time = c("integer", "mea
       ## Run the clustering algorithm. This updates the points in the vertices, potentially changes complex,
       ## and (if the complex changes) records elementary simplicial maps
       # message(sprintf("Updating pullback id %s w/ point %d", pid_to_update, new_idx))
-      m$clustering_algorithm(pid_to_update, new_ls, new_idx)
+      m$clustering_algorithm(pid_to_update, new_ls, self=m$.__enclos_env__$self, new_idx)
     }
     
     ## Update the nerve
@@ -193,7 +193,7 @@ multiscale <- function(m, max_dim=1L, max_overlap = 50, time = c("integer", "mea
   initial <- simplex_tree()
   initial$deserialize(initial_complex)
   result <- list(initial_mapper = initial, simplicial_maps = s_maps, cluster_f = (function(g_eps){
-    function(pid, idx){
+    function(pid, idx, self){
       if (0 %in% idx){ stop("0-based indices given. Expects 1-based.") }
       if (is.null(idx) || length(idx) == 0){ return(NULL) }
       if (length(idx) <= 2L){ return(rep(1L, length(idx))); }
@@ -247,7 +247,7 @@ stable_clustering <- function(g_eps){
     # return(Mapper::cutoff_first_threshold(hcl))
   }
   
-  cluster <- function(pid, idx, new_idx=NULL){
+  cluster <- function(pid, idx, self, new_idx=NULL){
     ## Setup chunk. This is run once per open set. 
     if (!setup){
       if (0 %in% idx){ stop("0-based indices given. Expects 1-based.") }
