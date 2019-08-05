@@ -13,7 +13,12 @@ vignette: >
 
 ```{r setup, echo=FALSE, results="asis", include=FALSE}
 library("Mapper")
-if (!requireNamespace("rgl", quietly = TRUE)){ install.packages("rgl") }
+if (!requireNamespace("rgl", quietly = TRUE)){ 
+  install.packages("rgl", repos = "http://cran.us.r-project.org") 
+}
+if (!requireNamespace("readobj", quietly = TRUE)){ 
+  install.packages("readobj", repos = "http://cran.us.r-project.org") 
+}
 knitr::opts_chunk$set(rgl.newwindow = TRUE)
 set.seed(123)
 options(rgl.useNULL=TRUE)

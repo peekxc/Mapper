@@ -312,7 +312,9 @@ m <- MapperRef$new(noisy_circle)$
 ```
 
 ```{r, echo=FALSE, eval=TRUE}
-if (!requireNamespace("purrr", quietly = TRUE)){ install.packages("purrr") }
+if (!requireNamespace("purrr", quietly = TRUE)){ 
+  install.packages("purrr",  repos = "http://cran.us.r-project.org") 
+}
 ```
 
 ```{r, eval=TRUE, echo=TRUE}
