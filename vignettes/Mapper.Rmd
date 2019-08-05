@@ -311,6 +311,10 @@ m <- MapperRef$new(noisy_circle)$
   construct_k_skeleton(k = 1L)
 ```
 
+```{r, echo=FALSE, eval=TRUE}
+if (!requireNamespace("purrr", quietly = TRUE)){ install.packages("purrr") }
+```
+
 ```{r, eval=TRUE, echo=TRUE}
 library("pixiplex")
 plot(m$as_pixiplex())
