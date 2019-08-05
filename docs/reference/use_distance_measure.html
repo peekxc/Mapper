@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Assigns a distance measure — use_distance_measure • Mapper</title>
+<title>Assign a distance measure — use_distance_measure • Mapper</title>
 
 <!-- jquery -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
@@ -30,9 +30,9 @@
 
 
 
-<meta property="og:title" content="Assigns a distance measure — use_distance_measure" />
+<meta property="og:title" content="Assign a distance measure — use_distance_measure" />
 
-<meta property="og:description" content="Assigns a distance measure to the MapperRef instance to use when compute distances in the data space." />
+<meta property="og:description" content="Assigns a distance measure to the MapperRef instance to use in the clustering algorithm." />
 <meta name="twitter:card" content="summary" />
 
 <meta name="robots" content="noindex">
@@ -63,7 +63,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Mapper</a>
-        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.1</span>
+        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.2</span>
       </span>
     </div>
 
@@ -85,6 +85,9 @@
     <span class="caret"></span>
   </a>
   <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="../articles/ShapeRecognition.html">Shape Recognition</a>
+    </li>
     <li>
       <a href="../articles/UsingCustomCover.html">Using a custom covering method</a>
     </li>
@@ -123,44 +126,44 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Assigns a distance measure</h1>
-    <small class="dont-index">Source: <a href='https://github.com/peekxc/Mapper/blob/master/R/MapperRef.R'><code>R/MapperRef.R</code></a></small>
+    <h1>Assign a distance measure</h1>
+    <small class="dont-index">Source: <a href='https://github.com/peekxc/Mapper/blob/master/R/mapperRef.R'><code>R/mapperRef.R</code></a></small>
     <div class="hidden name"><code>use_distance_measure.Rd</code></div>
     </div>
 
     <div class="ref-description">
     
-    <p>Assigns a distance measure to the <code><a href='MapperRef.html'>MapperRef</a></code> instance to use when compute distances in the data space.</p>
+    <p>Assigns a distance measure to the <code><a href='MapperRef.html'>MapperRef</a></code> instance to use in the clustering algorithm.</p>
     
     </div>
 
-    
-    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
-    <table class="ref-arguments">
-    <colgroup><col class="name" /><col class="desc" /></colgroup>
-    <tr>
-      <th>measure</th>
-      <td><p>The distance measure to use (string).</p></td>
-    </tr>
-    <tr>
-      <th>...</th>
-      <td><p>Extra parameters passed to the distance function. See details.</p></td>
-    </tr>
-    </table>
-    
-    <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
-
-    <p>The supplied <code>measure</code> must be either one of ["euclidean", "maximum", "manhattan", "canberra", "binary", "minkowski"], or, 
-if the <span class="pkg">proxy</span> package is installed, any measure in <code>proxy::pr_DB$get_entry_names()</code>.<br />
-<br />
-Additional parameters passed via <code>...</code> are passed to either <code><a href='https://www.rdocumentation.org/packages/stats/topics/dist'>dist</a></code> or, if installed, 
-<code><a href='https://www.rdocumentation.org/packages/parallelDist/topics/parDist'>parallelDist</a></code>. The former does not work with any measure in the <strong>proxy</strong> package, 
-whereas the latter should.</p>
-    
+        
     <h2 class="hasAnchor" id="usage"><a class="anchor" href="#usage"></a>Usage</h2>
 
     
-    <pre>$use_distance_measure(measure)</pre>
+    <pre> $use_distance_measure(measure, ...) </pre>
+    
+    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
+
+    
+    <dl class='dl-horizontal'>
+  <dt><code>measure</code></dt><dd><p>The distance measure to use (string).</p></dd>
+  <dt><code>...</code></dt><dd><p>Extra parameters passed to the distance function. See details.</p></dd>
+</dl>
+    
+    <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
+
+    <p>Unless the <code><a href='use_clustering_algorithm.html'>clustering_algorithm</a></code> has been replaced by the user, 
+by default, Mapper requires a notion of distance between objects to be defined in creating the vertices of the construction.</p>
+<p>The distance function is determined based on the supplied <code>measure</code>. <code>measure</code> must be one of:</p><pre>["euclidean", "maximum", "manhattan", "canberra", "binary", "minkowski"]</pre><p>or, if the <span class="pkg">proxy</span> and <code><a href='https://www.rdocumentation.org/packages/parallelDist/topics/parDist'>parallelDist</a></code> packages are installed, any name in <code>proxy::pr_DB$get_entry_names()</code>.<br />
+<br />
+Additional parameters passed via <code>...</code> are passed to either <code><a href='https://www.rdocumentation.org/packages/stats/topics/dist'>dist</a></code> (or 
+<code><a href='https://www.rdocumentation.org/packages/parallelDist/topics/parDist'>parallelDist</a></code> if installed).</p>
+    
+    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
+
+    
+    <p>The mapper instance, with the measure field assigned.</p>
     
     <h2 class="hasAnchor" id="see-also"><a class="anchor" href="#see-also"></a>See also</h2>
 
@@ -187,11 +190,14 @@ whereas the latter should.</p>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <h2>Contents</h2>
     <ul class="nav nav-pills nav-stacked">
-      <li><a href="#arguments">Arguments</a></li>
       
+      <li><a href="#usage">Usage</a></li>
+
+      <li><a href="#arguments">Arguments</a></li>
+
       <li><a href="#details">Details</a></li>
 
-      <li><a href="#usage">Usage</a></li>
+      <li><a href="#value">Value</a></li>
 
       <li><a href="#see-also">See also</a></li>
       

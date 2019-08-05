@@ -5,7 +5,7 @@
 \title{landmarks}
 \usage{
 landmarks(x, n, dist_method = "euclidean", seed_index = 1,
-  shuffle_data = FALSE, show_progress = FALSE)
+  shuffle_data = FALSE)
 }
 \arguments{
 \item{x}{a data matrix.}
@@ -17,8 +17,6 @@ landmarks(x, n, dist_method = "euclidean", seed_index = 1,
 \item{seed_index}{the first landmark to seed the algorithm.}
 
 \item{shuffle_data}{whether to first randomly shuffle the data.}
-
-\item{show_progress}{whether to display progress}
 }
 \description{
 Computes a set of \code{n} landmarks of a point cloud.

@@ -121,7 +121,7 @@ NumericMatrix gh_make_Q(const NumericMatrix& x_dist, const NumericMatrix& y_dist
   NumericMatrix::iterator q_it = Q.begin();
   CartesianProductOrdered(to_permute, [&q_it, &x_dist, &y_dist](const idx_t el){
     std::size_t i = el.at(0), j = el.at(1), k = el.at(2), l = el.at(3);
-    (*q_it) = abs(x_dist(i, k) - y_dist(j, l));
+    (*q_it) = std::fabs(double(x_dist(i, k) - y_dist(j, l)));
     ++q_it;
   }, order);
   
@@ -146,7 +146,7 @@ NumericMatrix all_correspondences(const NumericVector& X, const NumericVector& Y
           // Rprintf("{a:%d,b:%d}(i:%ld,j:%ld,k:%ld,l:%ld)\n", a, b, i, j, k, l);
           const double dist1 = i == k ? 0 : X.at(index_lt(i, k, n));
           const double dist2 = j == l ? 0 : Y.at(index_lt(j, l, n));
-          gamma.at(a, b) = std::abs(dist1 - dist2);
+          gamma.at(a, b) = std::fabs(double(dist1 - dist2));
         }
       }
     }

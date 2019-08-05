@@ -31,6 +31,5 @@ indexing structure is used to express the computation in terms of elementary sim
 a fixed interval cover with a constant number of open sets, and uses a specific clustering algorithm. \cr
 \cr
 The \code{time} parameter may be specified as "integer", "measure", or (average) "overlap". 
-Due to the restrictions on the cover this method assumes, these are all monotonically related to each other, 
-however they may produce visually different persistence diagrams.
+Each \code{time} unit is monotonically related to each other, however they may produce visually different persistence diagrams.
 }

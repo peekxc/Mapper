@@ -2,16 +2,16 @@
 author: "Matt Piekenbrock"
 title: "Using the Mapper Package"
 output: 
-  html_document:
-    keep_md: yes
   rmarkdown::html_vignette: default
+  html_document:
+    keep_md: true
 vignette: >
   %\VignetteIndexEntry{Mapper}
-  %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
 ---
 
-This document contains a quick overview of how to use the interface in the _Mapper_ package to fully customize the _mapper_ construction. The focus on this document is on package functionality and usage, as opposed the theory the _Mapper_ framework was founded on, and as such discusses _Mapper_ from a strictly algorithmic / computational perspective. 
+This document contains an overview of how to use the interface in the _Mapper_ package to fully customize the _mapper_ construction. The focus on this document is on package functionality and usage, as opposed the theory the _Mapper_ framework was founded on, and as such discusses _Mapper_ from a strictly algorithmic / computational perspective. 
 
 # Quickstart 
 
@@ -71,10 +71,15 @@ To demonstrate some of these benefits, consider a simplified interpretation of t
   
   4. Construct the _k_-skeleton by considering non-empty intersections of the clusters
   
-These steps are demonstrated below using the `noisy_circle` data set below. To begin building a mapper object more fluidly, one starts by using the `MapperRef` R6-class instance generator. It accepts as its only argument the data to construct the mapper with. The data can be specified as a matrix of coordinate values or a function which returns a matrix of coordinate values. 
+These steps are demonstrated below using the `noisy_circle` data set below. To begin building a mapper object more fluidly, one starts by using the `MapperRef` R6-class instance generator. 
+```{r}
+m <- MapperRef$new()
+```
+
+The data can be specified at initialization, or later using the `use_data` method. The format of the data must be either a matrix of coordinate values or a function which returns a matrix of coordinate values. 
 
 ```{r}
-m <- MapperRef$new(X = noisy_circle)
+m$use_data(noisy_circle)
 ```
 
 Assume, as before, that our filter is the distance from every points first coordinate to the point with left-most coordinate, $p$, i.e. 
@@ -95,7 +100,7 @@ plot(noisy_circle, pch = 20, asp = 1, col = rbw_pal[binned_idx], xlab = "X", yla
 
 The filter is assigned as usual, and like the data matrix, it accepts a matrix of coordinate values or a function that generates a matrix of coordinate values.
 ```{r}
-m$filter <- f_x
+m$use_filter(f_x)
 ```
 
 Both the data matrix and filter as stored as _functions_, which both accept as input a set of indices and return as output a matrix of coordinate values.
@@ -156,13 +161,14 @@ For a complete list of the available linkage criteria, see `?stats::hclust`.
 
 #### Using a custom function
 
-If it is not sufficient to use one of the standard clustering methods, you can alteratively just supply a  function! The only requirement is that it take input the index of the open set `pid` and a vector of indices `idx`$\subset \{1, 2, \dots, n\}$ (representing the preimage), and return an integer vector giving a partitioning on that subset. An example of how one might construct a custom clustering function leveraging the `parallelDist` and `fastcluster` packages is given below.
+If it is not sufficient to use one of the standard clustering methods, you can alteratively just supply 
+your own clustering function. The only requirement is that it take input the index of the open set `pid`, a vector of indices `idx`$\subset \{1, 2, \dots, n\}$ (representing the preimage), and the _mapperRef_ instance object `self`, and return an integer vector giving a partitioning on that subset. An example of how one might construct a custom clustering function leveraging the `parallelDist` and `fastcluster` packages is given below.
 
 ```{r}
 custom_clustering_f <- function(num_bins.default = 10L){
   dependencies_met <- sapply(c("parallelDist", "fastcluster"), requireNamespace)
   stopifnot(all(dependencies_met))
-  function(pid, idx) {
+  function(pid, idx, self) {
     dist_x <- parallelDist::parallelDist(self$X(idx), method = self$measure)
     hcl <- fastcluster::hclust(dist_x, method = "single")
     eps <- cutoff_first_bin(hcl, num_bins = num_bins.default)
@@ -223,28 +229,29 @@ The reason for this design is that, for some practical applications, there may b
 m$construct_nerve(k = 1L, modify = FALSE)
 ```
 
-Just the the `$construct_pullback` method, `$construct_nerve` optionally accepts a subset of indices which can be used to restrict the intersection computation to specific subsets of the data. For example, the following only considers non-empty intersections between vertices whose connected components intersected the sets indexed by "(1)" and "(2)"
+Just like the `$construct_pullback` method, `$construct_nerve` optionally accepts a subset of indices which can be used to restrict the intersection computation to specific subsets of the data. For example, the following only considers non-empty intersections between vertices whose connected components intersected the sets indexed by "(1)" and "(2)"
 
 ```{r}
 ## This checks the pairs given by: expand.grid(v1=m$pullback$`(1)`, v2=m$pullback$`(2)`)
 m$construct_nerve(k = 1L, indices = matrix(c("(1)", "(2)"), nrow = 1))
 ```
 
-The `$construct_nerve` method allows one to obtain finer control over how exactly each dimension of the simplicial complex is constructed. If one just wants to construct $k$-simplices for all non-empty intersections up to some dimension of $k$, e.g. to reduce the _mapper_ to its graph representation, the $1$-skeleton may be computed as follows.
+In this way, the `$construct_nerve` method allows one to obtain finer control over how exactly either individual pairs of subsets or individual dimension of the simplicial complex are constructed. If one just wants to construct $k$-simplices for all non-empty intersections up to some dimension of $k$, e.g. to reduce the _mapper_ to its graph representation, the $1$-skeleton may be computed as follows.
 ```{r}
 m$construct_k_skeleton(k = 1L) ## equivalent 
 m$simplicial_complex
 ```
 
-Each call to `construct_k_skeleton` is an idempotent operation: it can safely be called redundantly, and should always return the same result (assuming the clustering algorithm is deterministic). What this implies is that each call to `construct_k_skeleton` clears out the simplicial complex, decomposes the pullback into vertices, and then iteratively builds nerve up to the specified dimension. 
+Each call to `construct_k_skeleton` clears out the simplicial complex, decomposes the preimages into vertices, and then iteratively builds the nerve up to the specified dimension. Constructing the skeleton this way is an idempotent operation: it can safely be called redundantly, and should always return the same result (assuming the clustering algorithm is deterministic). 
 
 ## Putting it all together 
 
-The above is a brief exposition into the various components of the `MapperRef` object. Generally speaking, obtaining an accurate representation of data may require careful parameterizing any or all of the components of the _Mapper_ pipeline. This package attempts to enable a modest level of configurability one might need to obtain that representation.
+The above is a brief exposition into the various components of the `MapperRef` object. Generally speaking, obtaining an 'accurate' _mapper_ representation of data may require careful tweaking. This package attempts to enable the configurability one might need to obtain that representation.
 
 To streamline this process, the `Mapper` packages relies on [method chaining](https://adv-r.hadley.nz/r6.html#method-chaining) to allow composability. That is, by convention, all the methods denoted with the `use_*` enact side-effects on the `MapperRef` object and return the instance invisibly. This enables a reduction of the Mapper `pipeline` to a sequence of chained operations:
 ```{r}
-m <- MapperRef$new(noisy_circle)$
+m <- MapperRef$new()$
+  use_data(noisy_circle)$
   use_filter(filter = f_x)$
   use_cover(cover = "fixed interval", number_intervals = 5L, percent_overlap = 20)$
   use_distance_measure(measure = "euclidean")$
@@ -254,7 +261,7 @@ m <- MapperRef$new(noisy_circle)$
   construct_nerve(k = 1L)
 ```
 
-Practical defaults and wrappers are available to simplify this even further, e.g. the default distance measure is euclidean, the default clustering algorithm is single-linkage w/ a sensible cutting heuristic, etc. The above can also be constructed with:
+Practical defaults and wrappers are available to simplify this even further. In particular, the default distance measure is euclidean, the default clustering algorithm is single-linkage w/ a sensible cutting heuristic, etc. Thus, the above can also be constructed with:
 
 ```{r}
 m <- MapperRef$new(noisy_circle)$
@@ -304,12 +311,15 @@ m <- MapperRef$new(noisy_circle)$
   construct_k_skeleton(k = 1L)
 ```
 
-```{r, eval=FALSE, echo=TRUE}
+```{r, echo=FALSE, eval=TRUE}
+if (!requireNamespace("purrr", quietly = TRUE)){ 
+  install.packages("purrr",  repos = "http://cran.us.r-project.org") 
+}
+```
+
+```{r, eval=TRUE, echo=TRUE}
 library("pixiplex")
 plot(m$as_pixiplex())
-```
-```{r, echo = FALSE, out.width='\\textwidth'}
-knitr::include_graphics("pixiplex_prev.png")
 ```
 
 

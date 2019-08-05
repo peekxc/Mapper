@@ -1,3 +1,8 @@
+# Mapper 0.9.2
+- Added use_data to MapperRef class for uniformity with other methods
+- Added first tutorial vignette on shape comparison
+- Fixed bug related to user other covers 
+
 # Mapper 0.9.1
 - Moved filter aspect from cover to MapperRef class, added 9 popular filter functions and a 'use_filter' API
 - Can now construct arbitrary dimensional simplicial complexes

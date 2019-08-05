@@ -192,7 +192,7 @@ FixedIntervalCover$set("public", "neighborhood", function(filter, k){
     res <- apply(all_pairs[which_pairs,], 2, function(x) { self$index_set[x] })
     return(res)
   } else {
-    return(super$neighborhood(k))
+    return(super$neighborhood(filter, k))
   }
 })
 

@@ -2,26 +2,38 @@
 % Please edit documentation in R/mapperRef.R
 \name{use_distance_measure}
 \alias{use_distance_measure}
-\title{Assigns a distance measure}
-\arguments{
-\item{measure}{The distance measure to use (string).}
-
-\item{...}{Extra parameters passed to the distance function. See details.}
-}
+\title{Assign a distance measure}
 \description{
-Assigns a distance measure to the \code{\link{MapperRef}} instance to use when compute distances in the data space.
-}
-\details{
-The supplied \code{measure} must be either one of ["euclidean", "maximum", "manhattan", "canberra", "binary", "minkowski"], or, 
-if the \pkg{proxy} package is installed, any measure in \code{proxy::pr_DB$get_entry_names()}.\cr
-\cr
-Additional parameters passed via \code{...} are passed to either \code{\link[stats]{dist}} or, if installed, 
-\code{\link[parallelDist]{parallelDist}}. The former does not work with any measure in the \strong{proxy} package, 
-whereas the latter should.
+Assigns a distance measure to the \code{\link{MapperRef}} instance to use in the clustering algorithm.
 }
 \section{Usage}{
+
+\preformatted{ $use_distance_measure(measure, ...) }
+}
+
+\section{Arguments}{
  
-\preformatted{$use_distance_measure(measure)}
+\describe{
+  \item{\code{measure}}{The distance measure to use (string).}
+  \item{\code{...}}{Extra parameters passed to the distance function. See details. }
+}
+}
+
+\section{Details}{
+ Unless the \code{\link[Mapper:use_clustering_algorithm]{clustering_algorithm}} has been replaced by the user, 
+by default, Mapper requires a notion of distance between objects to be defined in creating the vertices of the construction. 
+
+The distance function is determined based on the supplied \code{measure}. \code{measure} must be one of:
+\preformatted{["euclidean", "maximum", "manhattan", "canberra", "binary", "minkowski"]}
+or, if the \pkg{proxy} and \code{\link[parallelDist]{parallelDist}} packages are installed, any name in \code{proxy::pr_DB$get_entry_names()}.\cr
+\cr
+Additional parameters passed via \code{...} are passed to either \code{\link[stats]{dist}} (or 
+\code{\link[parallelDist]{parallelDist}} if installed).
+}
+
+\section{Value}{
+
+The mapper instance, with the measure field assigned.
 }
 
 \examples{

@@ -3,6 +3,7 @@ pkgdown: 1.3.0
 pkgdown_sha: ~
 articles:
   Mapper: Mapper.html
+  ShapeRecognition: ShapeRecognition.html
   UsingCustomCover: UsingCustomCover.html
   community: extra/community.html
 

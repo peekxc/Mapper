@@ -9,7 +9,7 @@ f_1 <- function(){ replicate(1, runif(150)) }
 f_2 <- function(){ replicate(2, runif(150)) }
 
 ## Fixed Interval cover testing
-test_that("Can construct Fixed interval covers", {
+test_that("Can construct fixed interval covers", {
   expect_is(FixedIntervalCover$new(), "CoverRef")
   expect_is(FixedIntervalCover$new(), "FixedIntervalCover")
   cover <- FixedIntervalCover$new(number_intervals = 5, percent_overlap = 25)
@@ -65,6 +65,28 @@ test_that("Can construct ball covers", {
   expect_equal(length(unname(unique(unlist(cover$level_sets)))), 150L)
 })
 
+
+test_that("Can construct mappers with all covers", {
+  m <- MapperRef$new()
+  m$use_data(f_2())
+  m$use_filter(f_1())
+  
+  ## Fixed interval cover
+  m$use_cover("fixed interval", number_intervals=10, percent_overlap=20)
+  expect_silent(m$construct_k_skeleton(k=1))
+  expect_true(sum(m$simplicial_complex$n_simplices) > 0)
+  
+  ## Restrained interval cover
+  m$use_cover("restrained interval", number_intervals=10, percent_overlap=20)
+  expect_silent(m$construct_k_skeleton(k=1))
+  expect_true(sum(m$simplicial_complex$n_simplices) > 0)
+  
+  ## Ball cover
+  m$use_filter(f_2())
+  m$use_cover("ball", epsilon = max(dist(m$filter()))/20)
+  expect_silent(m$construct_k_skeleton(k=1))
+  expect_true(sum(m$simplicial_complex$n_simplices) > 0)
+})
 
 
 

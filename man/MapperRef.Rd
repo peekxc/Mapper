@@ -3,6 +3,7 @@
 \encoding{UTF-8}
 \name{MapperRef}
 \alias{MapperRef}
+\alias{Mapper}
 \title{Mapper Reference Class (R6)}
 \value{
 \code{\link{MapperRef}} instance equipped with methods for building the mapper.

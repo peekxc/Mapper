@@ -63,7 +63,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Mapper</a>
-        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.1</span>
+        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.2</span>
       </span>
     </div>
 
@@ -85,6 +85,9 @@
     <span class="caret"></span>
   </a>
   <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="../articles/ShapeRecognition.html">Shape Recognition</a>
+    </li>
     <li>
       <a href="../articles/UsingCustomCover.html">Using a custom covering method</a>
     </li>
@@ -124,7 +127,7 @@
   <div class="col-md-9 contents">
     <div class="page-header">
     <h1>Exports Mapper as an igraph object.</h1>
-    <small class="dont-index">Source: <a href='https://github.com/peekxc/Mapper/blob/master/R/MapperRef.R'><code>R/MapperRef.R</code></a></small>
+    <small class="dont-index">Source: <a href='https://github.com/peekxc/Mapper/blob/master/R/mapperRef.R'><code>R/mapperRef.R</code></a></small>
     <div class="hidden name"><code>as_igraph.Rd</code></div>
     </div>
 
@@ -156,13 +159,22 @@
     </tr>
     </table>
     
+    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
+
+    <p>an igraph object.</p>
+    
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>By default, the vertices of the output graph are given "color", "size", and "label" 
-attributes. The vertex colors are colored according on a blue to red rainbow according 
+    <p>This method converts the 1-skeleton of the Mapper to an igraph object, and assigns some 
+default visual properties. Namely, the vertex attributes "color", "size", and "label" and the 
+edge attribute "color" are assigned. 
+The vertex colors are colored according on the given color palette (default is rainbow) according 
 to their mean filter value (see <code><a href='bin_color.html'>bin_color</a></code>). The vertex sizes are scaled according 
 to the number of points they contain, scaled by <code>vertex_scale</code>, and bounded between 
-(<code>vertex_min</code>, <code>vertex_max</code>). The vertex labels are in the format "&lt;id&gt;:&lt;size&gt;".</p>
+(<code>vertex_min</code>, <code>vertex_max</code>). The vertex labels are in the format "&lt;id&gt;:&lt;size&gt;".<br />
+<br />
+The edges are colored similarly by the average filter value of the points intersecting
+both nodes they connect too.</p>
     
 
   </div>
@@ -171,6 +183,8 @@ to the number of points they contain, scaled by <code>vertex_scale</code>, and b
     <ul class="nav nav-pills nav-stacked">
       <li><a href="#arguments">Arguments</a></li>
       
+      <li><a href="#value">Value</a></li>
+
       <li><a href="#details">Details</a></li>
           </ul>
 

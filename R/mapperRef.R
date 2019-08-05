@@ -1,5 +1,6 @@
 #' Mapper Reference Class (R6)
 #' @name MapperRef
+#' @aliases Mapper
 #' @description `MapperRef` is an \link{R6} class built for parameterizing and computing mappers efficiently.
 #' @section Details: To create a new \code{MapperRef} instance object, instantiate the class with the \code{\link[R6:R6Class]{R6 new}} operator. 
 #' Instantiation of a \code{MapperRef} objects requires a data matrix, or a function returning one. \cr
@@ -145,10 +146,31 @@ MapperRef$set("active", "clustering_algorithm",
     if (missing(value)){ private$.clustering_algorithm }
     else {
       stopifnot(is.function(value))
+      stopifnot(all(c("pid", "idx", "self") %in% names(formals(value))))
       private$.clustering_algorithm <- value
     }
   }
 )
+
+MapperRef$set("active", "data", function(value){
+    if (missing(value)){ return(private$.X) }
+    else {
+      if (is.matrix(value)){
+        X_acc <- function(data_matrix){
+          function(idx=NULL){ 
+            if (missing(idx)){ return(data_matrix) }
+            return(data_matrix[idx,,drop=FALSE]) 
+          }
+        }
+        private$.X <- X_acc(value)
+      } else if (is.function(value)){
+        private$.X <- value
+      } else {
+        stop("X must be either a matrix or a function that returns a matrix of coordinates.")
+      }
+    }
+})
+              
 
 ## X ----
 ## The data should be held fixed
@@ -215,12 +237,34 @@ MapperRef$set("active", "measure",
 
 ## initialize ----
 ## Initialization method relies on active binding 
-MapperRef$set("public", "initialize", function(X){
-  self$X <- X
+MapperRef$set("public", "initialize", function(X = NULL){
   private$.simplicial_complex <- simplextree::simplex_tree()
   self$use_distance_measure(measure = "euclidean")
   self$use_clustering_algorithm(cl = "single", cutoff_method = "continuous")
+  if (!missing(X) && !is.null(X)){ self$use_data(X) }
   return(self)
+})
+
+## use_data ----
+#' @name use_data
+#' @title Sets the data
+#' @description Sets the data matrix to associate with the mapper.
+#' @param data either a matrix, a function, or a data set name. See details. 
+#' @param ... additional parameters to pass to the filter function.
+#' @details This function sets the data for the Mapper to work on. If \code{data} is a string, 
+#' it must be one of the (illustrative) data sets listed in \code{data(package="Mapper")}. 
+#' Otherwise, \code{data} must be either a matrix of coordinate values, a function that returns a matrix of 
+#' coordinate values.
+MapperRef$set("public", "use_data", function(X){
+  if (is.character(X)){
+    stopifnot(X %in% c("noisy_circle", "wvs_us_wave6"))
+    self$X <- local({ 
+      load(system.file(sprintf("data/%s.Rdata", X), package="Mapper"))
+      X <- eval(parse(text=X))
+      return(scale(as.matrix(X))) 
+    })
+  } else { self$X <- X }
+  return(invisible(self))
 })
 
 ## use_filter ----
@@ -264,13 +308,22 @@ MapperRef$set("public", "use_filter", function(filter=c("PC", "IC", "ECC", "KDE"
     }
     given_params <- list(...)
     require_but_ask <- function(pkg){
-      pkg_installed <- requireNamespace("fastICA", quietly = TRUE)
+      pkg_installed <- requireNamespace(pkg, quietly = TRUE)
       if (!pkg_installed){
         messsage(sprintf("Using this filter requires the package '%s' to be installed.", pkg))
         response <- readline(prompt = "Would you like to install it? y/n: ")
         if (toupper(substr(response, 1, 1)) == "Y"){ install.packages(pkg) }
       }
     }
+    make_dist <- function(params, d_name){
+      if (is.null(params[[d_name]])){
+        has_pd <- requireNamespace("parallelDist", quietly = TRUE)
+        dist_f <- ifelse(has_pd, parallelDist::parallelDist, stats::dist)
+        params[[d_name]] <- dist_f(self$X(), method=tolower(self$measure))
+      }
+      return(params)
+    }
+    
     ## Basic filters
     if (filter == "PC"){
       default_params <- list(x = self$X(), scale. = TRUE, center = TRUE, rank. = 2L)
@@ -311,20 +364,13 @@ MapperRef$set("public", "use_filter", function(filter=c("PC", "IC", "ECC", "KDE"
       params <- modifyList(list(X=X, Grid=X, m0=0.20, r=2), given_params)
       self$filter <- matrix(do.call(TDA::dtm, params), ncol = 1L)
     } else if (filter == "MDS"){
-      if (is.null(given_params[["d"]])){
-        has_pd <- requireNamespace("parallelDist", quietly = TRUE)
-        dist_f <- ifelse(has_pd, parallelDist::parallelDist, stats::dist)
-        given_params[["d"]] <- dist_f(self$X())
-      }
+      require_but_ask("stats")
+      given_params <- make_dist(given_params, "d")
       params <- modifyList(list(k=2), given_params)
       self$filter <- matrix(do.call(stats::cmdscale, params), ncol = params[["k"]])
     } else if (filter == "ISOMAP"){
       require_but_ask("vegan")
-      if (is.null(given_params[["dist"]])){
-        has_pd <- requireNamespace("parallelDist", quietly = TRUE)
-        dist_f <- ifelse(has_pd, parallelDist::parallelDist, stats::dist)
-        given_params[["dist"]] <- dist_f(self$X())
-      }
+      given_params <- make_dist(given_params, "dist")
       ## Get the smallest epsilon to make the graph connected
       if (is.null(given_params[["epsilon"]]) && is.null(given_params[["k"]])){
         eps <- max(vegan::spantree(given_params[["dist"]])$dist)
@@ -335,11 +381,7 @@ MapperRef$set("public", "use_filter", function(filter=c("PC", "IC", "ECC", "KDE"
       self$filter <- matrix(do.call(vegan::isomap, params)$points, ncol = params[["ndim"]])
     } else if (filter == "LE"){
       require_but_ask("geigen")
-      if (is.null(given_params[["dist"]])){
-        has_pd <- requireNamespace("parallelDist", quietly = TRUE)
-        dist_f <- ifelse(has_pd, parallelDist::parallelDist, stats::dist)
-        given_params[["dist"]] <- dist_f(self$X())
-      }
+      given_params <- make_dist(given_params, "dist")
       params <- modifyList(list(k=2L, sigma=mean(apply(self$X(), 2, stats::bw.nrd0))), given_params)
       W <- as.matrix(exp(-(params[["dist"]]/(params[["sigma"]]))))
       D <- diag(colSums(W))
@@ -355,26 +397,31 @@ MapperRef$set("public", "use_filter", function(filter=c("PC", "IC", "ECC", "KDE"
   } else{
     stop(sprintf("Unknown format of supplied filter. Must be either string, matrix, matrix-producing function, or vector.", filter))
   }
-  # print.mapper_filter <- function(x){
-  #   
-  # }
   invisible(self)
 })
 
 ## use_distance_measure ----
 #' @name use_distance_measure
-#' @title Assigns a distance measure
-#' @param measure The distance measure to use (string).
-#' @param ... Extra parameters passed to the distance function. See details. 
-#' @description Assigns a distance measure to the \code{\link{MapperRef}} instance to use when compute distances in the data space. 
-#' @details The supplied \code{measure} must be either one of ["euclidean", "maximum", "manhattan", "canberra", "binary", "minkowski"], or, 
-#' if the \pkg{proxy} package is installed, any measure in \code{proxy::pr_DB$get_entry_names()}.\cr
+#' @title Assign a distance measure
+#' @description Assigns a distance measure to the \code{\link{MapperRef}} instance to use in the clustering algorithm. 
+#' @section Usage:
+#' \preformatted{ $use_distance_measure(measure, ...) }
+#' @section Arguments: 
+#' \describe{
+#'   \item{\code{measure}}{The distance measure to use (string).}
+#'   \item{\code{...}}{Extra parameters passed to the distance function. See details. }
+#' }
+#' @section Details: Unless the \code{\link[Mapper:use_clustering_algorithm]{clustering_algorithm}} has been replaced by the user, 
+#' by default, Mapper requires a notion of distance between objects to be defined in creating the vertices of the construction. 
+#' 
+#' The distance function is determined based on the supplied \code{measure}. \code{measure} must be one of:
+#' \preformatted{["euclidean", "maximum", "manhattan", "canberra", "binary", "minkowski"]}
+#' or, if the \pkg{proxy} and \code{\link[parallelDist]{parallelDist}} packages are installed, any name in \code{proxy::pr_DB$get_entry_names()}.\cr
 #' \cr
-#' Additional parameters passed via \code{...} are passed to either \code{\link[stats]{dist}} or, if installed, 
-#' \code{\link[parallelDist]{parallelDist}}. The former does not work with any measure in the \strong{proxy} package, 
-#' whereas the latter should.
-#' @section Usage: 
-#' \preformatted{$use_distance_measure(measure)} 
+#' Additional parameters passed via \code{...} are passed to either \code{\link[stats]{dist}} (or 
+#' \code{\link[parallelDist]{parallelDist}} if installed). 
+#' @section Value:
+#' The mapper instance, with the measure field assigned. 
 #' @examples 
 #' data(noisy_circle)
 #' m <- MapperRef$new(noisy_circle)
@@ -447,11 +494,12 @@ MapperRef$set("public", "use_cover", function(cover="fixed interval", ...){
 #' @param cutoff_method Type of heuristic to determine cut value. See details. Ignored is \code{cl} is a function.
 #' @param ... Additional parameters passed as defaults to the cutoff method. See details. 
 #' @details If \code{cl} is a linkage criterion, a standard hierarchical clustering algorithm is used with suitable default parameters. 
-#' If it is a function, it must have a signature compatible with \code{function(X, idx, ...)} where \code{X} is the data matrix and \code{idx}
-#' is a vector of integer indices giving which subset of \code{X} to cluster over. The enclosing environment of \code{cl}
-#' is set to  \cr 
+#' If it is a function, it must have a signature compatible with \code{function(pid, idx, self, ...)} where 
+#' \code{pid} is the index of the (pullback) set to cluster (see \code{CoverRef}),  
+#' \code{idx} are the indices of the points in \code{X} to cluster on, and
+#' \code{self} is the \code{MapperRef} instance environment. 
 #' \cr
-#' The cutoff method may be one of either c("histogram", "continuous"). See \code{\link{cutoff_first_bin}} and \code{\link{cutoff_first_threshold}}
+#' The cutoff method may be one of either c("continuous", "histogram"). See \code{\link{cutoff_first_bin}} and \code{\link{cutoff_first_threshold}}
 #' for what they each correspond to, respectively. Additional named parameters passed via \code{...} act as defaults to the cutting method chosen. 
 #' If not chosen, reasonable defaults are used. \cr 
 #' \cr
@@ -472,7 +520,7 @@ MapperRef$set("public", "use_clustering_algorithm",
       ## Closured representation to substitute default parameters. 
       create_cl <- function(cl, cutoff_method, cut_defaults){
         cutoff_f <- switch(cutoff_method, "histogram"=cutoff_first_bin, "continuous"=cutoff_first_threshold)
-        function(pid, idx, ...){
+        function(pid, idx, self, ...){
           if (is.null(idx) || length(idx) == 0){ return(integer(0L)) }
           if (length(idx) <= 2L){ return(rep(1L, length(idx))); }
           override_params <- list(...)
@@ -499,22 +547,9 @@ MapperRef$set("public", "use_clustering_algorithm",
           return(cutree(hcl, h = eps))
         }
       }
-      # cl_f <- create_cl(cl, cutoff_method, default_cutting_params)
-      # parent.env(environment(cl_f)) <- environment(self$initialize)
       self$clustering_algorithm <- create_cl(cl, cutoff_method, default_cutting_params)
-      # environment(self$clustering_algorithm) <- environment(self$initialize)
     } else if (is.function(cl)){
-      ## Run given functions under the instance environment
-      # parent.env(environment(cl)) <- environment(self$initialize)
-      # if (environmentName(environment(cl)) == "R_GlobalEnv"){
-      ## Unencloses the passed function parameters; based on pryr's 'unenclose' method 
-      env <- environment(cl)
-      sub <- function(x, env){
-        call <- substitute(substitute(x, env), list(x = x))
-        eval(call)
-      }
-      cl_sub <- self$clustering_algorithm <- eval(call("function", as.pairlist(formals(cl)), sub(body(cl), env)), parent.env(env))
-      self$add_function("clustering_algorithm", cl_sub)
+      self$clustering_algorithm <- cl
     } else { stop("Invalid parameter type 'cl'") }
     invisible(self)
   }
@@ -557,7 +592,7 @@ MapperRef$set("public", "construct_pullback", function(pullback_ids=NULL, ...){
   }
   partial_cluster <- function(...){
     extra <- list(...)
-    function(pid, idx){ do.call(self$clustering_algorithm, append(list(pid, idx), extra)) }
+    function(pid, idx){ do.call(self$clustering_algorithm, append(list(pid, idx, self), extra)) }
   }
   # id_gen <- function(n){
   #   ## make cpp function smallest_not_in
@@ -601,23 +636,30 @@ MapperRef$set("public", "construct_nerve", function(k, indices = NULL, min_weigh
     stopifnot(all(unlist(indices) %in% self$cover$index_set))
     stopifnot(k >= 1)
   }
-  indices <- if (idx_specified){ indices } else { self$cover$neighborhood(self$filter, k) }
-  ## Retrieve the valid level set index pairs to compare. In the worst case, with no cover-specific optimization, 
-  ## this may just be all pairwise combinations of LSFI's for the full simplicial complex.
+
+  ## If k==0 is specified, just build the vertices
   stree_ptr <- private$.simplicial_complex$as_XPtr()
-  params <- list(pullback_ids = indices, vertices = self$vertices, pullback = private$.pullback, stree = stree_ptr, modify = modify)
   if (k == 0){ 
-    if (!params$modify){ return(as.integer(names(self$vertices))) } 
+    if (!modify){ return(as.integer(names(self$vertices))) } 
     build_0_skeleton(as.integer(names(self$vertices)), stree_ptr)
     return(invisible(self))
   }
-  else if (k == 1){ 
+  
+  ## Retrieve the valid level set index pairs to compare. In the worst case, with no cover-specific optimization, 
+  ## this may just be all pairwise combinations of LSFI's for the full simplicial complex.
+  indices <- if (idx_specified){ indices } else { self$cover$neighborhood(self$filter, k) }
+  
+  ## If no indices to compute, nothing to do for k > 1. return self invisibly.
+  if (is.null(indices)){ return(invisible(self)) }
+  
+  ## Build the parameter list
+  params <- list(pullback_ids = indices, vertices = self$vertices, pullback = private$.pullback, stree = stree_ptr, modify = modify)
+  if (k == 1){ 
     params <- modifyList(params, list(min_sz = min_weight)) 
     if (!params$modify){ return(do.call(rbind, do.call(build_1_skeleton, params)) ) } 
     do.call(build_1_skeleton, params)
     return(invisible(self))
-  } 
-  else { 
+  } else { 
     params <- modifyList(params, list(k = k)) 
     if (!params$modify){ return(do.call(rbind, do.call(build_k_skeleton, params)) ) } 
     do.call(build_k_skeleton, params)
@@ -643,7 +685,7 @@ MapperRef$set("public", "construct_nerve", function(k, indices = NULL, min_weigh
 #' @references Gurjeet Singh, Facundo Mémoli, and Gunnar Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.
 MapperRef$set("public", "construct_k_skeleton", function(k=1L){
   stopifnot(k >= 0)
-  if (length(private$.vertices) == 0) { self$construct_pullback() }
+  self$construct_pullback()
   for (k_i in seq(0L, k)){ self$construct_nerve(k = k_i) }
   invisible(self)
 })
@@ -719,6 +761,74 @@ MapperRef$set("public", "as_igraph", function(vertex_scale=c("linear", "log"), v
   igraph::vertex_attr(G, "label") <- apply(v_labels, 1, function(x){ paste0(x, collapse = ":") })
   return(G)
 })
+
+# as_upset
+# @description Visualizes the mapper as an upset diagram
+# @details UpSet is a technique for visualizing set intersections, designed to be a scalable alternative to
+# more traditional approaches, e.g. the Venn diagram. Since Mapper is fundamentally a topological means of
+# expressing intersections between summaries of the data,
+# MapperRef$set("public", "as_upset", function(f){
+#   upset_installed <- requireNamespace("UpSetR", quietly = TRUE)
+#   stopifnot(upset_installed)
+#   x_dim <- dim(m$data())
+#   x_groups <- matrix(0L, nrow = x_dim[[1]], ncol = m$simplicial_complex$n_simplices[[1]])
+#   vids <- as.character(m$simplicial_complex$vertices)
+#   colnames(x_groups) <- paste0("v", vids)
+#   for (vid in vids){
+#     v_idx <- match(vid, vids)
+#     x_groups[m$vertices[[vid]],v_idx] <- 1L
+#   }
+#   v_len <- sapply(m$vertices, length)
+#   v_len_dec <- sort(unname(v_len), decreasing = TRUE)
+#   v_idx <- Position(function(x) x >= 0.95, cumsum(v_len_dec)/sum(v_len_dec))
+#   top_vids <- names(m$vertices)[order(v_len, decreasing = TRUE)][1:v_idx]
+#   avg_v_f <- sapply(vids, function(vid) { mean(rowMeans(m$filter(m$vertices[[vid]]))) })
+#   row_col <- bin_color(avg_v_f)[match(top_vids, vids)]
+#   # list("matrix_rows, colors = c(Boston = "green", NYC = "navy", LA = "purple"), 
+#   # alpha = 0.5)))
+#   vids_int <- as.integer(top_vids)
+#   
+#   
+#   ## Color intersections by f
+#   res_f <- m$simplicial_complex$ltraverse(empty_face, function(simplex){
+#     if (all(simplex %in% vids_int)){
+#       list(simplex = simplex, f_val = mean(avg_v_f[match(simplex, vids)])) 
+#     }
+#   }, type = "dfs") 
+#   res_f <- Filter(function(x) { !is.null(x) }, res_f)
+#   params <- lapply(res_f, function(el){ 
+#     list(query = intersects, 
+#          params = as.list(paste0("v", as.character(el$simplex))),
+#          color = bin_color(avg_v_f)[match(el$simplex, vids)], 
+#          active = FALSE
+#     )
+#   }) # sapply(params, function(p) unlist(p[[2]]))
+#   
+#   # queries = list(list(query = intersects, params = list("Drama"), color = "red", active = F)
+#   us_df <- as.data.frame(x_groups)
+#   meta_data <- data.frame(sets=as.factor(paste0("v", top_vids)))
+#   meta_data$cat_id <- as.character(paste0("v", top_vids))
+#   id_color_map <- structure(row_col, names=as.character(meta_data$cat_id))
+#   UpSetR::upset(data = us_df, nsets = v_idx, 
+#                 sets.x.label = "Node size", 
+#                 scale.intersections = "identity", 
+#                 set.metadata = list(
+#                   data=meta_data,
+#                   plots=list(list(type="matrix_rows", column="cat_id", colors=id_color_map, alpha=0.5))
+#                 )
+#   )
+#                   
+#                 # queries = wut, 
+#                 # queries = list(list(query = intersects, params = list("v43"), color = "red", active = F)),
+#                 #queries = list(list(query = intersects, params = list("v43", "v37"), color = "red", active = F)), 
+#                 mb.ratio = c(0.35, 0.65))
+#   sets.bar.color = row_col
+#   
+# 
+#   
+# 
+# })
+
 
 # MapperRef$set("public", "as_grapher", function(construct_widget=TRUE, ...){
 #   requireNamespace("grapher", quietly = TRUE)
