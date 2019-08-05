@@ -11,14 +11,17 @@ vignette: >
   %\VignetteEngine{knitr::rmarkdown}
 ---
 
-```{r setup, echo=FALSE, results="asis", include=FALSE}
-library("Mapper")
+```{r setup_depends, echo=FALSE, eval=TRUE}
 if (!requireNamespace("rgl", quietly = TRUE)){ 
   install.packages("rgl", repos = "http://cran.us.r-project.org") 
 }
 if (!requireNamespace("readobj", quietly = TRUE)){ 
   install.packages("readobj", repos = "http://cran.us.r-project.org") 
 }
+```
+
+```{r setup, echo=FALSE, results="asis", include=FALSE}
+library("Mapper")
 knitr::opts_chunk$set(rgl.newwindow = TRUE)
 set.seed(123)
 options(rgl.useNULL=TRUE)
@@ -83,7 +86,7 @@ Intuitively, the Hausdorff distance provides very convenient distance measure fo
 
 To illustrate this idea, I'm going to borrow some high-fidelity [pose](https://en.wikipedia.org/wiki/Pose_(computer_vision)) data sets from [this source](http://people.csail.mit.edu/sumner/research/deftransfer/data.html)
 
-```{r, cache=TRUE, eval=FALSE}
+```{r, cache=TRUE, eval=TRUE}
 target_dir <- tempdir()
 target_file <- file.path(target_dir, "elephant-poses.tgz")
 pose_db <- "http://people.csail.mit.edu/sumner/research/deftransfer/data"
@@ -95,7 +98,7 @@ if (!file.exists(target_file)){
 }
 ```
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, eval=FALSE}
 target_dir <- normalizePath("~/Downloads")
 target_file <- file.path(target_dir, "elephant-poses.tgz")
 ```
@@ -104,7 +107,7 @@ As evident from the name of the file, the set of poses downloaded above are mesh
 
 ```{r mesh_vis, eval=TRUE}
 library("readobj")
-el_ref_fn <- file.path(target_dir, "elephant-poses", "elephant-reference.obj")
+el_ref_fn <- normalizePath(file.path(target_dir, "elephant-poses", "elephant-reference.obj"))
 el_ref <- readobj::read.obj(el_ref_fn)
 shade3d(readobj::tinyobj2shapelist3d(el_ref), color = "gray")
 rglwidget()
