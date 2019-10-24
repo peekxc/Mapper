@@ -13,18 +13,17 @@
 #' The following is a list of the fields available for derived classes. Each may be accessed 
 #' by the \code{self} environment. See \code{?R6} for more details. 
 #' \itemize{
-#'  \item{\emph{level_sets}:}{ named list, indexed by \code{index_set}, whose values represent indices in the original data set to cluster over.}
-#'  \item{\emph{index_set}:}{ character vector of keys that uniquely index the open sets of the cover.}
-#'  \item{\emph{typename}:}{ unique string identifier identifying the covering method.}
+#'  \item{\emph{typename}:}{ name of the covering method.}
+#'  \item{\emph{sets}:}{ named list, indexed by \code{index_set}, representing the collection of sets.}
+#'  \item{\emph{index_set}:}{ character vector of keys that uniquely index the \code{sets} of the cover.}
 #' }
 #' @format An \code{\link{R6Class}} generator object
 #' @author Matt Piekenbrock
 #' @export CoverRef
 CoverRef <- R6::R6Class("CoverRef", 
   private = list(
-    .level_sets = NULL,
-    .index_set = NULL, 
-    .typename = character(0)
+    .typename = character(0),
+    .sets = NULL
   ), 
   lock_class = FALSE,  ## Feel free to add your own members
   lock_objects = FALSE ## Or change existing ones 
@@ -35,63 +34,47 @@ CoverRef$set("public", "initialize", function(typename){
   private$.typename <- typename
 })
 
-## format ----
-CoverRef$set("public", "format", function(...){
-  # message <- c(sprintf("Open cover for %d objects (d = %d)", nrow(self$filter_values), private$.filter_dim))
-  return(message)
-})
-
 ## Typename field
 ## typename ----
-CoverRef$set("active", "typename", 
-  function(value){
-    if (missing(value)){ private$.typename } else {
-      stop("Cover 'typename' member is read-only.")
-    }
-})
-
-## The index set may be composed of any data type, but the collection of indices must uniquely
-## index the level sets list via the `[[` operator.
-## index_set ----
-CoverRef$set("active", "index_set", 
- function(value){
-   if (missing(value)){
-     private$.index_set
-   } else {
-     stopifnot(is.vector(value))
-     tmp <- structure(vector("list", length = length(value)), names = value)
-     stopifnot(length(unique(names(tmp))) == length(value))
-     private$.index_set <- names(tmp)
-   }
+CoverRef$set("active", "typename", function(value){
+  if (missing(value)){ private$.typename } else {
+    stop("Cover 'typename' member is read-only.")
+  }
 })
 
 ## The level sets must be a list indexed by the index set. If the list is named, a check is performed to make sure the 
 ## names match the values of the index set, and in the proper order. Otherwise, the order is assumed to be correct. 
-## level_sets ----
-CoverRef$set("active", "level_sets", 
+## sets ----
+CoverRef$set("active", "sets", 
   function(value){
     if (missing(value)){
-      private$.level_sets
+      private$.sets
     } else {
-      stopifnot(is.list(value) && (length(value) == length(private$.index_set)))
-      if (!is.null(value)){ stopifnot(all(names(value) == private$.index_set)) }
-      private$.level_sets <- structure(value, names = private$.index_set)
+      stopifnot(is.list(value), all(is.character(names(value))), length(names(value)) == length(value))
+      private$.sets <- value
     }
   }
 )
 
-## Default cover 
-## construct_cover ----
-CoverRef$set("public", "construct_cover", function(index=NULL){
-  stop("Base class cover construction called. This method must be overridden to be used.")
+## The index set may be composed of any data type, but the collection of indices must uniquely
+## index the level sets list via the `[[` operator.
+## index_set ----
+CoverRef$set("active", "index_set", function(value){
+  if (missing(value)){ names(private$.sets) } 
+  else {
+    stopifnot(is.vector(value), length(value) == length(self$sets), all(is.character(value)))
+    names(private$.set) <- value
+  # tmp <- structure(vector("list", length = length(value)), names = value)
+  # stopifnot(length(unique(names(tmp))) == length(value))
+  # private$.index_set <- names(tmp)
+  }
 })
 
-## Given an index in the index set, returns the indices of point intersect the image 
-## of f in the cover. The default method relies on the construct_cover method.  
-# CoverRef$set("public", "construct_pullback", function(index){
-# 
-# })
-
+## The order of a cover is the smallest number n such that
+## each point of the space belongs to at most n sets in the cover.
+CoverRef$set("active", "order", function(value){
+  
+})
 
 ## Which indices of the index set should be compared in constructing the k-simplices? 
 ## This can be customized based on the cover to (dramatically) reduce 
@@ -99,9 +82,10 @@ CoverRef$set("public", "construct_cover", function(index=NULL){
 ## Defaults to every pairwise combination of level sets. 
 ## neighborhood ----
 CoverRef$set("public", "neighborhood", function(filter, k=1){
-  if (length(private$.index_set) <= 1L){ return(NULL) }
-  k_combs <- t(combn(length(private$.index_set), k+1))
-  relist(private$.index_set[k_combs], k_combs)
+  # if (length(private$.index_set) <= 1L){ return(NULL) }
+  self$index_set 
+  # k_combs <- t(combn(length(private$.index_set), k+1))
+  # relist(private$.index_set[k_combs], k_combs)
 })
 
 ## Validates that the constructed cover is indeed a valid cover. 

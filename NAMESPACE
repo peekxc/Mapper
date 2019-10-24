@@ -2,9 +2,11 @@
 
 S3method(print,Mapper)
 export()
+export(ArbitraryCover)
 export(BallCover)
 export(CoverRef)
 export(FixedIntervalCover)
+export(IndexedCover)
 export(MapperRef)
 export(RestrainedIntervalCover)
 export(bin_color)

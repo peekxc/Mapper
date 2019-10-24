@@ -12,8 +12,13 @@
 Sets the map, or \emph{filter}, to associate with the instance
 }
 \details{
-\code{filter} must be either a matrix of coordinate values, a function that returns a matrix of 
-coordinate values, or one of the following predefined filters: 
+\code{filter} must be either matrix of coordinate values, a function that returns a matrix of 
+coordinate values, or a string selecting from one of the predefined filters below. \cr
+\cr 
+If a matrix is given (or function returning a matrix), the convention here is that each row 
+represents a point and each column a dimension. \cr
+\cr
+Here's a list of the pre-defined filtering methods supported:
 \itemize{
   \item{\strong{PC}}{ Principle components (with \code{\link[stats:prcomp]{prcomp}})}
   \item{\strong{IC}}{ Independent components (with \code{\link[fastICA:fastICA]{fastICA}})}

@@ -10,13 +10,15 @@ using namespace Rcpp;
 // Shim to get the simplextree definitions exposed 
 // [[Rcpp::depends(simplextree)]]
 #include "simplextree.h"
-#include "utilities.h"
+// #include "utilities.h"
 #include <unordered_map>
 
 // Aliases
 using std::vector; 
 using std::begin; 
 using std::end; 
+using std::pair; 
+using std::string;
 
 // Updates a single level set, whose flat index is given. This updates all of the corresponding vertices. 
 void update_pullback(

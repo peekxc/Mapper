@@ -4,8 +4,7 @@
 \alias{landmarks}
 \title{landmarks}
 \usage{
-landmarks(x, n, dist_method = "euclidean", seed_index = 1,
-  shuffle_data = FALSE)
+landmarks(x, n, eps, dist_method = "euclidean", seed_index = 1)
 }
 \arguments{
 \item{x}{a data matrix.}
@@ -15,8 +14,6 @@ landmarks(x, n, dist_method = "euclidean", seed_index = 1,
 \item{dist_method}{the distance metric to use. Any distance measure in the \code{proxy} package is supported.}
 
 \item{seed_index}{the first landmark to seed the algorithm.}
-
-\item{shuffle_data}{whether to first randomly shuffle the data.}
 }
 \description{
 Computes a set of \code{n} landmarks of a point cloud.

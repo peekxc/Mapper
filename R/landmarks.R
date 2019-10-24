@@ -8,32 +8,24 @@
 #' @param n the number of landmarks requested. 
 #' @param dist_method the distance metric to use. Any distance measure in the \code{proxy} package is supported.
 #' @param seed_index the first landmark to seed the algorithm. 
-#' @param shuffle_data whether to first randomly shuffle the data.
 #' @references De Silva, Vin, and Gunnar E. Carlsson. "Topological estimation using witness complexes." SPBG 4 (2004): 157-166.
 #' @export
-landmarks <- function(x, n, dist_method = "euclidean", seed_index = 1, shuffle_data=FALSE){
+landmarks <- function(x, n, eps, dist_method = "euclidean", seed_index = 1){
   stopifnot(is.matrix(x))
-  stopifnot(seed_index >= 1L && seed_index < nrow(x))
-  shuffle_idx <- NA
-  if (shuffle_data){ 
-    shuffle_idx <- sample(seq(nrow(x)))
-    x <- x[,,drop=FALSE] 
-  }
-  if (missing(dist_method) || toupper(dist_method) == "EUCLIDEAN"){
-    landmark_idx <- landmark_maxmin(x, n, seed_index-1L)
-  } else if (requireNamespace("proxy", quietly = TRUE)){
-    stopifnot(toupper(dist_method) %in% toupper(proxy::pr_DB$get_entry_names()))
-    landmark_idx <- vector(mode="integer", n)
-    landmark_idx[1L] <- seed_index
-    landmark_min_dist <- rep(Inf, nrow(x))
-    for (i in 2L:n){
-      landmark_dist <- proxy::dist(x, x[landmark_idx[i-1L],,drop=FALSE], method = dist_method)
-      landmark_min_dist <- pmin(landmark_dist, landmark_min_dist)
-      potential_idx <- setdiff(seq(nrow(x)), landmark_idx[c(1:i)])
-      landmark_idx[i] <- potential_idx[which.max(landmark_min_dist[potential_idx])]
-    }
-  } else {
-    stop(sprintf("Unsupported distance method passed: %s\n", dist_method))
-  }
-  if (is.na(shuffle_idx)){ landmark_idx } else { shuffle_idx[landmark_idx] }
+  stopifnot(seed_index >= 1L && seed_index <= nrow(x))
+  if (!xor(missing(n), missing(eps))){ stop("Either n or eps can be provided, but not both."); }
+  
+  ## Choose whether to fix n or fix eps
+  use_n <- missing(eps)
+  
+  ## Choose the distance metric
+  if (is.character(dist_method)){
+    dist_choice <- switch(tolower(dist_method), "euclidean"=0L, "manhattan"=1L, "maximum"=2L, 0L)
+    if (use_n){ idx <- maxmin_n(x, as.integer(n), metric=dist_choice, seed=seed_index-1L) }
+    else { idx <- maxmin_eps(x, as.numeric(eps), metric=dist_choice, seed=seed_index-1L) }
+    return(idx)
+  } else if (is.function(dist_method)){
+    if (use_n){ idx <- maxmin_n_f(x, as.integer(n), dist_f=dist_method, seed=seed_index-1L) }
+    else { idx <- maxmin_eps_f(x, as.numeric(eps), dist_f=dist_method, seed=seed_index-1L) }
+  } else { stop(sprintf("Unsupported distance method passed: %s\n", dist_method)) }
 }

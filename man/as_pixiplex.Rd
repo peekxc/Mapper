@@ -4,5 +4,10 @@
 \alias{as_pixiplex}
 \title{Exports the complex as a pixiplex object.}
 \description{
-Uses the pixiplex library.
+Uses the \pkg{pixiplex} library.
 }
+\seealso{
+Other mapper visualization functions: \code{\link{MapperRef.plot}},
+  \code{\link{as_igraph}}
+}
+\concept{mapper visualization functions}

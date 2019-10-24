@@ -156,8 +156,10 @@ FixedIntervalCover$set("public", "construct_cover", function(filter, index=NULL)
   }
 })
 
-## Constructs a 'neighborhood', which is an (n x k+1) subset of pullback ids representing 
-## the set of n unique (k+1)-fold intersections are required to construct the nerve. 
+## Constructs a 'neighborhood', which is an (n x k+1) subset I \subseteq A representing 
+## the set of n unique (k+1)-fold intersections to *check* in constructing the nerve, where
+## A is the index set of cover. More concisely, this method returns which open sets need 
+## to be compared to see if their decompositions share a non-empty intersection.
 ## neighborhood ----
 FixedIntervalCover$set("public", "neighborhood", function(filter, k){
   stopifnot(!is.null(private$.index_set))

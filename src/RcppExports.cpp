@@ -27,6 +27,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// grid_iterator
+void grid_iterator(const std::vector< size_t > ni, const size_t k, const size_t order);
+RcppExport SEXP _Mapper_grid_iterator(SEXP niSEXP, SEXP kSEXP, SEXP orderSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const std::vector< size_t > >::type ni(niSEXP);
+    Rcpp::traits::input_parameter< const size_t >::type k(kSEXP);
+    Rcpp::traits::input_parameter< const size_t >::type order(orderSEXP);
+    grid_iterator(ni, k, order);
+    return R_NilValue;
+END_RCPP
+}
 // valid_pairs
 IntegerMatrix valid_pairs(const IntegerMatrix& level_set_pairs);
 RcppExport SEXP _Mapper_valid_pairs(SEXP level_set_pairsSEXP) {
@@ -230,16 +242,59 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// landmark_maxmin
-IntegerVector landmark_maxmin(const NumericMatrix& x, const int n, const int seed);
-RcppExport SEXP _Mapper_landmark_maxmin(SEXP xSEXP, SEXP nSEXP, SEXP seedSEXP) {
+// maxmin_n
+IntegerVector maxmin_n(const NumericMatrix& x, const int n, const size_t metric, const int seed);
+RcppExport SEXP _Mapper_maxmin_n(SEXP xSEXP, SEXP nSEXP, SEXP metricSEXP, SEXP seedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const NumericMatrix& >::type x(xSEXP);
     Rcpp::traits::input_parameter< const int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< const size_t >::type metric(metricSEXP);
     Rcpp::traits::input_parameter< const int >::type seed(seedSEXP);
-    rcpp_result_gen = Rcpp::wrap(landmark_maxmin(x, n, seed));
+    rcpp_result_gen = Rcpp::wrap(maxmin_n(x, n, metric, seed));
+    return rcpp_result_gen;
+END_RCPP
+}
+// maxmin_n_f
+IntegerVector maxmin_n_f(const NumericMatrix& x, const int n, const Function& dist_f, const int seed);
+RcppExport SEXP _Mapper_maxmin_n_f(SEXP xSEXP, SEXP nSEXP, SEXP dist_fSEXP, SEXP seedSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< const Function& >::type dist_f(dist_fSEXP);
+    Rcpp::traits::input_parameter< const int >::type seed(seedSEXP);
+    rcpp_result_gen = Rcpp::wrap(maxmin_n_f(x, n, dist_f, seed));
+    return rcpp_result_gen;
+END_RCPP
+}
+// maxmin_eps
+IntegerVector maxmin_eps(const NumericMatrix& x, const double eps, const size_t metric, const int seed);
+RcppExport SEXP _Mapper_maxmin_eps(SEXP xSEXP, SEXP epsSEXP, SEXP metricSEXP, SEXP seedSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const double >::type eps(epsSEXP);
+    Rcpp::traits::input_parameter< const size_t >::type metric(metricSEXP);
+    Rcpp::traits::input_parameter< const int >::type seed(seedSEXP);
+    rcpp_result_gen = Rcpp::wrap(maxmin_eps(x, eps, metric, seed));
+    return rcpp_result_gen;
+END_RCPP
+}
+// maxmin_eps_f
+IntegerVector maxmin_eps_f(const NumericMatrix& x, const double eps, const Function& dist_f, const int seed);
+RcppExport SEXP _Mapper_maxmin_eps_f(SEXP xSEXP, SEXP epsSEXP, SEXP dist_fSEXP, SEXP seedSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const double >::type eps(epsSEXP);
+    Rcpp::traits::input_parameter< const Function& >::type dist_f(dist_fSEXP);
+    Rcpp::traits::input_parameter< const int >::type seed(seedSEXP);
+    rcpp_result_gen = Rcpp::wrap(maxmin_eps_f(x, eps, dist_f, seed));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -255,12 +310,12 @@ BEGIN_RCPP
 END_RCPP
 }
 // connected_pullbacks
-List connected_pullbacks(std::vector< std::string > pullback_ids, const List& pullback, SEXP stree);
+List connected_pullbacks(StringVector pullback_ids, const List& pullback, SEXP stree);
 RcppExport SEXP _Mapper_connected_pullbacks(SEXP pullback_idsSEXP, SEXP pullbackSEXP, SEXP streeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< std::vector< std::string > >::type pullback_ids(pullback_idsSEXP);
+    Rcpp::traits::input_parameter< StringVector >::type pullback_ids(pullback_idsSEXP);
     Rcpp::traits::input_parameter< const List& >::type pullback(pullbackSEXP);
     Rcpp::traits::input_parameter< SEXP >::type stree(streeSEXP);
     rcpp_result_gen = Rcpp::wrap(connected_pullbacks(pullback_ids, pullback, stree));
@@ -325,6 +380,32 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// test_ct
+void test_ct(IntegerVector v);
+RcppExport SEXP _Mapper_test_ct(SEXP vSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerVector >::type v(vSEXP);
+    test_ct(v);
+    return R_NilValue;
+END_RCPP
+}
+// build_k_skeleton2
+List build_k_skeleton2(CharacterMatrix pullback_ids, const List& pullback, List& vertices, int k, SEXP stree, const bool modify);
+RcppExport SEXP _Mapper_build_k_skeleton2(SEXP pullback_idsSEXP, SEXP pullbackSEXP, SEXP verticesSEXP, SEXP kSEXP, SEXP streeSEXP, SEXP modifySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< CharacterMatrix >::type pullback_ids(pullback_idsSEXP);
+    Rcpp::traits::input_parameter< const List& >::type pullback(pullbackSEXP);
+    Rcpp::traits::input_parameter< List& >::type vertices(verticesSEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type stree(streeSEXP);
+    Rcpp::traits::input_parameter< const bool >::type modify(modifySEXP);
+    rcpp_result_gen = Rcpp::wrap(build_k_skeleton2(pullback_ids, pullback, vertices, k, stree, modify));
+    return rcpp_result_gen;
+END_RCPP
+}
 // build_flag_complex
 void build_flag_complex(const size_t k, SEXP stree);
 RcppExport SEXP _Mapper_build_flag_complex(SEXP kSEXP, SEXP streeSEXP) {
@@ -358,6 +439,7 @@ RcppExport SEXP _rcpp_module_boot_multiscale_module();
 static const R_CallMethodDef CallEntries[] = {
     {"_Mapper_test_merge", (DL_FUNC) &_Mapper_test_merge, 1},
     {"_Mapper_test_merge2", (DL_FUNC) &_Mapper_test_merge2, 1},
+    {"_Mapper_grid_iterator", (DL_FUNC) &_Mapper_grid_iterator, 3},
     {"_Mapper_valid_pairs", (DL_FUNC) &_Mapper_valid_pairs, 1},
     {"_Mapper_constructLevelSetIndex", (DL_FUNC) &_Mapper_constructLevelSetIndex, 2},
     {"_Mapper_constructIsoAlignedLevelSets", (DL_FUNC) &_Mapper_constructIsoAlignedLevelSets, 3},
@@ -374,13 +456,18 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Mapper_gh_make_Q", (DL_FUNC) &_Mapper_gh_make_Q, 2},
     {"_Mapper_all_correspondences", (DL_FUNC) &_Mapper_all_correspondences, 2},
     {"_Mapper_eccentricity", (DL_FUNC) &_Mapper_eccentricity, 3},
-    {"_Mapper_landmark_maxmin", (DL_FUNC) &_Mapper_landmark_maxmin, 3},
+    {"_Mapper_maxmin_n", (DL_FUNC) &_Mapper_maxmin_n, 4},
+    {"_Mapper_maxmin_n_f", (DL_FUNC) &_Mapper_maxmin_n_f, 4},
+    {"_Mapper_maxmin_eps", (DL_FUNC) &_Mapper_maxmin_eps, 4},
+    {"_Mapper_maxmin_eps_f", (DL_FUNC) &_Mapper_maxmin_eps_f, 4},
     {"_Mapper_nondecreasing_seq", (DL_FUNC) &_Mapper_nondecreasing_seq, 1},
     {"_Mapper_connected_pullbacks", (DL_FUNC) &_Mapper_connected_pullbacks, 3},
     {"_Mapper_decompose_preimages", (DL_FUNC) &_Mapper_decompose_preimages, 5},
     {"_Mapper_build_0_skeleton", (DL_FUNC) &_Mapper_build_0_skeleton, 2},
     {"_Mapper_build_1_skeleton", (DL_FUNC) &_Mapper_build_1_skeleton, 6},
     {"_Mapper_build_k_skeleton", (DL_FUNC) &_Mapper_build_k_skeleton, 6},
+    {"_Mapper_test_ct", (DL_FUNC) &_Mapper_test_ct, 1},
+    {"_Mapper_build_k_skeleton2", (DL_FUNC) &_Mapper_build_k_skeleton2, 6},
     {"_Mapper_build_flag_complex", (DL_FUNC) &_Mapper_build_flag_complex, 2},
     {"_Mapper_intersectNodes", (DL_FUNC) &_Mapper_intersectNodes, 4},
     {"_rcpp_module_boot_segment_tree_module", (DL_FUNC) &_rcpp_module_boot_segment_tree_module, 0},

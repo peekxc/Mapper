@@ -28,6 +28,10 @@ The mapper corresponding to this cover may be thought of as a relaxed Reeb graph
 \item{\code{percent_overlap}}{vector of overlap percentages}
 }}
 
+\seealso{
+Other cover: \code{\link{ArbitraryCover}},
+  \code{\link{BallCover}}, \code{\link{IndexedCover}}
+}
 \author{
 Matt Piekenbrock
 }

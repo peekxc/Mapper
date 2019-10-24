@@ -16,7 +16,7 @@ multiscale(m, max_dim = 1L, max_overlap = 50, time = c("integer",
 
 \item{time}{The notion of 'time' to measure birth/death times with. See details.}
 
-\item{f}{Function to evaluate at evry index. The mapper instance is passed as the first argument.}
+\item{f}{Function to evaluate at every index. The mapper instance is passed as the first argument.}
 
 \item{stats}{Collect statistics on number of operations required to compute the structure? Defaults to false.}
 }
@@ -24,11 +24,11 @@ multiscale(m, max_dim = 1L, max_overlap = 50, time = c("integer",
 Computes the Multiscale Mapper construction. See details.
 }
 \details{
-This method constructs a sequence of Mappers connected by simplicial maps, which can be readily 
-passed to e.g. the \code{Simpers} library to produce persistence diagrams. 
+This method constructs a sequence of Mappers connected by (elementary) simplicial maps. 
+The resulting maps can be readily passed to \code{Simpers} library to produce persistence diagrams. 
 Because constructing a sequence of Mappers is a computationally expensive operation, a special cover
-indexing structure is used to express the computation in terms of elementary simplicial maps. This method requires 
-a fixed interval cover with a constant number of open sets, and uses a specific clustering algorithm. \cr
+indexing structure is used to speed it up, however the structure is only compatible with fixed interval covers, 
+and uses a specific clustering algorithm. \cr
 \cr
 The \code{time} parameter may be specified as "integer", "measure", or (average) "overlap". 
 Each \code{time} unit is monotonically related to each other, however they may produce visually different persistence diagrams.

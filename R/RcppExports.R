@@ -9,6 +9,10 @@ test_merge2 <- function(data) {
     .Call(`_Mapper_test_merge2`, data)
 }
 
+grid_iterator <- function(ni, k, order) {
+    invisible(.Call(`_Mapper_grid_iterator`, ni, k, order))
+}
+
 valid_pairs <- function(level_set_pairs) {
     .Call(`_Mapper_valid_pairs`, level_set_pairs)
 }
@@ -73,8 +77,20 @@ eccentricity <- function(from, x, type = 1L) {
     .Call(`_Mapper_eccentricity`, from, x, type)
 }
 
-landmark_maxmin <- function(x, n, seed = 0L) {
-    .Call(`_Mapper_landmark_maxmin`, x, n, seed)
+maxmin_n <- function(x, n, metric = 0L, seed = 0L) {
+    .Call(`_Mapper_maxmin_n`, x, n, metric, seed)
+}
+
+maxmin_n_f <- function(x, n, dist_f, seed = 0L) {
+    .Call(`_Mapper_maxmin_n_f`, x, n, dist_f, seed)
+}
+
+maxmin_eps <- function(x, eps, metric = 0L, seed = 0L) {
+    .Call(`_Mapper_maxmin_eps`, x, eps, metric, seed)
+}
+
+maxmin_eps_f <- function(x, eps, dist_f, seed = 0L) {
+    .Call(`_Mapper_maxmin_eps_f`, x, eps, dist_f, seed)
 }
 
 nondecreasing_seq <- function(lst) {
@@ -99,6 +115,14 @@ build_1_skeleton <- function(pullback_ids, min_sz, vertices, pullback, stree, mo
 
 build_k_skeleton <- function(pullback_ids, pullback, vertices, k, stree, modify) {
     .Call(`_Mapper_build_k_skeleton`, pullback_ids, pullback, vertices, k, stree, modify)
+}
+
+test_ct <- function(v) {
+    invisible(.Call(`_Mapper_test_ct`, v))
+}
+
+build_k_skeleton2 <- function(pullback_ids, pullback, vertices, k, stree, modify) {
+    .Call(`_Mapper_build_k_skeleton2`, pullback_ids, pullback, vertices, k, stree, modify)
 }
 
 build_flag_complex <- function(k, stree) {

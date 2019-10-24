@@ -1,10 +1,10 @@
 // MultiScale.cpp
-// Implementation file for the multiscale indexing structure. 
+// Implementation file for the indexed cover structure. 
 // The goal of this structure is to:
 // 1) Decompose a symmetric, interval-like cover in disjoint segments 
 // 2) Speed up the construction of a cover from these segments, for varying interval sizes
-// 3) Given two covers (U_e, U_e'), where e != e' and U_e is already constructed, 
-//    return which open sets in the U_e would change going from e -> e'. 
+// 3) Given two covers (U_r, U_r'), where r != r' and U_r is already constructed, 
+//    return the indices of the preimages in U_r' that changed going from r -> r'. 
 #include "MultiScale.h"
 
 template< typename T > 
@@ -549,7 +549,7 @@ void MultiScale::modified_indices(
       local_nerve.push_back(local_pullbacks);
       CartesianProduct(local_nerve, [&nerve_idx](vector< uint_t > k_nerve){
         std::sort(begin(k_nerve), end(k_nerve));
-        if (std::unique(begin(k_nerve), end(k_nerve)) == end(k_nerve)){
+        if (std::unique(begin(k_nerve), end(k_nerve)) == end(k_nerve)){// if all unique elements
           nerve_idx.insert(k_nerve); 
         }
       });
@@ -557,7 +557,9 @@ void MultiScale::modified_indices(
   } // for(auto& pt_idx: update_list)
 }
 
-// Updates the index of the cover. Also records changes that occurred,  
+// Updates the index of the cover. Also records changes that occurred. 
+// target_idx := target index for the sequence
+// max_dim := maximum dimension of simplexes to consider 
 List MultiScale::update_index(const IntegerVector target_idx, const size_t max_dim){
   
   // Which dimensions are expanding or contracting?
@@ -604,24 +606,15 @@ RCPP_MODULE(multiscale_module) {
   .field_readonly( "canonical_cover", &MultiScale::canonical_cover)
   .field_readonly( "canonical_offsets", &MultiScale::cc_offsets)
   .field_readonly( "eps", &MultiScale::eps ) // the interval lengths which cause distinct mappers
-
   .property( "segments", &MultiScale::get_segments ) // Read-only property to inspect the current segments 
   .property( "segment_table", &MultiScale::get_segment_table )
   .method( "as_XPtr", &MultiScale::as_XPtr ) 
   .method( "point_info", &MultiScale::point_info ) 
   .method( "uniq_paths", &MultiScale::uniq_paths ) 
-  
-  // .method( "create_filtration", &MultiScale::create_filtration )
-  // .method( "create_ls_paths", &MultiScale::create_ls_paths )
-  // .method( "set_filtration_rle", &MultiScale::set_filtration_rle )
-  
   .method( "insert_pts", &MultiScale::insert_pts )
-  
   .method( "flat_to_multi", &MultiScale::flat_to_multi )
   .method( "multi_to_flat", &MultiScale::multi_to_flat )
-  
   .method( "update_index", &MultiScale::update_index )
-
   .method( "segment_cover_idx", &MultiScale::segment_cover_idx )
   .method( "get_nearest_index", &MultiScale::get_nearest_index )
   .method( "extract_level_set", &MultiScale::extract_level_set )

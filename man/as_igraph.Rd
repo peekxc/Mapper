@@ -4,13 +4,9 @@
 \alias{as_igraph}
 \title{Exports Mapper as an igraph object.}
 \arguments{
-\item{vertex_scale}{scaling function for the vertex sizes.}
+\item{vertex_min}{minimum vertex size. Default is 10.}
 
-\item{vertex_min}{minimum vertex size.}
-
-\item{vertex_min}{maximum vertex size.}
-
-\item{col_pal}{color palette to color the vertices by.}
+\item{vertex_max}{maximum vertex size. Default is 25.}
 }
 \value{
 an igraph object.
@@ -30,3 +26,8 @@ to the number of points they contain, scaled by \code{vertex_scale}, and bounded
 The edges are colored similarly by the average filter value of the points intersecting
 both nodes they connect too.
 }
+\seealso{
+Other mapper visualization functions: \code{\link{MapperRef.plot}},
+  \code{\link{as_pixiplex}}
+}
+\concept{mapper visualization functions}

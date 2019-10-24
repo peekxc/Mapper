@@ -9,17 +9,34 @@
 BallCover
 }
 \description{
-This class provides a cover whose open sets are formed by the union of \deqn{\epsilon}-balls centered 
-about each point. Using this class requires the \code{RANN} package to be installed, and thus explicitly assumes
-the filter space endowed with the euclidean metric.
+This class provides a cover whose open sets are formed by landmarks that 
+are each at least \code{epsilon}-distance from each other. The landmarks are chosen 
+by the \code{\link[landmarks]{maxmin}} method (1), in a similar way as e.g. witness 
+complexes are constructed (2). One interpretation of this cover in the context 
+of mapper is given by Dłotko (3).
 }
 \section{Fields}{
 
 \describe{
-\item{\code{epsilon}}{:= radius of the ball to form around each point}
+\item{\code{epsilon}}{radius of the ball to form the \eqn{\epsilon}-cover}
+
+\item{\code{method}}{metric to create the \eqn{\epsilon}-cover with}
 }}
 
+\references{
+1. Arafat, Naheed Anjum, Debabrota Basu, and Stéphane Bressan. "Topological Data Analysis with \eqn{\epsilon}-net Induced Lazy Witness Complex." arXiv preprint arXiv:1906.06122 (2019).
+
+2. De Silva, Vin, and Gunnar E. Carlsson. "Topological estimation using witness complexes." SPBG 4 (2004): 157-166.
+
+3. Dłotko, Paweł. "Ball mapper: a shape summary for topological data analysis." arXiv preprint arXiv:1901.07410 (2019).
+}
+\seealso{
+Other cover: \code{\link{ArbitraryCover}},
+  \code{\link{FixedIntervalCover}},
+  \code{\link{IndexedCover}}
+}
 \author{
 Matt Piekenbrock
 }
+\concept{cover}
 \keyword{datasets}

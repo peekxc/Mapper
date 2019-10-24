@@ -152,6 +152,7 @@ MapperRef$set("active", "clustering_algorithm",
   }
 )
 
+## data ----
 MapperRef$set("active", "data", function(value){
     if (missing(value)){ return(private$.X) }
     else {
@@ -196,6 +197,7 @@ MapperRef$set("active", "X",
   }
 )
 
+
 ## filter ----
 ## The filter function associated with the Mapper instance
 MapperRef$set("active", "filter", 
@@ -227,13 +229,57 @@ MapperRef$set("active", "measure",
     function(value, ...){
       if (missing(value)){ private$.measure }
       else {
-        has_proxy <- requireNamespace("proxy", quietly = TRUE)
-        available_measures <- if (has_proxy) proxy::pr_DB$get_entry_names() else c("euclidean", "maximum", "manhattan", "canberra", "binary", "minkowski")
-        stopifnot(is.character(value), toupper(value) %in% toupper(available_measures))
-        private$.measure <- value
+        if (is.character(value)){
+          stopifnot(tolower(value) %in% tolower(proxy::pr_DB$get_entry_names()))
+          private$.measure <- proxy::pr_DB$get_entry(tolower(value))
+        } else if (methods::is(value, "proxy_registry_entry")){
+          private$.measure <- value
+        }
+        return(self)
       }
     }
 )
+
+## Stores the supported distance measure in the parallelDist package
+.PD_dists <- c(
+  "bhjattacharyya", "bray", "canberra", "chord", "divergence", "dtw", "euclidean", 
+  "fJaccard", "geodesic", "hellinger", "kullback", "mahalanobis", "manhattan",
+  "maximum", "minkowski", "podani", "soergel", "wave", "whittaker", "binary", 
+  "braun-blanquet", "dice", "fager", "faith", "hamman", "kulczynski1", "kulczynski2",
+  "michael", "mountford", "mozley", "ochiai", "phi", "russel", "simple matching", 
+  "simpson", "stiles", "tanimoto", "yule", "yule2", "cosine", "hamming"
+)
+
+## distance ----
+#' @name distance
+#' @title Computes pointwise distances
+#' @description This function computes distances using the given distance measure. See details. 
+#' @param x numeric matrix of points.
+#' @param y optional numeric matrix of points to compare to \code{x}. See details.
+#' @param ... Other parameters passed to \code{\link[proxy]{dist}}. 
+#' @inheritParams proxy::dist
+#' @details This function mimicks the \code{\link[proxy:dist]{proxy distance function}}, but 
+#' uses the \pkg{parallelDist} package when possible. Specifically, if \pkg{parallelDist} is available, 
+#' only \code{x} was supplied (implying all self-pairwise distances are requested), and the 
+#' \code{\link{measure}} is supported, then the distances are computed in parallel. Otherwise, the 
+#' \pkg{proxy} package's \code{\link[proxy]{dist}} function is called. \cr
+#' \cr
+#' The convention followed by this function that is each row represents a point, 
+#' and each column a dimension.
+MapperRef$set("public", "distance", function(x, y = NULL, ...){
+  stopifnot(is.matrix(x))
+  has_pd <- requireNamespace("parallelDist", quietly = TRUE)
+  dist_f <- ifelse(has_pd, parallelDist::parallelDist, proxy::dist)
+  d_name <- tolower(head(self$measure$names, 1))
+  
+  ## Use parallelDist package if available
+  if (has_pd && (d_name %in% .PD_dists) && (missing(y) || is.null(y))){
+    # if (!is.null(private$.measure_opt)){ dist_params <- append(dist_params, private$.measure_opt) }
+    do.call(parallelDist::parallelDist, list(x=x, method=d_name))
+  } else {
+    proxy::dist(x=x,y=y,method=d_name, ...)
+  }
+})
 
 ## initialize ----
 ## Initialization method relies on active binding 
@@ -259,7 +305,7 @@ MapperRef$set("public", "use_data", function(X){
   if (is.character(X)){
     stopifnot(X %in% c("noisy_circle", "wvs_us_wave6"))
     self$X <- local({ 
-      load(system.file(sprintf("data/%s.Rdata", X), package="Mapper"))
+      data("wvs_us_wave6", package="Mapper", envir = environment())
       X <- eval(parse(text=X))
       return(scale(as.matrix(X))) 
     })
@@ -273,8 +319,13 @@ MapperRef$set("public", "use_data", function(X){
 #' @description Sets the map, or \emph{filter}, to associate with the instance
 #' @param filter either the filter name to use, a matrix, or a function. See details. 
 #' @param ... additional parameters to pass to the filter function.
-#' @details \code{filter} must be either a matrix of coordinate values, a function that returns a matrix of 
-#' coordinate values, or one of the following predefined filters: 
+#' @details \code{filter} must be either matrix of coordinate values, a function that returns a matrix of 
+#' coordinate values, or a string selecting from one of the predefined filters below. \cr
+#' \cr 
+#' If a matrix is given (or function returning a matrix), the convention here is that each row 
+#' represents a point and each column a dimension. \cr
+#' \cr
+#' Here's a list of the pre-defined filtering methods supported:
 #' \itemize{
 #'   \item{\strong{PC}}{ Principle components (with \code{\link[stats:prcomp]{prcomp}})}
 #'   \item{\strong{IC}}{ Independent components (with \code{\link[fastICA:fastICA]{fastICA}})}
@@ -442,7 +493,17 @@ MapperRef$set("public", "use_filter", function(filter=c("PC", "IC", "ECC", "KDE"
 #' }
 #' @seealso \code{\link[parallelDist]{parDist}} \code{\link[proxy]{pr_DB}}
 MapperRef$set("public", "use_distance_measure", function(measure, ...){
-  self$measure <- measure
+  if (is.character(measure)){
+    possible_measures <- tolower(proxy::pr_DB$get_entry_names())
+    stopifnot(measure %in% possible_measures)
+    self$measure <- proxy::pr_DB$get_entry(measure)
+  } else if (methods::is(measure, "proxy_registry_entry")){
+    self$measure <- measure
+  } else if (is.function(measure)){
+    # function(x, y){ sum(x*y) }
+  } else {
+    stop("'measure' must be either a string or proxy registry entry.")
+  }
   if (!missing(...)){ private$.measure_opt <- list(...) }
   invisible(self)
 })
@@ -475,11 +536,13 @@ MapperRef$set("public", "use_distance_measure", function(measure, ...){
 MapperRef$set("public", "use_cover", function(cover="fixed interval", ...){
   stopifnot(!is.null(self$filter))
   if (missing(cover)){ cover <- "fixed interval"}
+  cover <- tolower(gsub(x=trimws(cover), pattern="\\s+", replacement ="_")) 
   self$cover <- switch(cover, 
-    "fixed interval"=FixedIntervalCover$new(...)$construct_cover(self$filter), 
-    "restrained interval"=RestrainedIntervalCover$new(...)$construct_cover(self$filter),
+    "fixed_interval"=FixedIntervalCover$new(...)$construct_cover(self$filter), 
+    "restrained_interval"=RestrainedIntervalCover$new(...)$construct_cover(self$filter),
     # "adaptive"=AdaptiveCover$new(...)$construct_cover(self$filter),
     "ball"=BallCover$new(...)$construct_cover(self$filter),
+    "indexed_interval"=IndexedCover$new(...)$construct_cover(self$filter),
     stop(sprintf("Unknown cover type: %s, please specify a cover typename listed in `covers_available()`", cover))
   )
   invisible(self)
@@ -516,7 +579,6 @@ MapperRef$set("public", "use_clustering_algorithm",
     if (class(cl) == "character"){
       hclust_opts <- c("single", "ward.D", "ward.D2", "complete", "average", "mcquitty", "median", "centroid")
       if (!cl %in% hclust_opts){ stop(sprint("Unknown linkage method passed. Please use one of (%s). See ?hclust for details.", paste0(hclust_opts, collapse = ", "))) }
-      stopifnot(is.character(self$measure))
       ## Closured representation to substitute default parameters. 
       create_cl <- function(cl, cutoff_method, cut_defaults){
         cutoff_f <- switch(cutoff_method, "histogram"=cutoff_first_bin, "continuous"=cutoff_first_threshold)
@@ -525,12 +587,8 @@ MapperRef$set("public", "use_clustering_algorithm",
           if (length(idx) <= 2L){ return(rep(1L, length(idx))); }
           override_params <- list(...)
           
-          ## Use parallelDist package if available
-          has_pd <- requireNamespace("parallelDist", quietly = TRUE)
-          dist_f <- ifelse(has_pd, parallelDist::parallelDist, stats::dist)
-          dist_params <- list(x=self$X(idx), method=tolower(self$measure))
-          if (!is.null(private$.measure_opt)){ dist_params <- append(dist_params, private$.measure_opt) }
-          dist_x <- do.call(dist_f, dist_params)
+          ## Get distances of subset
+          dist_x <- self$distance(x=self$data(idx))
           
           ## Use fastcluster if available 
           has_fc <- requireNamespace("fastcluster", quietly = TRUE)
@@ -576,7 +634,8 @@ MapperRef$set("public", "construct_pullback", function(pullback_ids=NULL, ...){
   if (pids_supplied){ stopifnot(all(pullback_ids %in% self$cover$index_set)) }
   pullback_ids <- if (pids_supplied){ pullback_ids } else { self$cover$index_set }
   
-  ## If specific pullback ids not given, then resist the pullback mapping
+  ## If no specific indices given, then the full pullback will be recomputed. 
+  ## If so, this resets everything to a valid state.
   if (!pids_supplied || length(private$.pullback) == 0){
     n_sets <- length(self$cover$index_set)
     self$simplicial_complex$clear()
@@ -584,33 +643,24 @@ MapperRef$set("public", "construct_pullback", function(pullback_ids=NULL, ...){
     private$.pullback <- structure(replicate(n_sets, integer(0)), names = self$cover$index_set)
   }
   
-  ## Update the vertices for the given level sets. This requires updating both the simplex tree's 
-  ## internal representation as well as the outward-facing vertex list. The new vertices are returned 
-  ## to replace the current list. The pullback map is also updated. 
+  ## Calculates the preimage at a given index.
   calc_preimage <- function(){
     function(index){ self$cover$construct_cover(self$filter, index) }
   }
+  
+  ## Re-parameterizes clustering algorithm for C++ side. 
   partial_cluster <- function(...){
     extra <- list(...)
     function(pid, idx){ do.call(self$clustering_algorithm, append(list(pid, idx, self), extra)) }
   }
-  # id_gen <- function(n){
-  #   ## make cpp function smallest_not_in
-  #   private$.vertices
-  #   as.integer(names(self$vertices))
-  #   private$.simplicial_complex
-  #   ids <- private$.simplicial_complex$generate_ids(n)
-  #   private$.simplicial_complex$insert(as.list(ids))
-  #   return(ids)
-  # }
   
-  ## Do the decomposition
+  ## Perform the decomposition, modifying the vertices as a result. 
+  ## The pullback is also modified by reference here.  
   private$.vertices <- Mapper:::decompose_preimages(
     pullback_ids = as.character(pullback_ids),
     cluster_f = partial_cluster(...), 
     level_set_f = calc_preimage(), 
     vertices = private$.vertices,
-    # id_generator = id_gen,
     pullback = private$.pullback
   )
   
@@ -704,14 +754,98 @@ MapperRef$set("public", "format", function(...){
   return(message)
 })
 
+## vis_options ----
+#' @name vis_options
+#' @title Computes mapper visualization options.
+#' @param f numeric function to highlight the simplices with. Defaults to mean filter value. See details.
+#' @param vertex_scale function to scale vertex sizes (either linear or logarithmic). Defaults to linear.
+#' @param vertex_min minimum vertex size. Default is 10. 
+#' @param vertex_min maximum vertex size. Default is 15. 
+#' @param embed whether to embed the mapper in a metric space with multidimensional scaling. Defaults to false.
+#' @param col_pal color palette to color the simplices by. Defaults to rainbow.
+#' @param ... extra parameters passed to \code{\link[simplextree]{plot.simplextree}}.
+MapperRef$set("private", "vis_options", function(f=NULL, vertex_scale="linear", vertex_min=10L, vertex_max=15L, embed=FALSE, col_pal="rainbow", ...){
+  ## If no function supplied, assume an average filter value for each simplex 
+  if (missing(f) || is.null(f)){
+    f <- function(simplex){
+      idx <- Reduce(intersect, self$vertices[as.character(simplex)])
+      mean(rowMeans(self$filter(idx)))
+    }
+  }
+  si_val <- unlist(self$simplicial_complex$ltraverse(simplextree::empty_face, f, "bfs"))[-1]
+  
+  ## If desired, embed the mapper in a metric space via hausdorff distance. Otherwise 
+  ## use a precomputed force-directed layout from igraph
+  if (embed){ 
+    m_coords <- stats::cmdscale(hausdorff_distance(self), k = 2L)
+  } else {
+    g <- igraph::graph_from_adjacency_matrix(
+      self$simplicial_complex$as_adjacency_matrix(), 
+      mode = "undirected"
+    )
+    m_coords <- igraph::layout.auto(g, dim = 2L)
+  }
+  
+  ## Normalize between 0-1, unless all the same
+  normalize <- function(x) { 
+    if (all(x == x[1])){ return(rep(1, length(x))) }
+    else { (x - min(x))/(max(x) - min(x)) }
+  }
+  if (missing(vertex_scale)){ vertex_scale <- "linear"}
+  
+  v_ids <- private$.simplicial_complex$vertices
+  vertex_scale <- switch(vertex_scale, "linear"=identity, "log"=log)
+  vertex_sizes <- sapply(as.character(v_ids), function(vid) length(self$vertices[[vid]]))
+  vertex_radii <- (vertex_max - vertex_min)*normalize(vertex_scale(vertex_sizes)) + vertex_min
+  
+  ## Return a list of the parameters
+  return(list(
+    color=bin_color(si_val, col_pal=col_pal, "hex7"),
+    size=vertex_radii, 
+    label=as.character(v_ids),
+    coords=m_coords
+  ))
+})
+
+## plot ----
+#' @name MapperRef.plot
+#' @title Plot mapper with base graphics.
+#' @param vertex_min minimum vertex cex. Default is 2. 
+#' @param vertex_max maximum vertex cex. Default is 4. 
+#' @description This function plots the mapper using base \code{\link[graphics]{graphics}}. 
+#' The logic to perform the actual plotting is handled by \code{\link[simplextree]{plot.simplextree}}. 
+#' This function assumes some traditional visualization parameters often used to visualize the mapper 
+#' complex. 
+#' @family mapper visualization functions
+MapperRef$set("public", "plot", function(f=NULL, vertex_scale="linear", vertex_min=2, vertex_max=4, embed=FALSE, col_pal="rainbow", ...){
+  
+  ## Get vis options 
+  params <- c(as.list(environment()), list(...))
+  vis_params <- do.call(private$vis_options, params)
+  
+  ## Convert to plot.simplextree params
+  st_params <- with(vis_params, {
+    list(
+      coords=coords, 
+      text_opt=list(x=coords, labels=label),
+      vertex_opt=list(cex=size), 
+      color_pal=color
+    )
+  })
+  # modifyList(st_params, list(...))
+  
+  ## Call the plot.simplextree method
+  st_params$x <- self$simplicial_complex
+  do.call(simplextree:::plot.Rcpp_SimplexTree, st_params)
+})
+
+
 ## as_igraph ----
 #' @name as_igraph 
 #' @title Exports Mapper as an igraph object.
 #' @description Exports the 1-skeleton to a graph using the igraph library.
-#' @param vertex_scale scaling function for the vertex sizes. 
-#' @param vertex_min minimum vertex size. 
-#' @param vertex_min maximum vertex size. 
-#' @param col_pal color palette to color the vertices by. 
+#' @param vertex_min minimum vertex size. Default is 10. 
+#' @param vertex_max maximum vertex size. Default is 25. 
 #' @details This method converts the 1-skeleton of the Mapper to an igraph object, and assigns some 
 #' default visual properties. Namely, the vertex attributes "color", "size", and "label" and the 
 #' edge attribute "color" are assigned. 
@@ -722,44 +856,91 @@ MapperRef$set("public", "format", function(...){
 #' \cr
 #' The edges are colored similarly by the average filter value of the points intersecting
 #' both nodes they connect too.
+#' @family mapper visualization functions
 #' @return an igraph object.
-MapperRef$set("public", "as_igraph", function(vertex_scale=c("linear", "log"), vertex_min=10L, vertex_max=15L, col_pal="rainbow"){
+MapperRef$set("public", "as_igraph", function(f=NULL, vertex_scale="linear", vertex_min=10L, vertex_max=25L, embed=FALSE, col_pal="rainbow", ...){
   requireNamespace("igraph", quietly = TRUE)
+  
+  ## Convert 1-skeleton to igraph object 
   am <- private$.simplicial_complex$as_adjacency_matrix()
   colnames(am) <- as.character(private$.simplicial_complex$vertices)
   G <- igraph::graph_from_adjacency_matrix(am, mode = "undirected", add.colnames = NULL) ## NULL makes named vertices
   
+  ## Get vis options 
+  params <- c(as.list(environment()), list(...))
+  vis_params <- do.call(private$vis_options, params)
+  
+  ## Get 1-skeleton indices 
+  dim_idx <- unlist(self$simplicial_complex$ltraverse(length, "bfs")[-1])
+  
+  ## Assign vis options
+  igraph::vertex_attr(G, "color") <- vis_params$color[dim_idx == 1L]
+  igraph::vertex_attr(G, "size") <- vis_params$size
+  igraph::vertex_attr(G, "label") <- vis_params$label 
+  igraph::edge_attr(G, "color") <- vis_params$color[dim_idx == 2L]
+  igraph::graph_attr(G, "layout") <- vis_params$coords
+  
+  ## Return igraph object 
+  return(G)
+})
+  
+  
   ## Coloring + aggregation functions
-  agg_val <- function(lst) { sapply(sapply(lst, function(idx){ rowMeans(self$filter(idx)) }), mean) } 
+  # agg_val <- function(lst) { sapply(sapply(lst, function(idx){ rowMeans(self$filter(idx)) }), mean) } 
   
   ## Aggregate node filter values
-  v_idx <- match(private$.simplicial_complex$vertices, as.integer(names(self$vertices)))
-  agg_node_val <- agg_val(private$.vertices)
-  igraph::vertex_attr(G, name = "color") <- bin_color(agg_node_val[v_idx], col_pal = col_pal)
-  
+  # v_idx <- match(private$.simplicial_complex$vertices, as.integer(names(self$vertices)))
+  # agg_node_val <- agg_val(private$.vertices)
+  # igraph::vertex_attr(G, name = "color") <- bin_color(agg_node_val[v_idx], col_pal = col_pal)
+  # 
   ## Extract indices in the edges
-  edges <- igraph::as_edgelist(G)
-  edge_idx <- lapply(seq(nrow(edges)), function(i){
-    vids <- edges[i,]
-    intersect(private$.vertices[[vids[1]]], private$.vertices[[vids[2]]])
-  })
-  agg_edge_val <- agg_val(edge_idx)
-  igraph::edge_attr(G, name = "color") <- bin_color(agg_edge_val, col_pal = col_pal)
+  # edges <- igraph::as_edgelist(G)
+  # edge_idx <- lapply(seq(nrow(edges)), function(i){
+  #   vids <- edges[i,]
+  #   intersect(private$.vertices[[vids[1]]], private$.vertices[[vids[2]]])
+  # })
+  # agg_edge_val <- agg_val(edge_idx)
+  # igraph::edge_attr(G, name = "color") <- bin_color(agg_edge_val, col_pal = col_pal)
   
-  ## Normalize between 0-1, unless all the same
-  normalize <- function(x) { 
-    if (all(x == x[1])){ return(rep(1, length(x))) }
-    else {  (x - min(x))/(max(x) - min(x)) }
-  }
-  if (missing(vertex_scale)){ vertex_scale <- "linear"}
-  vertex_scale <- switch(vertex_scale, "linear"=identity, "log"=log)
-  vertex_sizes <- sapply(private$.vertices, length)
-  igraph::vertex_attr(G, "size") <- (vertex_max - vertex_min)*normalize(vertex_scale(vertex_sizes[v_idx])) + vertex_min
+  # ## Normalize between 0-1, unless all the same
+  # normalize <- function(x) { 
+  #   if (all(x == x[1])){ return(rep(1, length(x))) }
+  #   else {  (x - min(x))/(max(x) - min(x)) }
+  # }
+  # if (missing(vertex_scale)){ vertex_scale <- "linear"}
+  # vertex_scale <- switch(vertex_scale, "linear"=identity, "log"=log)
+  # vertex_sizes <- sapply(private$.vertices, length)
+#   igraph::vertex_attr(G, "size") <- (vertex_max - vertex_min)*normalize(vertex_scale(vertex_sizes[v_idx])) + vertex_min
+# 
+#   ## Fill in labels with id:size
+#   v_labels <- cbind(names(private$.vertices)[v_idx], vertex_sizes[v_idx])
+#   igraph::vertex_attr(G, "label") <- apply(v_labels, 1, function(x){ paste0(x, collapse = ":") })
+#   return(G)
+# })
 
-  ## Fill in labels with id:size
-  v_labels <- cbind(names(private$.vertices)[v_idx], vertex_sizes[v_idx])
-  igraph::vertex_attr(G, "label") <- apply(v_labels, 1, function(x){ paste0(x, collapse = ":") })
-  return(G)
+## as_pixiplex ----
+#' @name as_pixiplex
+#' @title Exports the complex as a pixiplex object.
+#' @family mapper visualization functions
+#' @description Uses the \pkg{pixiplex} library. 
+MapperRef$set("public", "as_pixiplex", function(f=NULL, vertex_scale="linear", vertex_min=5L, vertex_max=15L, embed=FALSE, col_pal="rainbow", ...){
+  requireNamespace("pixiplex", quietly = TRUE)
+  pp <- pixiplex::pixiplex(private$.simplicial_complex)
+  
+  ## Get vis options 
+  params <- c(as.list(environment()), list(...))
+  vis_params <- do.call(private$vis_options, params)
+  
+  ## Get 1-skeleton indices 
+  dim_idx <- unlist(self$simplicial_complex$ltraverse(length, "bfs")[-1])
+  
+  ## Parameterize the pixiplex object
+  pp$nodes$color <- vis_params$color[dim_idx==1L]
+  pp$nodes$radius <- vis_params$size
+  # pp$links$color <- vis_params$color[dim_idx==2L]
+  
+  ## Return
+  return(pp)
 })
 
 # as_upset
@@ -828,91 +1009,6 @@ MapperRef$set("public", "as_igraph", function(vertex_scale=c("linear", "log"), v
 #   
 # 
 # })
-
-
-# MapperRef$set("public", "as_grapher", function(construct_widget=TRUE, ...){
-#   requireNamespace("grapher", quietly = TRUE)
-#   
-#   ## Make the igraph 
-#   am <- private$.simplicial_complex$as_adjacency_matrix()
-#   G <- igraph::graph_from_adjacency_matrix(am, mode = "undirected", add.colnames = NA) 
-#   json_config <- grapher::getDefaultJsonConfig(network=G)
-# 
-#   ## Color nodes and edges by a default rainbow palette
-#   rbw_pal <- rev(rainbow(100, start = 0, end = 4/6))
-#   agg_node_val <- sapply(sapply(private$.vertices, function(v_idx){ 
-#     apply(as.matrix(self$cover$filter_values[v_idx,]), 1, mean)
-#   }), mean)
-#   binned_idx <- cut(agg_node_val, breaks = 100, labels = F)
-#   vertex_colors <- rbw_pal[binned_idx]
-#   vertex_sizes <- sapply(private$.vertices, length) 
-#   
-#   ## Normalize between 0-1, unless all the same
-#   normalize <- function(x) { 
-#     if (all(x == x[1])){ return(rep(1, length(x))) }
-#     else {  (x - min(x))/(max(x) - min(x)) }
-#   }
-#     
-#   ## Create the vertices. By default, color them on a rainbow palette according to their mean filter value.
-#   if (length(igraph::V(G)) > 0){
-#     vertex_radii <- (7L - 2L)*normalize(vertex_sizes) + 2L
-#     vertex_xy <- apply(igraph::layout.auto(G), 2, normalize)
-#     json_config$nodes$x <- vertex_xy[, 1]
-#     json_config$nodes$y <- vertex_xy[, 2]
-#     json_config$nodes$r <- vertex_radii
-#     json_config$nodes$color <- grapher::hex2rgba(vertex_colors)
-#     # index = 0:(length(vertex_sizes)-1))
-#   } else {
-#     json_config$nodes <- integer(length = 0L)
-#   }
-#     
-#   ## Create the edges w/ a similar coloring scheme.
-#   if (length(igraph::E(G)) > 0){
-#     el <- igraph::as_edgelist(G, names = FALSE)
-#     edge_binned_idx <- apply(el, 1, function(vertex_ids) { (binned_idx[vertex_ids[1]] + binned_idx[vertex_ids[2]])/2 })
-#     edge_links <- matrix(apply(el, 2, as.integer) - 1L, ncol = 2)
-#     json_config$links$from <- edge_links[,1]
-#     json_config$links$to <- edge_links[,2]
-#     json_config$links$color <- substr(rbw_pal[edge_binned_idx], start = 0, stop = 7) 
-#   } else {
-#     json_config$links <- integer(length = 0L)
-#   }
-#     
-#   ## Return the grapher instance or just the json config if requested 
-#   if (construct_widget){
-#     grapher::grapher(json_config) 
-#   } else {
-#     return(json_config)
-#   }
-# })
-
-## as_pixiplex ----
-#' @name as_pixiplex
-#' @title Exports the complex as a pixiplex object.
-#' @description Uses the pixiplex library. 
-MapperRef$set("public", "as_pixiplex", function(...){
-  requireNamespace("pixiplex", quietly = TRUE)
-  pp <- pixiplex::pixiplex(private$.simplicial_complex)
-  
-  ## Default styling
-  rbw_pal <- rev(rainbow(100, start = 0, end = 4/6))
-  agg_node_val <- sapply(sapply(private$.vertices, function(v_idx){ 
-    rowMeans(self$filter(v_idx))
-  }), mean)
-  binned_idx <- cut(agg_node_val, breaks = 100, labels = F)
-  vertex_colors <- rbw_pal[binned_idx]
-  vertex_sizes <- sapply(private$.vertices, length) 
-  
-  ## Normalize between 0-1, unless all the same
-  normalize <- function(x) { 
-    if (all(x == x[1])){ return(rep(1, length(x))) }
-    else {  (x - min(x))/(max(x) - min(x)) }
-  }
-  idx_match <- match(pp$nodes$id, as.integer(names(private$.vertices)))
-  pp$nodes$color <- vertex_colors[idx_match]
-  pp$nodes$radius <- ((15L - 5L)*normalize(vertex_sizes) + 5L)[idx_match]
-  return(pp)
-})
 
 ## exportMapper ----
 #' @name exportMapper

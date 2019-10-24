@@ -12,28 +12,36 @@
 //   return true;
 // }
 
+// Alias to a function that accepts simplices and returns void
+using set_f = std::function< void(vector< size_t >) >;
+
+// Function ptr that accepts a lambda function and returns void
+typedef void (*set_f_ptr)( set_f );
+
+using str = std::string;
 
 // Given a set of pullback indices and a simplex tree, for each pullback id, find the ids the
 // of the other pullback sets whose corresponding vertices participate in a coface of the vertices 
 // in the source pullback. 
 // [[Rcpp::export]]
-List connected_pullbacks(std::vector< std::string > pullback_ids, const List& pullback, SEXP stree){
+List connected_pullbacks(StringVector pullback_ids, const List& pullback, SEXP stree){
   Rcpp::XPtr< SimplexTree > stree_ptr(stree);
 
   // Get all the pullback ids
   StringVector pn = pullback.attr("names");
-  vector< std::string > all_pids = as< vector< std::string > >(pn);
+  vector< str > all_pids = as< vector< str > >(pn);
   
   // Reverse the pullback maps (key, value) pairs into a new map
-  std::map< size_t, std::set< std::string > > v_to_pb;  
-  for (std::string& pid: all_pids){
+  std::map< size_t, std::set< str > > v_to_pb;  
+  for (str& pid: all_pids){
     const IntegerVector vids = as< IntegerVector >(pullback[pid]);
     for (size_t v: vids){ v_to_pb[v].insert( pid ); }
   }
   
   // Find pullback ids of adjacent vertices
-  std::map< std::string, std::set< std::string > > pb_to_adj;
-  for (std::string& pid: pullback_ids){
+  vector< str > pids = as< vector< str > >(pullback_ids);
+  std::map< str, std::set< str > > pb_to_adj;
+  for (str& pid: pids){
     IntegerVector vids = pullback[pid];
     for (int vid: vids){
       vector< idx_t > v_adj = stree_ptr->adjacent_vertices(vid);
@@ -48,7 +56,7 @@ List connected_pullbacks(std::vector< std::string > pullback_ids, const List& pu
 // Given the data set X, the current set of indices level_set, and a clustering function f, 
 // apply the clustering function to the subset of X given by the level set, and returns a 
 // vector of index vector representing which points fell into which partition. 
-vector< IntegerVector > apply_clustering(std::string pid, const Function& level_set_f, const Function& cluster_f){
+vector< IntegerVector > apply_clustering(str pid, const Function& level_set_f, const Function& cluster_f){
   // Rcout << "Running pullbakc preimage" << std::endl;
   const IntegerVector preimages = level_set_f(pid);
   if (preimages.size() == 0){ 
@@ -78,16 +86,16 @@ vector< IntegerVector > apply_clustering(std::string pid, const Function& level_
   return(new_vertices);
 }
 
-// Given a vector of integer ids, converts them to strings, and removes any vertices which 
+// Given a vector of integer ids, converts them to strs, and removes any vertices which 
 // have an id as in the given id list. 
 List remove_by_id(IntegerVector ids, const List& vertices){
   if (Rf_isNull(vertices.names()) || vertices.size() == 0){ return vertices; }
   if (ids.size() == 0){ return vertices; }
   const size_t n = ids.size(); 
-  vector< std::string > vnames = as< vector< std::string > >(vertices.names());
+  vector< str > vnames = as< vector< str > >(vertices.names());
   LogicalVector subset = LogicalVector(vertices.size(), true);
   for (size_t i = 0; i < n; ++i){
-    std::string id_str = std::to_string(ids.at(i));
+    str id_str = std::to_string(ids.at(i));
     auto vn_it = std::find(begin(vnames), end(vnames), id_str);
     if (vn_it != vnames.end()){
       size_t to_remove = std::distance(begin(vnames), vn_it);
@@ -98,7 +106,7 @@ List remove_by_id(IntegerVector ids, const List& vertices){
   // erase_partition(vertices, begin(vnames), end(vnames), [](){
   //   
   // })
-  // vector< std::string > vnames = as< vector< std::string > >(vertices.names());
+  // vector< str > vnames = as< vector< str > >(vertices.names());
   // vector< size_t > v_idx = seq_ij< size_t >(0, vertices.size()-1);
   // 
   // erase_partition(v_idx, begin(v_idx), end(v_idx), [&vnames, &ids](const size_t vid){
@@ -120,7 +128,7 @@ List remove_by_id(IntegerVector ids, const List& vertices){
 // 4) Inserting the new vertices into the simplex tree, as well as updating the current vertex list 
 // Note that higher order simplices must be rebuilt after this method is called in conjunction with, e.g. connected_pullback.
 // void update_pullback(
-//     const std::string pid, 
+//     const str pid, 
 //     const Function level_set_f, 
 //     const NumericMatrix& X, 
 //     const Function cluster_f, 
@@ -137,7 +145,7 @@ List remove_by_id(IntegerVector ids, const List& vertices){
 //   // Remove existing vertices 
 //   Rcout << "here2" << std::endl;
 //   if (c_vertices.size() > 0 && !Rf_isNull(vertices.names())){
-//     vector< std::string > vnames = as< vector< std::string > >(vertices.names());
+//     vector< str > vnames = as< vector< str > >(vertices.names());
 //     vector< size_t > v_idx = seq_ij< size_t >(0, vertices.size()-1);
 //     erase_partition(v_idx, begin(v_idx), end(v_idx), [&vnames](const size_t vid){
 //       c_vertices
@@ -211,7 +219,7 @@ List remove_by_id(IntegerVector ids, const List& vertices){
 //     
 //     // Save the vertices into the map with their corresponding ids. 
 //     std::for_each(v_ids.begin(), v_ids.end(), [&vertices, &pullback_map](const int v_id){
-//       std::string v_key = std::to_string(v_id);
+//       str v_key = std::to_string(v_id);
 //       const IntegerVector& pts = as<IntegerVector>(vertices[v_key]); // okay to access by index
 //       pullback_map.emplace(v_id, pts);
 //     });
@@ -239,10 +247,10 @@ vector< size_t > smallest_not_in(const size_t n, vector< size_t > old_ids){
   return(new_ids);
 }
 
-// std::map< std::string, IntegerVector > lst2map(const List& lst){
-//   if (Rf_isNull(lst.names()) || lst.size() == 0){ return std::unordered_map< std::string, IntegerVector >(); }
-//   vector< std::string > keys = as< vector< std::string > >(lst.names());
-//   std::unordered_map< std::string, IntegerVector > res; 
+// std::map< str, IntegerVector > lst2map(const List& lst){
+//   if (Rf_isNull(lst.names()) || lst.size() == 0){ return std::unordered_map< str, IntegerVector >(); }
+//   vector< str > keys = as< vector< str > >(lst.names());
+//   std::unordered_map< str, IntegerVector > res; 
 //   for (auto c_key: keys){ 
 //     IntegerVector v = as< IntegerVector >(lst[c_key]);
 //     res.emplace(c_key, v); 
@@ -268,15 +276,15 @@ List decompose_preimages(
     const List& vertices, 
     List& pullback)
 {
-  auto str_cmp = [](const std::string& a, const std::string& b) -> bool{ 
+  auto str_cmp = [](const str& a, const str& b) -> bool{ 
     return(bool(std::stoi(a) < std::stoi(b)));
   };
-  using str_map = std::map< std::string, IntegerVector, decltype(str_cmp) >; 
+  using str_map = std::map< str, IntegerVector, decltype(str_cmp) >; 
   
   // Extract the current set of vertices in C++ 
   str_map mod_vertices = str_map(str_cmp); 
   if (!Rf_isNull(vertices.names()) && as<List>(vertices.names()).size() > 0 ){
-    vector< std::string > keys = as< vector< std::string > >(vertices.names());
+    vector< str > keys = as< vector< str > >(vertices.names());
     for (auto c_key: keys){ 
       IntegerVector v = as< IntegerVector >(vertices[c_key]);
       mod_vertices.emplace(c_key, v); 
@@ -295,8 +303,8 @@ List decompose_preimages(
   };
   
   // Loop through the pullback ids to update. This will update the vertices, the pullback map, and the simplex tree
-  vector< std::string > pids = as< vector< std::string > >(pullback_ids);
-  for (std::string pid: pids){
+  vector< str > pids = as< vector< str > >(pullback_ids);
+  for (str pid: pids){
     IntegerVector vids = pullback[pid];
     
     // Remove vids in vertex list, pullback, and simplex tree
@@ -324,7 +332,7 @@ List decompose_preimages(
       // Insert point indices into vertices. New vertex ids should be guarenteed to not be in vertex ids
       for (size_t i = 0; i < new_vertices.size(); ++i){
         new_vertices.at(i).attr("level_set") = pid; 
-        std::string new_vid = std::to_string(new_0_simplexes.at(i));
+        str new_vid = std::to_string(new_0_simplexes.at(i));
         mod_vertices.emplace(new_vid, new_vertices.at(i));
       }
     }
@@ -339,7 +347,6 @@ List decompose_preimages(
 void build_0_skeleton(const IntegerVector vids, SEXP st){
   Rcpp::XPtr<SimplexTree> st_ptr(st); // Collect the simplex tree
   st_ptr->clear();
-  //for (int vid: vids){ stree_ptr->remove_simplex({ size_t(vid) }); };
   for (idx_t v: vids){ st_ptr->insert_simplex({ v }); }
 }
 
@@ -361,8 +368,8 @@ List build_1_skeleton(const CharacterMatrix& pullback_ids, const int min_sz, con
   for (int i = 0; i < pullback_ids.nrow(); ++i){
     
     // Get the current pair of level sets to compare; skip if either are empty
-    const std::string pid1 = as< std::string >(pullback_ids(i, 0)); 
-    const std::string pid2 = as< std::string >(pullback_ids(i, 1));
+    const str pid1 = as< str >(pullback_ids(i, 0)); 
+    const str pid2 = as< str >(pullback_ids(i, 1));
     if ( Rf_isNull(pullback[pid1]) || Rf_isNull(pullback[pid2])){
       continue;
     }
@@ -414,7 +421,6 @@ List build_k_skeleton(CharacterMatrix pullback_ids, const List& pullback, List& 
   if (k < 2){ stop("'build_k_skeleton' is meant for building K-complexes for k > 1."); }
   if (pullback_ids.ncol() != k+1){ stop("Expecting (n x k+1) matrix fo pullback ids to compare."); }
   Rcpp::XPtr<SimplexTree> stree_ptr(stree); // Collect the simplex tree
-  // using uint = unsigned int;
 
   // If requested, track which simplices were added
   vector< vector< idx_t > > simplices_added; 
@@ -424,10 +430,10 @@ List build_k_skeleton(CharacterMatrix pullback_ids, const List& pullback, List& 
   for (size_t i = 0; i < n; ++i){
     if ((i % 100) == 0){ Rcpp::checkUserInterrupt(); }
     CharacterVector tmp = pullback_ids(i, _);
-    vector< std::string > pids = as< vector< std::string > >(tmp);
+    vector< str > pids = as< vector< str > >(tmp);
     
     // If any of the pullback covers are empty, skip
-    bool any_empty = std::accumulate(begin(pids), end(pids), false, [&pullback](bool any_empty, const std::string pid) -> bool{
+    bool any_empty = std::accumulate(begin(pids), end(pids), false, [&pullback](bool any_empty, const str pid) -> bool{
       if (any_empty || bool(Rf_isNull(pullback[pid]))){ return true; }
       switch(TYPEOF(pullback[pid])){
       case INTSXP: return(as< IntegerVector >(pullback[pid]).size() == 0);
@@ -440,7 +446,7 @@ List build_k_skeleton(CharacterMatrix pullback_ids, const List& pullback, List& 
     // Get a vector of vertices per pullback id
     // if (pids.size() != k+1){ stop("pullback ids size != k+1"); }
     vector< vector< size_t > > sigma = vector< vector< size_t > >(k+1);
-    std::transform(begin(pids), end(pids), begin(sigma), [&pullback](const std::string pid){
+    std::transform(begin(pids), end(pids), begin(sigma), [&pullback](const str pid){
       vector< size_t > p_vertices = as< vector< size_t > >(pullback[pid]);
       return p_vertices;
     });
@@ -482,33 +488,263 @@ List build_k_skeleton(CharacterMatrix pullback_ids, const List& pullback, List& 
   return(wrap(simplices_added));
 }
 
-    // const IntegerVector& nodes1 = pullback.at(ls_1);
-    // const IntegerVector& nodes2 = pullback.at(ls_2);
-    //
-    // // Compare the nodes within each level set
-    // for (IntegerVector::const_iterator n1 = nodes1.begin(); n1 != nodes1.end(); ++n1){
-    //   for (IntegerVector::const_iterator n2 = nodes2.begin(); n2 != nodes2.end(); ++n2){
-    //     // Retrieve point indices within each node
-    //     const IntegerVector& n1_idx = vertices[ std::to_string(*n1) ]; // access by vertex id
-    //     const IntegerVector& n2_idx = vertices[ std::to_string(*n2) ]; // access by vertex id
-    //
-    //
-    // // Enumerate the combinations. If any of subsets simplices don't exist as faces in the tree,
-    // // skip.
-    // apply_combinations(pids.size(), pids.size()-1, [](vector< size_t > idx){
-    //
-    // });
-  // }
+
+template< typename T > 
+T subset(const T& v, vector< size_t > idx){
+  T subset_(idx.size()); 
+  std::transform(begin(idx), end(idx), begin(subset_), [&v](size_t pos) {
+    return(v[pos]);
+  });
+  return(subset_);
+}
+
+// Based on: https://stackoverflow.com/questions/14945223/map-function-with-c11-constructs
+template <typename T, typename Func>
+auto map_f(const T& iterable, Func&& func) ->
+  vector<decltype(func(std::declval<typename T::value_type>()))> {
+  // Some convenience type definitions
+  typedef decltype(func(std::declval<typename T::value_type>())) value_type;
+  typedef vector<value_type> result_type;
+  
+  // Prepares an output vector of the appropriate size
+  result_type res(iterable.size());
+  
+  // Let std::transform apply `func` to all elements
+  // (use perfect forwarding for the function object)
+  std::transform(
+    begin(iterable), end(iterable), res.begin(),
+    std::forward<Func>(func)
+  );
+  
+  return res;
+}
+
+// template < typename T, typename U, typename Func> 
+// auto apply_keyed(const T& map, const U& keys, Func&& f) ->
+//   vector<decltype(func(std::declval<typename T::value_type>()))> {
+//   // Typedefs 
+//   typedef decltype(std::declval< typename U::value_type >()) elem_type; 
+//   typedef decltype(func(std::declval<typename T::value_type>())) value_type;
+//   typedef vector< value_type > result_type;
 //   
-//   // vector< node_ptr > simplices; 
-//   // stree_ptr->traverse_max_skeleton(stree_ptr->root, [&simplices](node_ptr sigma, size_t d){
-//   //   simplices.push_back(sigma);
-//   // }, k-1);
-//   // const size_t n_k_simplices = stree_ptr->n_simplexes.at(k - 1);
-//   // apply_combinations(n_k_simplices, k+1, [&simplices](vector< size_t > idx) -> bool {
-//   //   simplices.at()
-//   // });
+//   // Prepares an output vector of the appropriate size
+//   result_type res = map_f(keys, [&map, &f](const elem_type key){ 
+//     return(f(map[key]));
+//   });
+//   return(res);
 // }
+
+// Convert a named list of integer vectors to an unordered_map
+auto convert_pullback(const List& pullback) 
+  -> std::unordered_map< str, IntegerVector >{
+
+  // Retrieve names 
+  CharacterVector pids = pullback.names();
+  vector< str > index_set = as< vector< str > >(pids);
+  
+  // Convert named list to unordered_map
+  std::unordered_map< str, IntegerVector > pb_map; 
+  for (const str pid: index_set){
+    if ((TYPEOF(pullback[pid]) == INTSXP) || (TYPEOF(pullback[pid]) == REALSXP)){ 
+      pb_map.emplace(pid, as< IntegerVector >(pullback[pid]));
+    } else { stop("SEXP type of pullback value not handled."); }
+  }
+  return(pb_map);
+}
+
+
+// [[Rcpp::export]]
+void test_ct(IntegerVector v){
+  vector< size_t > vs = as< vector< size_t > >(v);
+  cart_prod(vs, [](vector< size_t > idx){
+    IntegerVector idx_ivec = wrap(idx);
+    Rcout << idx_ivec << std::endl;
+  });
+}
+  
+// local_nerve 
+// Creates a closure which accepts a vector of pullback indices. On evaluation, given a k-length 
+// vector of pullback indices, k-combinations of nodes whose within each pullback are tested for 
+// a non-empty intersection, provided their (k-1, k-2, ..., 0) simplices exist. 
+std::function< void(vector< size_t >) > local_nerve(
+    const List& pullback, 
+    List& vertices, 
+    SEXP stree
+){
+  using map_t = std::unordered_map< str, IntegerVector >;
+  
+  // Obtain (converted) pullback map
+  map_t pb_map = convert_pullback(pullback);
+  
+  Rcout << "Pullback: " << std::endl;
+  for (auto kv: pb_map){
+    str key = kv.first;
+    IntegerVector val = kv.second; 
+    Rcout << key << ": " << val << std::endl;
+  }
+  
+  // Given a map-type container and a vector of ids, check if any of the 
+  // containers mapped to by the id vectors are empty
+  const auto any_empty = [](const map_t& C, const vector< str > ids) -> bool {
+    const auto is_empty = [&C](const str key) -> bool { 
+      auto el = C.find(key);
+      bool has_v = (el != C.end() && el->second.size() > 0); 
+      return(!has_v);
+    };
+    return std::any_of(begin(ids), end(ids), is_empty);
+  };
+  
+  // Given a map-type container and a vector of ids, return the size 
+  // of the containers mapped to by the id vectors. 
+  const auto size_nested = [](const map_t& C, const vector< str > ids) -> const vector< size_t > {
+    const auto size_of_vec = [&C](const str pid) -> size_t { 
+      const auto v_it = C.find(pid);
+      return size_t(v_it == C.end() ? 0 : v_it->second.size());
+    };
+    return map_f(ids, size_of_vec);
+  };
+
+  // Given a map-type container and a vector of ids and a vector of indices, return
+  // a vector of the elements 
+  const auto extract_inner = [](const map_t& C, const vector< str > ids, const vector< size_t > indices) -> vector< size_t >{
+    if (ids.size() != indices.size()) { stop("Invalid extraction."); }
+    const auto element = [&C](const str id, const size_t idx) -> size_t { 
+      const auto v_it = C.find(id);
+      assert(v_it != C.end());
+      return size_t(v_it == C.end() ? 0 : v_it->second.at(idx));
+    };
+    
+    const size_t k = ids.size();
+    vector< size_t > simplex(k);
+    for (size_t i = 0; i < k; ++i){
+      simplex[i] = element(ids[i], indices[i]);
+    }
+    return(simplex);
+  };
+  
+  // Convert the index set to a vector of strings
+  const vector< str > index_set = as< vector< str > >(pullback.names());
+
+  // Extract reference to simplex tree
+  Rcpp::XPtr< SimplexTree > st_ptr(stree); // Collect the simplex tree
+  SimplexTree& st = (*st_ptr);
+    
+  // Create the closure to add a simplex to the complex, given (0-based) indices yielding 
+  // the subset of the pullback to compare
+  const auto add_simplex = [&st, &vertices, pb_map, any_empty, index_set, size_nested, extract_inner](vector< size_t > pid_idx){
+    
+    // Check if any of the preimages are empty
+    Rcout << "Pairs: ";
+    for (auto idx: pid_idx){
+      Rcout << idx << ",";
+    }
+    Rcout << std::endl;
+
+    // Rcout << "Pullback: " << std::endl;
+    // for (auto kv: pb_map){
+    //   str key = kv.first;
+    //   IntegerVector val = kv.second; 
+    //   Rcout << key << ": " << val << std::endl;
+    // }
+    // Rcout << index_set.size() << std::endl;
+    
+    // Get the subset to work with
+    vector< str > c_pids = subset(index_set, pid_idx);
+    
+    Rcout << "Corresponding pullback ids:" << std::endl;
+    for (auto pid: c_pids){
+      Rcout << "Current pid: " << pid << std::endl;
+    }
+    
+    if (any_empty(pb_map, c_pids)){ Rcout << "empty pb" << std::endl; return; }
+
+    // Otherwise, get the number of vertices per index
+    const vector< size_t > pb_sizes = size_nested(pb_map, c_pids);
+
+    Rcout << "pullback sizes" << std::endl;
+    for (auto pb_size: pb_sizes){
+      Rcout << pb_size << std::endl;
+    }
+    
+    // Check the product of the connected components between k-pairs of sets
+    cart_prod(pb_sizes, [&st, &vertices, &c_pids, &pb_map, &extract_inner](vector< size_t > idx){
+
+      // Get the potential simplex to add
+      vector< size_t > k_simplex = extract_inner(pb_map, c_pids, idx);
+      
+      IntegerVector si = wrap(k_simplex); 
+      Rcout << "test simplex insert: " << si << std::endl;
+
+      // Prior to adding a k-simplex, check all (k+1 choose k) (k-1)-simplices exist
+      const size_t k = k_simplex.size()-1;
+      bool all_exists = apply_combinations(k+1, k, [&k_simplex, &st](const vector< size_t > idx){
+        return(st.find_simplex(subset(k_simplex, idx)));
+      });
+
+      // If all the (k-1) faces exist, check for nonempty intersection
+      if (all_exists){
+        auto v_pts = map_f(k_simplex, [&vertices](const size_t vid){
+          const IntegerVector vertex = vertices[ std::to_string(vid) ];
+          return std::make_pair(vertex.begin(), vertex.end());
+        });
+
+        // Add a simplex if there's a nonempty intersection between all vertices
+        if (nonempty_intersection(v_pts)){
+          st.insert_simplex(k_simplex);
+        }
+      }
+    });
+  };
+  return(add_simplex);
+}
+
+// Accepts a generic matrix of pullback ids, then computes the Cech nerve.
+// [[Rcpp::export]]
+List build_k_skeleton2(CharacterMatrix pullback_ids, const List& pullback, List& vertices, int k, SEXP stree, const bool modify){
+  using simplex_f = std::function< void(vector< size_t >) >; 
+
+  // Extract an enclosed simplex insertion function
+  const simplex_f nerve_f = local_nerve(pullback, vertices, stree); 
+  
+  // Returns the 0-based index of the str pullback id
+  vector< str > index_set = as< vector< str > >(pullback.names()); 
+  const auto index_of = [&index_set](str pid) -> size_t {
+    auto it = std::find(begin(index_set), end(index_set), pid);
+    return(std::distance(begin(index_set), it));
+  };
+  
+  for (auto n: index_set){
+    Rcout << n << std::endl;
+  }
+  
+  // Casts given row i as a vector of std::string's
+  const auto extract_pids = [&pullback_ids](const size_t i) -> vector< str > {
+    CharacterVector ids = pullback_ids.row(i);
+    return(as< vector< str > >(ids));
+  };
+  
+  // Loop through the pullback ids
+  const size_t n = pullback_ids.nrow(); 
+  for (size_t i = 0; i < n; ++i){
+    vector< size_t > indices = map_f(extract_pids(i), index_of);
+    nerve_f(indices);
+  }
+  
+  return(List::create());
+}
+
+// Also computes the nerve of a cover, however allows for generic functions-producing iterators 
+// to be passed as well. 
+void build_k_skeleton3(SEXP subset_sexp, const List& pullback, List& vertices, int k, SEXP stree, const bool modify){
+  XPtr< set_f_ptr > subset_fun(subset_sexp); 
+  set_f_ptr subset_f = *subset_fun;
+  
+  // Extract an enclosed simplex insertion function
+  const set_f nerve_f = local_nerve(pullback, vertices, stree); 
+  
+  // Send the nerve function to the generator
+  (*subset_f)(nerve_f);
+}
 
 // Builds the k-skeleton as a flag complex by inserting k-simplexes which have a 
 // nonempty intersection between all pairs of vertices. 

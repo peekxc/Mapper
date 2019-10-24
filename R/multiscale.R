@@ -4,13 +4,13 @@
 #' @param max_dim The maximum dimension of the simplices to consider.  
 #' @param max_overlap The maximum overlap to consider. The multiscale construction will build only up to this value. 
 #' @param time The notion of 'time' to measure birth/death times with. See details.
-#' @param f Function to evaluate at evry index. The mapper instance is passed as the first argument.
+#' @param f Function to evaluate at every index. The mapper instance is passed as the first argument.
 #' @param stats Collect statistics on number of operations required to compute the structure? Defaults to false. 
-#' @details This method constructs a sequence of Mappers connected by simplicial maps, which can be readily 
-#' passed to e.g. the \code{Simpers} library to produce persistence diagrams. 
+#' @details This method constructs a sequence of Mappers connected by (elementary) simplicial maps. 
+#' The resulting maps can be readily passed to \code{Simpers} library to produce persistence diagrams. 
 #' Because constructing a sequence of Mappers is a computationally expensive operation, a special cover
-#' indexing structure is used to express the computation in terms of elementary simplicial maps. This method requires 
-#' a fixed interval cover with a constant number of open sets, and uses a specific clustering algorithm. \cr
+#' indexing structure is used to speed it up, however the structure is only compatible with fixed interval covers, 
+#' and uses a specific clustering algorithm. \cr
 #' \cr
 #' The \code{time} parameter may be specified as "integer", "measure", or (average) "overlap". 
 #' Each \code{time} unit is monotonically related to each other, however they may produce visually different persistence diagrams. 
@@ -254,11 +254,11 @@ stable_clustering <- function(g_eps){
       if (is.null(idx) || length(idx) == 0){ return(NULL) }
       if (length(idx) <= 2L){ return(rep(1L, length(idx))); }
       base_hcl <- hclust(parallelDist::parallelDist(self$X(idx)), method = "single")
-      c_eps[[pid]] <<- get_eps(self$X(idx))
+      c_eps[[pid]] <<- get_eps(self$data(idx))
       return(cutree(base_hcl, h = c_eps[[pid]]))
     } else {
       ## Run cutting heuristic to get new epsilon-value
-      c_eps[[pid]] <<- max(c_eps[[pid]], get_eps(self$X(idx)))
+      c_eps[[pid]] <<- max(c_eps[[pid]], get_eps(self$data(idx)))
       
       ## Eps-neighborhood check: where in the metric space does this new point fall? 
       p_idx <- setdiff(idx, new_idx)
@@ -369,7 +369,7 @@ construct_indexed_cover <- function(m, cover, ensure_unique = FALSE){
     eps_order <- lapply(seq(d), function(d_i) order(interval_params[[d_i]]$target_eps))
     interval_sizes <- lapply(seq(d), function(d_i) sort(interval_params[[d_i]]$target_eps))
     
-    ## If requested, make the interval sizes unique. This uses a custom comparator to determine equality. 
+    ## If requested, make the interval sizes unique.
     m_eps <- sqrt(.Machine$double.eps)
     # dupped <- function(x, n = length(x)){ abs(x[1:(n-1)] - x[2:n]) < m_eps }
     if (ensure_unique){
