@@ -33,7 +33,7 @@ rgl::setupKnitr()
 
 This is part of a (planned) multi-part tutorial series demonstrating both the utility and generality of the _Mapper_ method. This vignette describes how one might use the _Mapper_ method to __compare shapes__.  
 
-### Motivation 
+## Motivation 
 
 One of the central preoccupations of computer vision is understanding how to recognize objects representing semantically 'equivalent' things. In particular, much work has been done on _quantifying_ notions of equivalence between shapes in both _robust_ and _meaningful_ ways. Generally speaking, to formally ascertain whether certain shapes represent the 'same' object, it's necessary to first equip these shapes with some kind of geometric structure. For example, if the object comes in the form of point cloud data, a typical approach is to equip these shapes with a distance metric and view them as _metric spaces_. 
 
@@ -64,7 +64,7 @@ The conditions satisfied by a metric express intuitive notions of distance in an
 
 <!-- A well-studied problem from computer vision for matching shapes is known [point cloud registration](https://en.wikipedia.org/wiki/Point_set_registration), i.e. the process of finding a transformation that 'aligns' two point clouds. A classical algorithm for determining the transformation that aligns two _rigid_ point cloud is the [Iterative Closest Point](https://en.wikipedia.org/wiki/Iterative_closest_point) (ICP) method. -->
 
-### Hausdorff distance
+## Hausdorff distance
 
 The Hausdorff distance measures how far apart _subsets_ of a metric space are from each other; that is, given two non-empty subsets $X, Y$ of some common metric space $(Z, d_Z)$, it expresses the maximum distance a set is from the nearest point in the other set. The typical definition of the 'directed' Hausdorff distance is:
 
@@ -78,7 +78,7 @@ The above distance is not symmetric (hence the 'directed' designation) and exten
 d_{H}(X, Y) = \max \{ \, d_{DH}(X,Y), \,d_{DH}(Y,X) \, \}
 \end{equation}
 
-It can be shown[^2] that this symmetric Hausdorff distance _is_ in fact a metric on the space of compact subsets of $Z$. This nice property of the Hausdorff distance enables a convenient and natural extension of any metric $d_Z$ to be defined between subsets of $Z$.
+[It can be shown](#ref1) that this symmetric Hausdorff distance _is_ in fact a metric on the space of compact subsets of $Z$. This nice property of the Hausdorff distance enables a convenient and natural extension of any metric $d_Z$ to be defined between subsets of $Z$.
 
 Intuitively, the Hausdorff distance provides very convenient distance measure for the _mapper_ construction. Since each node in a _mapper_ represents a subset of the data, if the space the _mapper_ nodes were constructed on was a metric space, the Hausdorff distance can be used to *embed* the _mapper_ into a metric space. 
 
@@ -86,7 +86,7 @@ Intuitively, the Hausdorff distance provides very convenient distance measure fo
 
 To illustrate this idea, I'm going to borrow some high-fidelity [pose](https://en.wikipedia.org/wiki/Pose_(computer_vision)) data sets from [this source](http://people.csail.mit.edu/sumner/research/deftransfer/data.html)
 
-```{r, cache=TRUE, eval=TRUE}
+```{r, echo=TRUE, eval=FALSE}
 target_dir <- tempdir()
 target_file <- file.path(target_dir, "elephant-poses.tgz")
 pose_db <- "http://people.csail.mit.edu/sumner/research/deftransfer/data"
@@ -98,7 +98,7 @@ if (!file.exists(target_file)){
 }
 ```
 
-```{r, echo=FALSE, eval=FALSE}
+```{r, echo=FALSE, eval=TRUE}
 target_dir <- normalizePath("~/Downloads")
 target_file <- file.path(target_dir, "elephant-poses.tgz")
 ```
@@ -125,7 +125,7 @@ dim(tri)
 ```
 At $42$k points and $84$k triangles, the size of the data set as is makes it a little inconvenient to work with; it's preferable to get a sampling and instead work with a reduced set. There are many ways of sampling from a mesh (e.g. uniform sampling). Ideally, however, the subset of points should preserve the major aspects of the shape, i.e. if no points from the tusk of the elephant were in the reduced data set, it might not look like an elephant any more! 
 
-A common procedure to extract a subset of points, or _landmarks_, is the well-known *maxmin* landmark procedure, introduced in [^3]. *maxmin* is an greedy procedure for picking landmarks that are evenly spread about a point cloud. The procedure, summarized from [^3], is as follows: Let $X$ denote the point cloud, $L$ denote the set of landmarks (empty at first) and $n$ the number of landmarks requested. Pick a random point $x \in X$ to act as the first landmark $l_1$. Inductively, if $l_1, l_2, \dots, l_{i-1}$, choose the next landmark $l_i \in X \setminus \{ l_1, l_2, \dots, l_{i-1} \}$ be the data point that minimizes: 
+A common procedure to extract a subset of points, or _landmarks_, is the well-known *maxmin* landmark procedure, introduced in [this paper](#ref2). *maxmin* is an greedy procedure for picking landmarks that are evenly spread about a point cloud. The procedure, summarized from section 2.3 of [the paper](#ref2), is as follows: Let $X$ denote the point cloud, $L$ denote the set of landmarks (empty at first) and $n$ the number of landmarks requested. Pick a random point $x \in X$ to act as the first landmark $l_1$. Inductively, if $l_1, l_2, \dots, l_{i-1}$, choose the next landmark $l_i \in X \setminus \{ l_1, l_2, \dots, l_{i-1} \}$ be the data point that minimizes: 
 
 \begin{equation}\tag{3}
 \underset{x}{\mathrm{argmax}} \, f(x) = \min\{ d(x, l_1), d(x, l_2), \dots, d(x, l_{i-1})\}
@@ -133,7 +133,7 @@ A common procedure to extract a subset of points, or _landmarks_, is the well-kn
 
 The _Mapper_ package has a fast C++ implementation of this procedure, which returns the indices of the points chosen as landmarks. Here's code to pick 4000 landmarks from the elephant mesh:
 ```{r landmark_cache, echo=FALSE, eval=TRUE}
-landmark_idx <- readRDS("~/mapper/vignettes/landmarks.rds")
+landmark_idx <- readRDS("landmarks.rds")
 ```
 ```{r landmark_calc, echo=TRUE, eval=FALSE}
 landmark_idx <- landmarks(xyz, n = 4000)
@@ -232,35 +232,35 @@ rglwidget(reuse = FALSE)
 ```
 
 
-### Gromov-Hausdorff distance
+## Gromov-Hausdorff distance
 
-The Hausdorff distance provides a simple and convenient mechanism for measuring the distance between subsets of points in a metric space. And as shown above, it's can be used to create a distance metric on the set of subsets of a metric space. However, it may be the case one want might want to compare geometric structures which are not already embedded in a common metric space. The _Gromov-Hausdorff_ (GH) distance, which has been discussed more extensively in e.g. [1], is a very natural measure for such a task. The GH distance between two metric spaces $X$ and $Y$ is defined as:
+The Hausdorff distance provides a simple and convenient mechanism for measuring the distance between subsets of points in a metric space. And as shown above, it's can be used to create a distance metric on the set of subsets of a metric space. However, it may be the case one want might want to compare geometric structures which are not already embedded in a common metric space. The _Gromov-Hausdorff_ (GH) distance, which has been discussed more extensively in e.g. [this paper](#ref5), is a very natural measure for such a task. The GH distance between two metric spaces $X$ and $Y$ is defined as:
 
 \begin{equation}\tag{5}
 d_{GH}(X, Y) = \inf_{Z, f, g}\big\{ d_{H}(\, f(X), \,g(Y) \,)\big\}
 \end{equation}
 
-where $d_H$ is the _Hausdorff_ distance, defined above, and $f$ and $g$ are maps that take $X$ and $Y$ to some metric space, $Z$.
+where $d_H$ is the _Hausdorff_ distance, defined above, and $f$ and $g$ are maps that take $X$ and $Y$ to some metric space, $Z$. The GH distance can also be interpreted as measuring the [additive distortion](#ref3) suffered when mapping one metric space to another via a correspondence between their points.
 
 To see why GH-distance is a _natural_ measure in some sense, consider just a few of the properties satisfied by $d_{GH}$. Let $(d_X, X)$, $(d_Y, Y)$, $(d_Z, Z)$ be metric spaces, then:
 
 1. If $d_{GH}(X, Y) = 0$, then $(d_X, X)$ and $(d_Y, Y)$ are _isometric_.
 
-2. $d_{GH}(X, Y) < d_H(X, Y)$
+2. If $\mathbb{X}$ is a compact metric space and $X \subset \mathbb{X}$, then $d_{GH}(\mathbb{X}, X) \leq d_H(\mathbb{X}, X)$
 
 3. $d_{GH}(X, Y) + d_{GH}(Y, Z) \geq d_{GH}(X, Z)$
 
-The first property formalizes what it means for the GH distance to describe when two metric spaces are _isometric_ to each other[^1], whereby two metric spaces $(M_1, \rho_1)$, $(M_2, \rho_2)$ are said to be _isometric_ if there exists a bijection $\phi: M_1 \to M_2$ that preserves distances, i.e. $\rho_1(a, b) = \rho_2(\phi(a), \phi(b))$ for any $a,b \in M_1$. 
+The first property formalizes what it means for the GH distance to describe when two metric spaces are _isometric_ to each other, whereby two metric spaces $(M_1, \rho_1)$, $(M_2, \rho_2)$ are said to be _isometric_ if there exists a bijection $\phi: M_1 \to M_2$ that preserves distances, i.e. $\rho_1(a, b) = \rho_2(\phi(a), \phi(b))$ for any $a,b \in M_1$. 
 
-The second property is less a condition and more of a direct result: roughly speaking, the GH distance between e.g. $M_1, M_2$ is the _minimum_ hausdorff distance among all isometric embeddings of $M_1, M_2$. 
+The second property has a nice intuitive interpretation: roughly speaking, the GH distance between e.g. $M_1, M_2$ is the _minimum_ hausdorff distance among all isometric embeddings of $M_1, M_2$. 
 
-The third property indeed makes the GH distance a reasonable framework for shape comparison. In practice, the triangle inquality is a desirable property for point-wise metrics that describe (dis)similarity. And with the symmetric Hausdorff distance, it it preserved between compact subsets of a metric space. The GH distance preserves this as well, but now in the space of isometric embeddings of metric spaces.
+The third property indeed justifies the GH distance a reasonable framework for shape comparison. In practice, the triangle inquality is a desirable property for point-wise metrics that describe (dis)similarity. And with the symmetric Hausdorff distance, it it preserved between compact subsets of a metric space. The GH distance preserves this as well, but now in the space of isometric embeddings of metric spaces.
 
-One application of GH distance is the matching of objects up to some notion of invariance, wherein the choice of metric endowed on the objects _defines_ the type of invariance that is desired[^4]. For example, if the invariance desired is with respect to _rigid isometries_, one may prefer the euclidean metric, whereas if one prefer the invariance to respect e.g. "bends", a geodesic-type distance may be more preferable. 
+One application of GH distance is the matching of objects up to some notion of invariance, wherein the choice of metric endowed on the objects _defines_ the type of invariance that is desired. For example, if the invariance desired is with respect to _rigid isometries_, one may prefer the euclidean metric, whereas if one prefer the invariance to respect e.g. "bends", a geodesic-type distance may be more preferable. For more explanation on this, see [these slides](#ref4) by Facundo Mémoli.
+ 
+## Detour: Quadratic Assignment Problem
 
-### Detour: Quadratic Assignment Problem
-
-Unfortunately, computing the GH distance is essentially intractable. The fully general version reduces to the [quadratic assignment problem](https://en.wikipedia.org/wiki/Quadratic_assignment_problem) (QAP)^[5], which is NP-hard. To see how this reformulation reduces to QAP, consider the following description of the GH-distance. 
+Unfortunately, computing the GH distance is essentially intractable. The fully general version reduces to the [quadratic assignment problem](https://en.wikipedia.org/wiki/Quadratic_assignment_problem) (QAP), which is NP-hard. To see how this reformulation reduces to QAP, consider the following description of the GH-distance. 
 
 First, consider the following definition of Hausdorff distance. Again let $(Z, d)$ be a compact metric space and $\mathcal{C}(Z)$ the collection of all compact sets in $Z$. If $X, Y \in \mathcal{C}(Z)$, the Hausdorff distance between $X$ and $Y$ can be expressed as: 
 
@@ -268,7 +268,7 @@ First, consider the following definition of Hausdorff distance. Again let $(Z, d
 d_H(X, Y) = \inf_{R \in \mathcal{R}(X, Y)} \sup_{(x, y) \in R} d(x, y)
 \end{equation}
 
-where $\mathcal{R}(X, Y)$ is the set of correspondences between $X$ and $Y$[^6]. It's been shown that the GH-distance can be expressed as: 
+where $\mathcal{R}(X, Y)$ is the set of [correspondences](#ref6) between $X$ and $Y$. It's been shown that the GH-distance can be expressed as: 
 
 \begin{equation}\tag{7}
 d_{GH}(X, Y) = \frac{1}{2} \inf_{R \in \mathcal{R}(X, Y)} \sup_{\substack{x,x' \in X \\ y,y' \in Y \\ (x,y),(x',y') \in R}} \Gamma_{X, Y}(x,y,x',y')
@@ -276,15 +276,15 @@ d_{GH}(X, Y) = \frac{1}{2} \inf_{R \in \mathcal{R}(X, Y)} \sup_{\substack{x,x' \
 
 where $\Gamma_{X, Y}(x,y,x',y') = \lvert d_X(x, x') - d_Y(y,y') \rvert$. Using this kind of interpretation, we can express the GH distance more discretely. Let $X = \{x_1, x_2, \dots, x_n\}$ and $Y = \{y_1, y_2, \dots, y_m\}$ be finite metric spaces. For any correspondence $R \in \mathcal{R}(X, Y)$ let $\mu_{ij}$ equal $1$ if $(i,j) \in R$ and $0$ otherwise. Then the GH distance can be expressed as: 
 
-\begin{equation}\tag{7}
+\begin{equation}\tag{8}
 d_{GH}(X, Y) = \frac{1}{2} \min_{R} \max_{i,j,k,l} \Gamma_{ik \, jl} \mu_{ij} \mu_{kl}
 \end{equation}
 
-where $\Gamma_{ik\,jl} = \lvert d_X(x_i, x_k) - d_Y(y_j,y_l) \rvert$, $\mu_{ij} \in \{0, 1\}$. When $n = m$, _this_ expression should make the connection to QAP clear (and if not, seek __Remark 3__ of [^7]). 
+where $\Gamma_{ik\,jl} = \lvert d_X(x_i, x_k) - d_Y(y_j,y_l) \rvert$, $\mu_{ij} \in \{0, 1\}$. When $n = m$, _this_ expression should make the connection to QAP clear (and if not, seek __Remark 3__ in [this paper](#ref7)). 
 
-### Gromov-Hausdorff => Gromov-Wasserstein
+## Gromov-Hausdorff => Gromov-Wasserstein
 
-Although the GH distance may be NP-hard in the general case, it's natural to consider relaxations by e.g. considering shapes as more than just sets of points equipped with a metric. This is true for the Hausdorff distance as well: it's common for practical applications to relax $d_H$ to the Wasserstein distance[^9], which can also be interpreted in terms of the [optimal transport problem](https://en.wikipedia.org/wiki/Transportation_theory_(mathematics)). In a series of analyses, Mémoli studied various different equivalent expressions of the GH distance towards obtaining a transport-based relaxation[^5][^7][^8]. 
+Although the GH distance may be NP-hard in the general case, it's natural to consider relaxations by e.g. considering shapes as more than just sets of points equipped with a metric. This is true for the Hausdorff distance as well: it's [common](#ref9) for practical applications to relax $d_H$ to the Wasserstein distance, which can also be interpreted in terms of the [optimal transport problem](https://en.wikipedia.org/wiki/Transportation_theory_(mathematics)). In a series of analyses, Mémoli studied various different equivalent expressions of the GH distance towards obtaining a transport-based relaxation see any of the references [5](#ref5), [7](#ref7), or [8](#ref8). 
 
 To define this relaxation, instead of interpreting shapes as metric spaces, say we assume a _probability measure_ is given on the set of points, such that now such shapes are interpreted as _measure-metric spaces_, i.e. a triple $(X, d_X, \mu_X)$ where:
 
@@ -293,26 +293,26 @@ To define this relaxation, instead of interpreting shapes as metric spaces, say 
 
 Under the measure-metric space setting, the GH distance relaxes to the so-called Gromov-Wasserstein (GW) distance. For $1 \leq p < \infty$, the GW distance is defined as:
 
-\begin{equation}\tag{8}
+\begin{equation}\tag{9}
 D_{p}(X, Y)=\frac{1}{2} \inf _{\mu \in \mathcal{M}\left(\mu_{X}, \mu_{Y}\right)}\left(\int_{X \times Y} \int_{X \times Y}\left(\Gamma_{X, Y}\left(x, y, x^{\prime}, y^{\prime}\right)\right)^{p} \mu(d x \times d y) \mu\left(d x^{\prime} \times d y^{\prime}\right)\right)^{1 / p}
 \end{equation}
 
 or when $p = \infty$
 
-\begin{equation}\tag{9}
+\begin{equation}\tag{10}
 D_{\infty}(X, Y) = \frac{1}{2} \inf_{\mu \in \mathcal{M}(\mu_X, \mu_Y)} \sup_{\substack{x,x' \in X \\ y,y' \in Y \\ (x,y),(x',y') \in \mathrm{supp}(\mu)}} \Gamma_{X,Y}(x,y,x',y')
 \end{equation}
 
 From the practical setting of comparing shapes, the probability measure $\mu_X$ can be interpreted as indicating the importance of the difference between specific points in the data set.
 To express this relaxation in terms of the QAP notation, take equation 7 and replace the notion of a *correspondence* with a *coupling measure* $\mathcal{M}(\mu_X, \mu_Y)$, and replace the $\max$'s with $L_p$ norms. One obtains: 
 
-\begin{equation}\tag{10}
+\begin{equation}\tag{11}
 D_{p}(X, Y)=\frac{1}{2} \min _{\mu \in \mathbb{R}^{n \times m}}\left(\sum_{i, i^{\prime}=1}^{n} \sum_{j, j^{\prime}=1}^{m} \mu_{i j} \mu_{i^{\prime} j^{\prime}} \Gamma_{i j, i^{\prime} j^{\prime}}^{p}\right)^{1 / p} \text { subject to } 0 \leq \mu_{i j} \leq 1, \sum_{i=1}^{n} \mu_{i j}=\lambda_{j}, \sum_{j=1}^{m} \mu_{i j}=\nu_{i}
 \end{equation}
 
 where $\mu(x_i) = \nu_i$, $\mu_Y(y_j) = \lambda_j$. 
 
-In [^7], Mémoli introduced a number of bounds and computational techniques attempting to enable this relaxation to be computed in practical settings. In particular, minimizing the $L_p$ version of the GW distance between two point clouds reduces to a non-convex [quadratic optimization problem](https://en.wikipedia.org/wiki/Quadratic_programming) (QOP) w/ linear constraints. Additionally, three lower bounds were shown, all of which can be recast as linear optimization problems. 
+In [this paper](#ref7), Mémoli introduced a number of bounds and computational techniques attempting to enable this relaxation to be computed in practical settings. In particular, minimizing the $L_p$ version of the GW distance between two point clouds reduces to a non-convex [quadratic optimization problem](https://en.wikipedia.org/wiki/Quadratic_programming) (QOP) w/ linear constraints. Additionally, three lower bounds were shown, all of which can be recast as linear optimization problems. 
 
 The Mapper package provides a simple interface to setting up either the LOP (for the lower bound) or the QOP (for the global) using the [R Optimization Infrastructure](http://roi.r-forge.r-project.org/) (ROI). The former requires any ROI plugin package (e.g. [lpsolve](https://cran.r-project.org/web/packages/ROI.plugin.lpsolve/index.html)) that can solve a linear program. Since the QOP is non-convex, the latter optimization is just recast the problem as a general nonlinear optimization problem (since, as far as I can tell, there is no ROI plugin as well-suited to this problem as e.g. the  [QUADPROG](https://yalmip.github.io/solver/quadprogbb/) or [QUADPROBB](https://github.com/sburer/QuadProgBBoptimizer) optimizers in YALMIP). 
 As a result, the current implementation encodes the constraints as penalties into an augmented lagrangian based approach using [nloptr](https://cran.r-project.org/web/packages/nloptr/index.html). 
@@ -320,11 +320,11 @@ As a result, the current implementation encodes the constraints as penalties int
 The function to compute the GW-distance is called [gromov_hausdorff](https://peekxc.github.io/Mapper/reference/gromov_hausdorff.html) (see `?gromov_hausdorff` for more details). It requires as its arguments:
 
 1) either a `dist` object or a distance matrix, for two point clouds $X$ and $Y$
-2) a vector representing $\mu_X$ and $mu_Y$, respectively
+2) a vector representing $\mu_X$ and $\mu_Y$, respectively
 
 By default, only the lower bound is computed, and the results returned include the computed distance, the matching measure found $\mu^\ast$, and the set of correspondences betwen $X$ and $Y$, returned as surjective mapping from $X$ to $Y$ and vice versa.
 
-### Back to Mapper 
+## Back to Mapper 
 
 How does this all relate back to _Mapper_? Computing the GW distance requires solving for $(n \times m)$ variables and $(n + m)$ constraints. Since the optimization is a non-convex QOP, finding the global solution is NP-hard. Solving for the lower-bound is much more feasible---LOP solvers are comparatively quite fast. However, for sufficiently large point clouds like the 4k _reduced_ set above, this still qualifies as a _large-scale_ optimization (~1.6M variables to solve for each pair of shapes!). 
 
@@ -431,7 +431,7 @@ gh_heatmap
 knitr::include_graphics("gh_shapes_res.png")
 ```
 
-Aside from a few outliers, we can see that using just the lower bound approximation we get the nice 'blocking' kind of result as shown in the paper from [^7]. The first two characters of the labels on the axis' denote the animal (e.g. 'EL' denote elephant, 'CA' denote camel, etc.), and the number denotes the pose its in. Observe the distances between poses from the same animal are darker (lower GW distance). Similarly, observe the head poses ('HE') and the face poses ('FA')---which are the only non-animal shapes in the data set---are very similar to each other and dissimilar to the other shapes. 
+Aside from a few outliers, we can see that using just the lower bound approximation we get the nice 'blocking' kind of result as shown in [the 2007 paper](3ref7). The first two characters of the labels on the axis' denote the animal (e.g. 'EL' denote elephant, 'CA' denote camel, etc.), and the number denotes the pose its in. Observe the distances between poses from the same animal are darker (lower GW distance). Similarly, observe the head poses ('HE') and the face poses ('FA')---which are the only non-animal shapes in the data set---are very similar to each other and dissimilar to the other shapes. 
 
 Very cool. 
 
@@ -442,753 +442,24 @@ That concludes the vignette showing how the _Mapper_ method can be used to __com
 
 ## References 
 
-[^1]: The GH distance can also be interpreted as measuring the additive distortion suffered when mapping one metric space to another via a correspondence between their points [2].
+<a id="ref1">1.</a>  For background information on Hausdorff distance see e.g. [these slides](http://www.math.harvard.edu/library/sternberg/slides/1180910.pdf)
 
-[^2]: See e.g. [here](http://www.math.harvard.edu/library/sternberg/slides/1180910.pdf)
+<a id="ref2">2.</a>  See section 2.3 of: De Silva, Vin, and Gunnar E. Carlsson. "Topological estimation using witness complexes." SPBG 4 (2004): 157-166.
 
-[^3]: See section 2.3 of: De Silva, Vin, and Gunnar E. Carlsson. "Topological estimation using witness complexes." SPBG 4 (2004): 157-166.
+<a id="ref3">3.</a> Agarwal, Pankaj K., et al. "Computing the Gromov-Hausdorff distance for metric trees." ACM Transactions on Algorithms (TALG) 14.2 (2018): 24.
 
-[^4]: Presentation on $L^p$-GH distance by Facundo Mémoli [here](https://people.math.osu.edu/memolitechera.1/talks/dghlp-jun-jul-08.pdf)
+<a id="ref4">4.</a>  Presentation on $L^p$-GH distance by Facundo Mémoli [here](https://people.math.osu.edu/memolitechera.1/talks/dghlp-jun-jul-08.pdf)
 
-[^5]: Mémoli, Facundo, and Guillermo Sapiro. "A theoretical and computational framework for isometry invariant recognition of point cloud data." Foundations of Computational Mathematics 5.3 (2005): 313-347.
+<a id="ref5">5.</a>  Mémoli, Facundo, and Guillermo Sapiro. "A theoretical and computational framework for isometry invariant recognition of point cloud data." Foundations of Computational Mathematics 5.3 (2005): 313-347.
 
-[^6]: Recall that for sets $A$ and $B$, a subset $R \subset A \times B$ is defined as a correspondence between $A$ and $B$ if every element $a \in A$ is related to at least one element in $B$ and every element $b \in B$ is related to at least one element in $A$.  
+<a id="ref6">6.</a> Recall that for sets $A$ and $B$, a subset $R \subset A \times B$ is defined as a correspondence between $A$ and $B$ if every element $a \in A$ is related to at least one element in $B$ and every element $b \in B$ is related to at least one element in $A$.  
 
-[^7]: Mémoli, Facundo. "On the use of Gromov-Hausdorff distances for shape comparison." (2007).
+<a id="ref7">7.</a> Mémoli, Facundo. "On the use of Gromov-Hausdorff distances for shape comparison." (2007).
 
-[^8]: Mémoli, Facundo. "Gromov–Wasserstein distances and the metric approach to object matching." Foundations of computational mathematics 11.4 (2011): 417-487.
+<a id="ref8">8.</a> Mémoli, Facundo. "Gromov–Wasserstein distances and the metric approach to object matching." Foundations of computational mathematics 11.4 (2011): 417-487.
 
-[^9]: Villani, Cédric. Topics in optimal transportation. No. 58. American Mathematical Soc., 2003.
+<a id="ref9">9.</a> Villani, Cédric. Topics in optimal transportation. No. 58. American Mathematical Soc., 2003.
 
-[^10]: Villar, Soledad, et al. "A polynomial-time relaxation of the gromov-hausdorff distance." arXiv preprint arXiv:1610.05214 (2016).
+<a id="ref10">10.</a> Villar, Soledad, et al. "A polynomial-time relaxation of the gromov-hausdorff distance." arXiv preprint arXiv:1610.05214 (2016).
 
-[^11]: Sumner, Robert W., and Jovan Popović. "Deformation transfer for triangle meshes." ACM Transactions on graphics (TOG) 23.3 (2004): 399-405.
-
-<!-- in many situation the _mapper_ is visualized using e.g. a [force-directed]() layout. Because the focus is on capturing the topological aspects,  -->
-
-
-
-
-<!-- \begin{equation}\tag{12} -->
-<!-- \begin{aligned} -->
-<!-- & \underset{\mu \in \mathbf{M}}{\text{minimize}} -->
-<!-- & & J_p(\mu) \\ -->
-<!-- & \text{subject to} -->
-<!-- & & J_p(\mu) \coloneqq \sum_{i,i' = 1}^n \sum_{j,j' = 1}^n \mu_{ij} \mu_{i'j'} \lvert d_X(x)\rvert^p \\ -->
-
-<!-- \end{aligned} -->
-<!-- \end{equation} -->
-<!-- d_{GH}(X, Y) = \frac{1}{2} \min_{R} \max_{i,j,k,l} \Gamma_{ik \, jl} \mu_{ij} \mu_{kl} -->
-
-
-
-
-
-<!-- <!-- A common analogy is as follows: imagine you and an adversary are each standing on an island, and you play a game where the goal is to move to your opponents position as fast as possible. Each person chooses the starting position of their opponent, and once they do, they're not allowed to move. The directed Hausdorff distance between you and the adversary may be thought of as the longest distance you might be forced to travel (by the adversary) to get to his position. Note that the distance you force the adversary to travel may be different from the distance you are forced to travel. The Hausdorff distance is the maximum of these two distances.  --> 
-
-
-<!-- <!-- If the objects (say $X$ and $Y$) are both subsets of a common metric space (say $Z$), defined as:  --> 
-
-<!-- <!-- d_{H}(X, Y) = \max(\sup_{x \in X}\inf_{y \in Y}d_Z(x, y), \sup_{y \in Y}\inf_{x \in X}d_Z(x, y)) -->
-
-<!-- ```{r, echo=FALSE} -->
-<!-- library("magick") -->
-<!-- stick_url <- "https://upload.wikimedia.org/wikipedia/commons/9/94/Stick_Figure.svg" -->
-<!-- stick_guy <- image_read_svg(stick_url, width = 100) -->
-<!-- im <- as.raster(stick_guy) -->
-
-<!-- ## Get coordinates of stick outline -->
-<!-- x <- col(im)[which(im != "transparent")] -->
-<!-- y <- row(im)[which(im != "transparent")] -->
-<!-- stick_xy <- scale(cbind(x, nrow(im) - y)) -->
-
-<!-- ## Plot the stick figure -->
-<!-- plot(stick_xy, pch = 20, cex = 0.5) -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- # point_cloud_from_image <- function(fpath, scale_size="400"){ -->
-<!-- #   im <- as.raster(image_scale(image_read(fpath), scale_size)) -->
-<!-- #   x <- col(im)[which(im != "transparent")] -->
-<!-- #   y <- row(im)[which(im != "transparent")] -->
-<!-- #   scale(cbind(x, nrow(im) - y)) -->
-<!-- # } -->
-<!-- # A <- point_cloud_from_image("~/Desktop/A.png") -->
-<!-- # B <- point_cloud_from_image("~/Desktop/B.png") -->
-<!-- #  -->
-<!-- # A <- A[landmarks(A, 500),] -->
-<!-- # B <- B[landmarks(B, 500),] -->
-<!-- #  -->
-<!-- # pracma::hausdorff_dist(A, B) -->
-<!-- #  -->
-<!-- # animation::saveGIF({ -->
-<!-- #   params <- list(asp = 1, col = rep(c("black", "green"), each = nrow(A)), pch = 20, cex = 0.75) -->
-<!-- #   params$xlim <- params$ylim <- qnorm(c(0.0001, 0.9999)) -->
-<!-- #   for (theta in seq(0, 2*pi, length.out = 32)){ -->
-<!-- #     R <-  matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2) -->
-<!-- #     A_rot <- t(R %*% t(A)) -->
-<!-- #     params[["main"]] <- sprintf("d_H: %f", pracma::hausdorff_dist(A_rot, B)) -->
-<!-- #     do.call(plot, modifyList(list(x=rbind(A_rot, B)), params)) -->
-<!-- #   } -->
-<!-- # }, movie.name = "shape_rotation.gif", interval = 0.25) -->
-<!-- #  -->
-<!-- # plot(rbind(A, t(t(B) + c(7, 0))), asp = 1) -->
-<!-- #  -->
-<!-- #  -->
-<!-- # gh$correspondences$xy -->
-<!-- # gh$gh -->
-
-<!-- ``` -->
-
-
-<!-- ```{r} -->
-<!-- library(shiny) -->
-<!-- normal_rng <- list(min=round(qnorm(0.0001), 2), max=round(qnorm(0.9999), 2), value=0) -->
-<!-- circle_rng <- list(min=0, max=round(2*pi, 2), value=0) -->
-<!-- slider <- function(id, label, rng){  do.call(sliderInput, modifyList(list(id, label), rng)) } -->
-<!-- ui <- fluidPage( -->
-<!--   titlePanel("Hausdorff example"),  -->
-<!--   sidebarLayout( -->
-<!--     sidebarPanel( -->
-<!--       actionButton("dh", label = "Calculate Hausdorff distance"), -->
-<!--       slider("a_x", "A + X", normal_rng), slider("a_y", "A + Y", normal_rng),  -->
-<!--       slider("a_theta", "A + theta", circle_rng), -->
-<!--       slider("b_x", "B + X", normal_rng), slider("b_y", "B + Y", normal_rng),  -->
-<!--       slider("b_theta", "B + theta", circle_rng), -->
-<!--     ), -->
-<!--     mainPanel(plotOutput(outputId = "shape_plot", height = "100%"),  -->
-<!--               style = "height: 100vh !important;") -->
-<!--   ) -->
-<!-- ) -->
-<!-- R <- function(theta){ matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2) } -->
-<!-- server <- function(input, output, session){ -->
-<!--   hd <- reactiveVal(value=Inf) -->
-<!--   rng <- c(normal_rng$min, normal_rng$max) -->
-<!--   pc_colors <- c( -->
-<!--     do.call(rgb, as.list(c(red=245, green=193, blue=245)/255)), -->
-<!--     do.call(rgb, as.list(c(red=215, green=235, blue=241)/255)) -->
-<!--   ) -->
-<!--   params <- list(cex=1.25, pch=20, xlab="X", ylab="Y", xlim=rng, ylim=rng, asp=1,  -->
-<!--                  col=rep(pc_colors, each=nrow(A))) -->
-<!--   Ar <- reactive({ t(R(input$a_theta) %*% (t(A) + c(input$a_x, input$a_y))) }) -->
-<!--   Br <- reactive({ t(R(input$b_theta) %*% (t(B) + c(input$b_x, input$b_y))) }) -->
-<!--   output$shape_plot <- renderPlot({ -->
-<!--     shape_params <- list(x=rbind(Ar(), Br()), main=sprintf("Hausdorff distance: %f", hd())) -->
-<!--     do.call(plot, modifyList(shape_params, params)) -->
-<!--   }) -->
-<!--   observeEvent(input$dh, { hd(pracma::hausdorff_dist(Ar(), Br())) }) -->
-<!-- } -->
-<!-- shinyApp(ui, server) -->
-<!-- ``` -->
-
-
-<!-- ```{r} -->
-
-<!-- animation::saveGIF({ -->
-<!--   params <- list(asp = 1, col = rep(c("black", "green"), each = nrow(stick_xy)), pch = 20, cex = 0.5) -->
-<!--   for (theta in seq(0, 2*pi, length.out = 24)){ -->
-<!--     R <-  matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), ncol = 2) -->
-<!--     stick_rotated <- t(R %*% t(stick_xy)) -->
-<!--     params[["main"]] <- sprintf("d_H: %f", pracma::hausdorff_dist(stick_xy, stick_rotated)) -->
-<!--     do.call(plot, modifyList(list(x=rbind(stick_xy, stick_rotated)), params)) -->
-<!--   } -->
-<!-- }, movie.name = "stick_rotation.gif", interval = 0.25) -->
-
-<!-- Mapper::gromov_hausdorff(d_X = ) -->
-
-<!-- pracma::hausdorff_dist(xy[1:10,], xy[1:10,]) -->
-<!-- pracma::hausdorff_dist(stick_xy, stick_rotated) -->
-<!-- ``` -->
-
-<!-- ## Computing the GH distance  -->
-
-<!-- The GH distance is, for all intensive purposes, computationally intractable: it involves the solution of an NP-hard optimization problem. Instead, it's natural to study various relaxations. Mémoli studied an $Lp$-type relaxation motivated by the Wasserstein-Kantorovich-Rubinstein distance, now often referred to the Gromov-Wasserstein (GW) distance, which offers some practical computational benefits. -->
-
-<!-- The central idea of the GW-distance is to move from comparing metric spaces $(d_X, X), (d_Y, Y)$ to comparing _measure_-metric spaces $(d_X, X, \mu_X), (d_Y, Y, \mu_Y)$ where $\mu_X$, $\mu_Y$ are Borel probability measures on $X$, $Y$, respectively. -->
-
-
-
-
-
-
-<!-- ## References  -->
-<!-- 1. Mémoli, Facundo. "On the use of Gromov-Hausdorff distances for shape comparison." (2007). -->
-<!-- 2. Agarwal, Pankaj K., et al. "Computing the Gromov-Hausdorff distance for metric trees." ACM Transactions on Algorithms (TALG) 14.2 (2018): 24. -->
-<!-- 3. Chazal, Frédéric, and Bertrand Michel. "An introduction to Topological Data Analysis: fundamental and practical aspects for data scientists." arXiv preprint arXiv:1710.04019 (2017). -->
-
-<!-- Preprocessing  -->
-<!-- <!-- shapes <- readRDS(file = "~/mapper/ignore/shapes/all_shapes.rds") --> 
-<!-- <!-- shape_lm <- readRDS(file = "~/mapper/ignore/shapes/shape_lm.rds") -->
-
-
-<!-- ```{r, code_folding='hide'} -->
-<!-- base_path <- file.path("~", "mapper", "ignore", "poses") -->
-<!-- pose_dir <- list.files(base_path)[dir.exists(file.path(base_path, list.files(base_path)))] -->
-
-<!-- ## Extract shape position coordinates -->
-<!-- normalize <- function(x){ (x - min(x))/(diff(range(x))) } -->
-<!-- shapes <- unlist(pbapply::pblapply(pose_dir, function(c_pd){ -->
-<!--   obj_files <- list.files(file.path(base_path, c_pd), pattern = ".*\\.obj") -->
-<!--   structure(pbapply::pblapply(obj_files, function(c_obj){ -->
-<!--     x <- readobj::read.obj(file.path(base_path, c_pd, c_obj)) -->
-<!--     apply(x$shapes[[1]]$positions, 1, normalize) -->
-<!--   }), names = obj_files) -->
-<!-- }), recursive = FALSE) -->
-<!-- # saveRDS(shapes, file = file.path(base_path, "all_shapes.rds")) -->
-
-<!-- ## Extract landmark points -->
-<!-- shape_lm <- pbapply::pblapply(shapes, function(shape_xyz){  -->
-<!--    Mapper::landmarks(shape_xyz, n = 4000) -->
-<!-- }) -->
-<!-- # saveRDS(shape_lm, file = file.path(base_path, "shape_lm.rds")) -->
-
-<!-- ## Extract shape mesh information (all triangles) -->
-<!-- shape_mesh <- unlist(pbapply::pblapply(pose_dir, function(c_pd){ -->
-<!--   obj_files <- list.files(file.path(base_path, c_pd), pattern = ".*\\.obj") -->
-<!--   structure(pbapply::pblapply(obj_files, function(c_obj){ -->
-<!--     obj <- readobj::read.obj(file.path(base_path, c_pd, c_obj)) -->
-<!--     return(obj$shapes[[1]]$indices) -->
-<!--   }), names = obj_files) -->
-<!-- }), recursive = FALSE) -->
-<!-- # saveRDS(shape_mesh, file = file.path(base_path, "shape_mesh.rds")) -->
-
-
-<!-- ## Compute eccentricity Filter -->
-<!-- p <- 2 -->
-<!-- p_str <- c("manhattan", "euclidean", "maximum")[match(p, list(1, 2, Inf))] -->
-<!-- shape_ecc <- pbapply::pblapply(seq(n_shapes), function(i){ -->
-
-<!--   ## Extract graph from simplicial mesh  -->
-<!--   stree <- Mapper::simplex_tree() -->
-<!--   invisible(apply(shape_mesh[[i]], 2, function(simplex){ stree$insert_simplex(simplex) })) -->
-<!--   edges <- stree$as_edge_list()+1L -->
-<!--   g <- igraph::graph_from_edgelist(edges, directed = FALSE) -->
-
-<!--   ## Calculate edge weights -->
-<!--   edge_dist <- apply(edges, 1, function(e){ dist(shapes[[i]][e,], method = p_str) }) -->
-
-<!--   ## Get the (weighted) shortest path distance along the mesh -->
-<!--   surface_dist <- igraph::distances(g, v=shape_lm[[i]], to=shape_lm[[i]], weights = edge_dist) -->
-<!--   if (p != Inf) { colMeans(surface_dist)^(1/p) } else { apply(surface_dist, 2, max) } ## eccentricity -->
-<!-- }) -->
-<!-- saveRDS(shape_ecc, file = file.path(base_path, "shape_ecc.rds")) -->
-<!-- ``` -->
-
-
-<!-- Load the precomputed results -->
-<!-- ```{r} -->
-<!-- base_path <- file.path("~", "mapper", "ignore", ifelse(0L == 0L, "poses", "shapes")) -->
-<!-- shapes <- readRDS(file = file.path(base_path, "all_shapes.rds")) -->
-<!-- shape_lm <- readRDS(file = file.path(base_path, "shape_lm.rds")) -->
-<!-- shape_mesh <- readRDS(file = file.path(base_path, "shape_mesh.rds")) -->
-<!-- shape_ecc <- readRDS(file = file.path(base_path, "shape_ecc.rds")) -->
-<!-- n_shapes <- length(shapes) -->
-<!-- ``` -->
-
-<!-- Compute the shape mappers + corresponding hausdorff distances -->
-<!-- ```{r} -->
-<!-- ## Compute mappers  -->
-<!-- shape_mappers <- pbapply::pblapply(seq(length(shapes)), function(i){ -->
-<!--   m <- Mapper::MapperRef$new(X = shapes[[i]][shape_lm[[i]],]) -->
-<!--   m$use_cover(filter_values = matrix(shape_ecc[[i]]),  -->
-<!--               typename = "fixed rectangular", number_intervals=15L, percent_overlap=50)$ -->
-<!--   use_distance_measure(measure = "euclidean")$ -->
-<!--   use_clustering_algorithm(cl = "single", cutoff_method = "continuous")$ -->
-<!--   compute_k_skeleton(k = 1L) -->
-<!-- }) -->
-
-<!-- ## Compute mapper hausdorff distances (d_H) -->
-<!-- d_H <- pbapply::pblapply(shape_mappers, function(m) normalize(Mapper::hausdorff_distance(m))) -->
-
-<!-- ## Compute intrinsic haussdorff distance  -->
-<!-- n_cc <- sapply(shape_mappers, function(m){ -->
-<!--   g <- igraph::graph_from_adjacency_matrix(m$simplicial_complex$as_adjacency_matrix()) -->
-<!--   igraph::components(g)$no -->
-<!-- }) -->
-<!-- all(n_cc == 1L) # ensure every Mapper is fully-connected -->
-
-<!-- ## Compute d_I -->
-<!-- d_I <- lapply(seq(length(shape_mappers)), function(i){ -->
-<!--   A <- shape_mappers[[i]]$simplicial_complex$as_adjacency_matrix() -->
-<!--   A[A == 1L] <- as.matrix(shape_hd[[i]])[A == 1L] -->
-<!--   normalize(igraph::distances(igraph::graph_from_adjacency_matrix(A, weighted=TRUE, mode="undirected"))) -->
-<!-- }) -->
-
-
-<!-- ``` -->
-
-
-
-<!-- Computing the gromov-hausdorff distances between them -->
-<!-- ```{r} -->
-<!-- ## Dependencies -->
-<!-- invisible(sapply(c("ROI", "ROI.plugin.glpk", "nloptr"), function(lib) { library(lib, character.only = TRUE) })) -->
-
-<!-- ## Compute gromov-hausdorff distances between them -->
-<!-- n_s <- length(shapes) -->
-<!-- idx <- combn(n_s, 2) -->
-<!-- p_measure <- function(x){ x / sum(x) } -->
-<!-- normalize <- function(x){ (x-min(x))/diff(range(x)) } -->
-
-<!-- ## Using hausdorff approximation -->
-<!-- gh_dh <- mapply(function(i, j){ -->
-<!--   mu_X <- p_measure(sapply(shape_mappers[[i]]$vertices, length)) -->
-<!--   mu_Y <- p_measure(sapply(shape_mappers[[j]]$vertices, length)) -->
-<!--   Mapper::gromov_hausdorff(d_X = shape_hd[[i]], d_Y = shape_hd[[j]], mu_X = mu_X, mu_Y = mu_Y) -->
-<!-- }, idx[1,], idx[2,], SIMPLIFY = FALSE) -->
-<!-- # saveRDS(gh_dh, "gh_dh.rds") -->
-<!-- gh_dh <- readRDS("~/mapper/gh_dh.rds") -->
-
-<!-- ## Using intrinsic distance -->
-<!-- gh_di <- mapply(function(i, j){ -->
-<!--   mu_X <- p_measure(sapply(shape_mappers[[i]]$vertices, length)) -->
-<!--   mu_Y <- p_measure(sapply(shape_mappers[[j]]$vertices, length)) -->
-<!--   Mapper::gromov_hausdorff(d_X = d_I[[i]], d_Y = d_I[[j]], mu_X = mu_X, mu_Y = mu_Y) -->
-<!-- }, idx[1,], idx[2,], SIMPLIFY = FALSE) -->
-<!-- # saveRDS(gh_di, "gh_di.rds") -->
-<!-- gh_di <- readRDS("~/mapper/gh_di.rds") -->
-<!-- ``` -->
-
-<!-- Plot rgl maps -->
-<!-- ```{r} -->
-<!-- test_idx <- 2194 -->
-<!-- i <- idx[1,test_idx]; j <- idx[2,test_idx] -->
-<!-- shape_j <- with(list(sm=shapes[[j]][shape_lm[[j]], ]), { -->
-<!--   cbind(sm[,1] + 2.5, sm[,2], sm[,3]) -->
-<!-- }) -->
-<!-- rgl::plot3d( -->
-<!--   rbind(shapes[[i]][shape_lm[[i]], ], shape_j),  -->
-<!--   col = c(bin_color(shape_ecc[[i]]), bin_color(shape_ecc[[j]])) -->
-<!-- ) -->
-
-<!-- vi_xy <- sapply(shape_mappers[[i]]$vertices, function(vi){  -->
-<!--   colMeans(shapes[[i]][shape_lm[[i]][vi],,drop=FALSE]) -->
-<!-- }) -->
-<!-- vj_xy <- sapply(shape_mappers[[j]]$vertices, function(vj){  -->
-<!--   colMeans(shape_j[vj,,drop=FALSE]) -->
-<!-- }) -->
-
-<!-- with(list(map=gh_di[[test_idx]]$qop_res$correspondences$xy, si=shapes[[i]][shape_lm[[i]], ], sj=shape_j), { -->
-<!--   for (x in seq(length(map))){ -->
-<!--     y <- map[x] -->
-<!--     rgl::segments3d(x = rbind(vi_xy[,x], vj_xy[,y])) -->
-<!--   } -->
-
-<!-- }) -->
-
-<!-- rgl::segments3d() -->
-
-<!-- library("igraph") -->
-<!-- g1 <- shape_mappers[[i]]$as_igraph() -->
-<!-- g1_xy <- apply(igraph::layout_with_fr(g1, coords = cmdscale(d_H[[i]], k = 2)), 2, normalize) -->
-<!-- g1_el <- shape_mappers[[i]]$simplicial_complex$as_edge_list()+1L -->
-
-<!-- g2 <- shape_mappers[[j]]$as_igraph() -->
-<!-- g2_xy <- apply(igraph::layout_with_fr(g2, coords = cmdscale(d_H[[j]], k = 2)), 2, normalize) -->
-<!-- g2_el <- shape_mappers[[j]]$simplicial_complex$as_edge_list()+1L -->
-<!-- g2_xy[,1] <- g2_xy[,1] + 1.5 -->
-
-<!-- plot.new() -->
-<!-- plot.window(xlim=range(c(g1_xy[,1],g2_xy[,1])), ylim = range(c(g1_xy[,2],g2_xy[,2])), asp = 1) -->
-
-<!-- ## draw correspondences -->
-<!-- map <- gh_dh[[1]]$lop_res$correspondences$xy -->
-<!-- pair_idx <- sample(seq(length(map)), size = 10, replace = FALSE) -->
-<!-- apply(cbind(seq(nrow(g1_xy))[pair_idx], map[pair_idx]), 1, function(e){ -->
-<!--   segments(x0 = g1_xy[e[1],1], y0 = g1_xy[e[1],2], x1 = g2_xy[e[2],1], y1 = g2_xy[e[2],2],  -->
-<!--            col=adjustcolor("blue", alpha.f = 0.45), lwd=1.5, lty=2) -->
-<!-- }) -->
-<!-- apply(g1_el, 1, function(e){ -->
-<!--   segments(x0 = g1_xy[e[1],1], y0 = g1_xy[e[1],2], x1 = g1_xy[e[2],1], y1 = g1_xy[e[2],2], col = "gray", lwd=1.5) -->
-<!-- }) -->
-<!-- points(g1_xy, pch=20, cex=V(g1)$size*1/12, col=V(g1)$color) -->
-<!-- apply(g2_el, 1, function(e){ -->
-<!--   segments(x0 = g2_xy[e[1],1], y0 = g2_xy[e[1],2], x1 = g2_xy[e[2],1], y1 = g2_xy[e[2],2], col = "gray", lwd=1.5) -->
-<!-- }) -->
-<!-- points(g2_xy, pch=20, cex=V(g2)$size*1/12, col=V(g2)$color) -->
-
-
-<!-- invisible(sapply(c("ROI", "ROI.plugin.glpk", "nloptr"), function(lib) { library(lib, character.only = TRUE) })) -->
-
-<!-- # for (i in 1:nrow(X)){ -->
-<!-- #   segments(X[i,1], X[i,2], translated_Y[correspondence[i],1], translated_Y[correspondence[i],2], col = "blue") -->
-<!-- # } -->
-<!-- #  -->
-<!-- # g1 <- shape_mappers[[i]]$as_igraph() -->
-<!-- # g1_xy <- apply(igraph::layout_with_fr(g1, coords = cmdscale(d_H[[i]], k = 2)), 2, normalize) -->
-
-<!-- # g1 <- shape_mappers[[i]]$as_igraph() -->
-<!-- # g2 <- shape_mappers[[j]]$as_igraph() -->
-<!-- # plot(igraph::disjoint_union(g1, g2)) -->
-<!-- # igraph: -->
-
-
-
-<!-- Plot heatmap  -->
-<!-- ```{r} -->
-<!-- ## Placeholder matrix -->
-<!-- gh_dist <- matrix(0, nrow=n_s, ncol=n_s) -->
-
-<!-- ## Fill lower-triangular w/ result of interest -->
-<!-- gh_dist[lower.tri(gh_dist)] <- sapply(gh_dh, function(gh_res) gh_res$qop_res$gh) -->
-<!-- subtitle <- "QOP soln w/ hausdorff approximation (dH)" -->
-
-<!-- gh_dist[lower.tri(gh_dist)] <- sapply(gh_dh, function(gh_res) gh_res$lop_res$gh) -->
-<!-- subtitle <- "LOP soln of FLB w/ hausdorff approximation (dH)" -->
-
-<!-- gh_dist[lower.tri(gh_dist)] <- sapply(gh_di, function(gh_res) gh_res$qop_res$gh) -->
-<!-- subtitle <- "QOP soln w/ intrinsic distance (dI)" -->
-
-<!-- gh_dist[lower.tri(gh_dist)] <- sapply(gh_di, function(gh_res) gh_res$lop_res$gh) -->
-<!-- subtitle <- "LOP soln of FLB w/ intrinsic distance (dI)" -->
-
-<!-- ## Convert to symmetric distance matrix  -->
-<!-- gh_class <- as.matrix(as.dist(gh_dist)) -->
-
-<!-- ## (Optional, for visualization) -->
-<!-- # diag(gh_class) <- min(gh_dist[gh_dist > 0]) -->
-
-<!-- ## Plot heat plot w/ uniform rainbow colors -->
-<!-- library("ggplot2") -->
-<!-- pal <- viridis::magma(1000) -->
-<!-- rownames(gh_class) <- toupper(names(shapes)) -->
-<!-- colnames(gh_class) <- toupper(names(shapes)) -->
-<!-- gh_melt <- reshape2::melt(gh_class) -->
-<!-- colnames(gh_melt) <- c("shape_x", "shape_y", "GH") -->
-<!-- dim_labels <- gsub(x = levels(gh_melt$shape_x), pattern = "(.*)\\.OBJ", replacement = "\\1") -->
-<!-- gh_heatmap <- ggplot(data = gh_melt, mapping = aes(x = shape_x, y = rev(shape_y))) +  -->
-<!--   geom_tile(aes(fill = GH), colour = "grey50") + -->
-<!--   scale_x_discrete(labels = dim_labels) +  -->
-<!--   scale_y_discrete(labels = rev(dim_labels)) +  -->
-<!--   ggplot2::xlab("") + ggplot2::ylab("")+ -->
-<!--   ggplot2::ggtitle("Lp Gromov-Wasserstein distance between Mappers", subtitle = subtitle) + -->
-<!--   ggplot2::scale_fill_gradientn(colors = pal) +  -->
-<!--   ggplot2::theme(axis.text.y = element_text(size = 6)) + -->
-<!--   ggplot2::theme(axis.text.x = element_text(angle = 60, hjust = 1, size = 6)) -->
-<!-- gh_heatmap -->
-
-
-
-<!-- ``` -->
-
-
-<!-- ```{r} -->
-<!-- gh_dist <- matrix(0, nrow = n_s, ncol = n_s) -->
-<!-- ii <- 1L  -->
-<!-- for (i in seq(2, n_s)){  -->
-<!--   for (j in seq(i)){  -->
-<!--     print(c(i, j)) -->
-<!--     gh_dist[i,j] <- gh_aux[[ii]]$qop_res$gh -->
-<!--     ii <- ii + 1L -->
-<!--   }  -->
-<!-- } -->
-<!-- idx <- do.call(cbind, lapply(seq(2, n_s), function(i) sapply(seq(i), function(j){ c(i, j)}))) -->
-<!-- gh_dist <- sapply(gh_aux, function(gh_res) gh_res$qop_res$gh) -->
-
-<!-- for ( i in seq(length(gh_aux))){ -->
-<!--   with(list(ij=idx[,i]), { -->
-<!--     gh_dist[ij[1], ij[2]] <- gh_aux[[i]]$qop_res$gh -->
-<!--   }) -->
-<!-- } -->
-<!-- gh_dist <- as.dist(gh_dist) -->
-
-<!-- # gh_class <- as.table(as.matrix(gh_dist)) -->
-<!-- gh_class <- as.matrix(gh_dist) # log(as.matrix(gh_dist) + 1) -->
-<!-- rownames(gh_class) <- toupper(names(shapes)) -->
-<!-- colnames(gh_class) <- toupper(names(shapes)) -->
-<!-- diag(gh_class) <- min(unique(gh_dist)) -->
-<!-- gh_melt <- reshape2::melt(gh_class) -->
-<!-- colnames(gh_melt) <- c("shape_x", "shape_y", "GH") -->
-<!-- rbw <- rev(rainbow(start=0, end = 4/6, n = 2)) -->
-<!-- gh_heatmap <- ggplot(data = gh_melt, mapping = aes(x = shape_x, y = rev(shape_y))) +  -->
-<!--   geom_tile(aes(fill = GH), colour = "grey50") + -->
-<!--   scale_y_discrete(labels = rev(levels(gh_melt$shape_y))) +  -->
-<!--   scale_fill_gradient(low = rbw[1], high = rbw[2]) -->
-<!-- gh_heatmap -->
-<!-- ``` -->
-
-
-
-<!-- ```{r} -->
-<!-- # elephant_obj <- readobj::read.obj(file.path(base_path, "elephant-poses", "elephant-reference.obj")) -->
-<!-- # i <- 22  -->
-<!-- # rgl::plot3d(shapes[[i]][shape_lm[[i]],], col = Mapper::bin_color(shape_ecc[[i]])) -->
-
-<!-- ## The mapper  -->
-<!-- m <- Mapper::MapperRef$new(X = tourr::rescale(shapes[[i]][shape_lm[[i]],])) -->
-<!-- m$use_cover(filter_values = matrix(shape_ecc[[i]]),  -->
-<!--             typename = "fixed rectangular", number_intervals=15L, percent_overlap=50) -->
-<!-- m$use_distance_measure(measure = "euclidean") -->
-<!-- # m$use_clustering_algorithm(cl = "single", num_bins = 10) -->
-<!-- m$use_clustering_algorithm(cl = "single", cutoff_method = "continuous") -->
-<!-- m$compute_k_skeleton(k = 1L) -->
-
-<!-- m$as_grapher() %>% grapher::enableForce() -->
-
-<!-- layout(matrix(1:6, nrow = 2)) -->
-<!-- for ( i in grep(x=names(shapes), "elephant")[1:6] ){ -->
-<!--   ## The mapper  -->
-<!--   m <- Mapper::MapperRef$new(X = tourr::rescale(shapes[[i]][shape_lm[[i]],])) -->
-<!--   m$use_cover(filter_values = matrix(shape_ecc[[i]]),  -->
-<!--               typename = "fixed rectangular", number_intervals=15L, percent_overlap=50) -->
-<!--   m$use_distance_measure(measure = "euclidean") -->
-<!--   m$use_clustering_algorithm(cl = "single", cutoff_method = "continuous") -->
-<!--   m$compute_k_skeleton(k = 1L) -->
-<!--   plot(m$as_igraph()) -->
-<!-- } -->
-
-
-<!-- # Mapper::gromov_hausdorff() -->
-
-<!-- ## Connect points in the mesh -->
-<!-- # A <- matrix(0L, nrow=n_lm, ncol=n_lm) -->
-<!-- # with(list(idx=elephant_obj$shapes[[1]]$indices+1L, lm = shape_lm[[i]]), { -->
-<!-- #   cm <- function(x){ match(x, lm) } -->
-<!-- #   invisible(apply(combn(3, 2), 2, function(ij){ -->
-<!-- #     tmp <- intersect(which(idx[ij[1],] %in% lm), which(idx[ij[2],] %in% lm)) -->
-<!-- #     A[cm(idx[ij[1],tmp]), cm(idx[ij[2],tmp])] <<- 1L -->
-<!-- #   })) -->
-<!-- # }) -->
-
-
-<!-- shape_xyz <- shapes[[i]][shape_lm[[i]],] -->
-<!-- shape_dist <- as.matrix(parallelDist::parallelDist(shape_xyz, method = p_str)) -->
-<!-- shape_dist[A == 0L] <- 0L -->
-
-<!-- g <- igraph::graph_from_adjacency_matrix(shape_dist, weighted = TRUE, mode = "undirected") -->
-<!-- wut <- igraph::distances(g) -->
-<!-- d_sum <- rowMeans(wut) -->
-<!-- rgl::plot3d(shape_xyz, col = Mapper::bin_color(d_sum)) -->
-
-<!-- del_xyz <- geometry::delaunayn(shape_xyz) -->
-<!-- A <- matrix(0L, nrow=n_lm, ncol=n_lm) -->
-<!-- invisible(apply(del_xyz, 1, function(xyzw){ -->
-<!--   apply(combn(4, 2), 2, function(i){ A[xyzw[i[1]], xyzw[i[2]]] <<- 1 }) -->
-<!-- })) -->
-<!-- shape_dist <- as.matrix(parallelDist::parallelDist(shape_xyz, method = p_str)) -->
-<!-- shape_dist[A == 0L] <- 0L -->
-
-<!-- quads <- lapply(1:nrow(del_xyz), function(i){ -->
-<!--   rbind(shape_xyz[del_xyz[i,1],],shape_xyz[del_xyz[i,2],], shape_xyz[del_xyz[i,3],], shape_xyz[del_xyz[i,4],]) -->
-<!-- }) -->
-<!-- shape_quads <- do.call(rbind, quads) -->
-
-
-
-<!-- elephant_obj$shapes[[1]]$indices[, 1:10] -->
-<!-- ``` -->
-
-
-<!-- Testing just a few shapes -->
-<!-- ```{r} -->
-<!-- ## Testing  -->
-<!-- subset <- grep(x = names(shapes), pattern = "(elephant|camel|face|head)-(0[0-5]|reference)(-.*)?\\.obj", value = TRUE) -->
-<!-- subset_idx <- match(subset, names(shapes)) -->
-<!-- shapes_ss <- shapes[subset_idx] -->
-<!-- shape_ss_hd <- shape_hd[subset_idx] -->
-<!-- shape_ss_mappers <- shape_mappers[subset_idx] -->
-
-<!-- ## Plot the mappers as igraphs -->
-<!-- layout(matrix(seq(9), nrow=3, byrow = TRUE)) -->
-<!-- for (i in c(1, 2, 3, 7, 8, 9, 13, 14, 15)){  -->
-<!--   g <- shape_ss_mappers[[i]]$as_igraph() -->
-<!--   xy <- igraph::layout.auto(g) -->
-<!--   g <- igraph::remove.vertex.attribute(g, "label") -->
-<!--   v_size <- igraph::vertex_attr(g, "size")-7 -->
-<!--   plot(g, layout = xy, margin=rep(-0.30, 4), vertex.size=v_size, vertex.label=NA)  -->
-<!-- } -->
-
-<!-- ## Get the GH distance  -->
-<!-- invisible(sapply(c("ROI", "ROI.plugin.glpk", "nloptr"), function(lib) { library(lib, character.only = TRUE) })) -->
-<!-- n_s <- length(shapes_ss) -->
-<!-- idx <- combn(n_s, 2) -->
-<!-- p_measure <- function(x){ x / sum(x) } -->
-<!-- normalize <- function(x){ (x-min(x))/diff(range(x))} -->
-<!-- gh_res <- mapply(function(i, j){ -->
-<!--   mu_X <- p_measure(sapply(shape_ss_mappers[[i]]$vertices, length)) -->
-<!--   mu_Y <- p_measure(sapply(shape_ss_mappers[[j]]$vertices, length)) -->
-<!--   Mapper::gromov_hausdorff(d_X = shape_ss_hd[[i]], d_Y = shape_ss_hd[[j]],  -->
-<!--                            mu_X = mu_X, mu_Y = mu_Y) -->
-<!-- }, idx[1,], idx[2,], SIMPLIFY = FALSE) -->
-
-<!-- gh_dist_lop <- matrix(0, nrow = n_s, ncol = n_s) -->
-<!-- gh_dist_lop[lower.tri(gh_dist_lop)] <- sapply(gh_res, function(lst) lst$lop_res$gh) -->
-<!-- gh_dist_lop <- as.matrix(as.dist(gh_dist_lop)) -->
-
-<!-- gh_dist <- matrix(0, nrow = n_s, ncol = n_s) -->
-<!-- gh_dist[lower.tri(gh_dist)] <- sapply(gh_res, function(lst) lst$qop_res$gh) -->
-<!-- gh_dist <- as.matrix(as.dist(gh_dist)) -->
-<!-- # diag(gh_dist) <- min(gh_dist[gh_dist != 0]) -->
-
-
-
-
-
-<!-- from <- 2L; to <- 1L -->
-<!-- normalize <- function(X) { apply(X, 2, function(x) (x - min(x))/diff(range(x))) } -->
-<!-- G_pair <- list(shape_ss_mappers[[from]]$as_igraph(), shape_ss_mappers[[to]]$as_igraph()) -->
-<!-- xy <- lapply(lapply(G_pair, igraph::layout.auto), normalize) -->
-<!-- G <- igraph::disjoint_union(G_pair[[1]], G_pair[[2]]) -->
-<!-- corr_edges <- cbind(seq(igraph::vcount(G_pair[[1]])), igraph::vcount(G_pair[[1]]) + gh_aux[[2]]$correspondences$xy) -->
-<!-- G <- igraph::add_edges(G, as.vector(t(corr_edges)), attr = list(color=rep("blue", nrow(corr_edges)))) -->
-<!-- xy_tr <- do.call(rbind, list(xy[[1]], cbind(xy[[2]][,1]+2, xy[[2]][,2]))) -->
-<!-- plot(G, layout = xy_tr, vertex.cex=0.1, vertex.size=4, vertex.label=NA) # -->
-
-
-<!-- igraph::vcount(G_pair[[1]]) -->
-
-<!-- g <- shape_ss_mappers[[from]]$as_igraph() -->
-<!-- xy <- igraph::layout.auto(g) -->
-
-<!-- v_size <- igraph::vertex_attr(g, "size")-7 -->
-<!-- plot(g, layout = xy, margin=rep(-0.40, 4), vertex.size=v_size, vertex.label=NA)  -->
-
-
-<!-- g <- shape_ss_mappers[[from]]$as_igraph() -->
-<!-- xy <- igraph::layout.auto(g) -->
-<!-- g <- igraph::remove.vertex.attribute(g, "label") -->
-<!-- v_size <- igraph::vertex_attr(g, "size")-7 -->
-<!-- plot(g, layout = xy, margin=rep(-0.40, 4), vertex.size=v_size, vertex.label=NA)  -->
-
-<!-- gh_aux[[1]]$correspondences$xy -->
-
-<!-- gh_class <- as.matrix(gh_dist) # log(as.matrix(gh_dist) + 1) -->
-<!-- gh_class <- as.matrix(gh_dist_lop) -->
-<!-- gh_class <- (gh_dist+gh_dist_lop)/2 -->
-
-
-<!-- library(ggplot2) -->
-<!-- rbw <- cetcolor::cet_pal(100, alpha = 0.80) -->
-<!-- rownames(gh_class) <- toupper(names(shapes)[subset_idx]) -->
-<!-- colnames(gh_class) <- toupper(names(shapes)[subset_idx]) -->
-<!-- gh_melt <- reshape2::melt(gh_class) -->
-<!-- colnames(gh_melt) <- c("shape_x", "shape_y", "GH") -->
-<!-- gh_heatmap <- ggplot(data = gh_melt, mapping = aes(x = shape_x, y = rev(shape_y))) +  -->
-<!--   geom_tile(aes(fill = GH), colour = "grey50") + -->
-<!--   scale_y_discrete(labels = rev(levels(gh_melt$shape_y))) +  -->
-<!--   ggplot2::scale_fill_gradientn(colors = rbw) -->
-<!-- gh_heatmap -->
-
-
-
-
-<!-- gh_heatmap <- ggplot(data = gh_melt, mapping = aes(x = shape_x, y = rev(shape_y))) +  -->
-<!--   geom_tile(aes(fill = GH), colour = "grey50") + -->
-<!--   scale_y_discrete(labels = rev(levels(gh_melt$shape_y))) +  -->
-<!--   scale_fill_gradient(low = rbw[1], high = rbw[2]) -->
-
-<!-- ``` -->
-
-<!-- ```{r} -->
-
-<!-- elephant_3d <- cmdscale(shape_hd[[22]], k = 3) -->
-<!-- gg <- shape_mappers[[22]]$as_grapher(construct_widget = FALSE) -->
-<!-- g <- shape_mappers[[22]]$as_igraph() -->
-<!-- igraph::rglplot(g, layout = elephant_3d, vertex.label = NA) -->
-
-<!-- gg$nodes <- with(gg$nodes, { -->
-<!--   data.frame(id=id, r=r, x=elephant_3d[,1], y=elephant_3d[,1], z=elephant_3d[,1], color=vertex_colors) -->
-<!-- }) -->
-<!-- gg$links <- with(gg$links, { -->
-<!--   data.frame(source=from, target=to) -->
-<!-- }) -->
-
-
-<!--   theme(axis.text.x = element_te) -->
-<!--   theme_void() -->
-<!--   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),  -->
-<!--         panel.background = element_blank(), -->
-<!--         axis.title.x=element_blank(), -->
-<!--         axis.text.x=element_blank(), -->
-<!--         axis.ticks.x=element_blank()) -->
-<!-- gh_heatmap -->
-
-<!-- for (i in seq(length(shapes))){ -->
-<!--   for (j in seq(length(shapes))){ -->
-<!--     n_x <- attr(shape_hd[[i]], "Size") -->
-<!--     n_y <- attr(shape_hd[[j]], "Size") -->
-<!--     test <- Mapper::gromov_hausdorff(d_X = shape_hd[[i]], d_Y = shape_hd[[j]],  -->
-<!--                              mu_X = rep(1, n_x)/n_x, mu_Y = rep(1, n_y)/n_y) -->
-<!--   } -->
-<!-- } -->
-<!-- image(x = 1:n_s, y = 1:n_s, z = as.matrix(gh_dist)[,n_s:1L], axes = FALSE, xlab="", ylab="") -->
-
-<!-- levelplot(shape_gh) -->
-
-
-<!-- shape[[1]] -->
-<!-- # rgl::plot3d(deer) -->
-<!-- shape_landmarks <- Mapper::landmarks(shapes[[1]], 10) -->
-
-<!-- rgl::plot3d(shapes[[1]], col = "black") -->
-<!-- rgl::points3d(shapes[[1]][shape_landmarks,,drop=FALSE], col = "red") -->
-
-
-<!-- x <- replicate(2, rnorm(10)) -->
-<!-- y <- replicate(2, rnorm(10)) -->
-<!-- gamma <- gromov_hausdorff(dist(x), dist(y)) -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-
-<!-- x <- cmdscale(shape_hd[[i]]) -->
-<!-- y <- cmdscale(shape_hd[[j]]) -->
-<!-- t_y <- cbind(y[,1]+2.0, y[,2]) -->
-<!-- plot(rbind(x, t_y),  -->
-<!--      col = c(rep("black", attr(shape_hd[[i]], "Size")), rep("red", attr(shape_hd[[j]], "Size"))), pch = 20) -->
-<!-- x_to_y <- apply(relist(soln$solution, idx), 1, which.max) -->
-<!-- for (i in 1:nrow(x)){ -->
-<!--   segments(x[i,1], x[i,2], t_y[x_to_y[i],1], t_y[x_to_y[i],2], col = "blue") -->
-<!-- } -->
-
-<!-- ``` -->
-<!-- ```{r, code_folding='hide'} -->
-<!-- get_obj_vertices <- function(file_path){ -->
-<!--   line_array <- readLines(file_path) -->
-<!--   floating_pt <- "([-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?)" -->
-<!--   vertex_regex <- paste("v", floating_pt, floating_pt, floating_pt, sep="\\s+") -->
-<!--   vertices <- grep(vertex_regex, line_array, value=T, perl=T) -->
-<!--   coords <- lapply(c(1, 3, 5), function(i) as.numeric(gsub(vertex_regex, paste0("\\", i), vertices))) -->
-<!--   return(do.call(cbind, coords)) -->
-<!-- } -->
-<!-- base_path <- file.path("~", "mapper", "ignore", "shapes") -->
-<!-- shape_files <- c("Bluewhale", "Elephant", "FemaleHead_Smiling", "FemaleHead", "Frog", "Gorilla", "Moose",  -->
-<!--                  "MountainLion", "Panda", "PolarBear", "Tiger", "WhiteTailedDeer") -->
-
-<!-- ## Read in the shapes -->
-<!-- shapes <- structure(lapply(shape_files, function(shape_name){ -->
-<!--   get_obj_vertices(file.path(base_path, paste0(shape_name, ".obj"))) -->
-<!-- }), names = shape_files) -->
-
-<!-- ## Landmarks  -->
-<!-- shape_lm <- pbapply::pblapply(shapes, function(shape_xyz){ Mapper::landmarks(shape_xyz, n = 3000) }) -->
-<!-- ``` -->
-
-<!-- Landmark animation -->
-
-<!-- ```{r} -->
-<!-- rotate <- function(X, theta){ -->
-<!--   theta <- theta*pi/180 # radians -->
-<!--   r <- matrix(c(cos(theta), sin(theta), -sin(theta), cos(theta)), nrow = 2) -->
-<!--   t(r %*% t(X)) -->
-<!-- } -->
-<!-- X <- rotate(shapes$`horse-01.obj`[,2:3], 90) -->
-<!-- lm_idx <- Mapper::landmarks(X, n = 1200) -->
-<!-- animation::saveGIF({ -->
-<!--   layout(matrix(c(1, 2), nrow = 1)) -->
-<!--   for (i in c(2:15, seq(16,length(lm_idx), by = 30))){ -->
-<!--     plot(X[lm_idx[1:i],], xlab="", ylab="", main=sprintf("Landmark data set (size: %d)", i),  -->
-<!--          xaxt="n", yaxt="n", pch=20, cex=0.7,  -->
-<!--          col = adjustcolor("red", alpha.f = 0.8),  -->
-<!--          xlim = range(X[,1]), ylim = range(X[,2]) -->
-<!--     ) -->
-<!--     plot(X, xlab="", ylab="", main=sprintf("Reference data set (size: %d)", nrow(X)),  -->
-<!--          xaxt="n", yaxt="n", pch=20, cex=0.7,  -->
-<!--          col = adjustcolor("black", alpha.f = 0.4) -->
-<!--     ) -->
-<!--   } -->
-<!-- }, movie.name = "landmark_anim.gif", ani.width = 480*3, ani.height = 480, interval = 0.4) -->
-<!-- ``` -->
-
-
-
+<a id="ref11">11.</a> Sumner, Robert W., and Jovan Popović. "Deformation transfer for triangle meshes." ACM Transactions on graphics (TOG) 23.3 (2004): 399-405.
