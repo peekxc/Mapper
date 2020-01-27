@@ -12,7 +12,7 @@
 #' \strong{WARNING:} This function may be very computationally expensive. 
 #' @param m A \code{MapperRef} object. 
 #' @return A \code{\link[stats]{dist}} object with \code{Size} equal to the number of vertices. 
-#' @details Currently, this requires the \pkg{RANN} to be installed, and only considers euclidean distance.
+#' @details Currently, this requires the \pkg{RANN} package to be installed, and only considers euclidean distance.
 #' @references Singh, Gurjeet, Facundo Memoli, and Gunnar E. Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.
 #' @export
 hausdorff_distance <- function(m){
@@ -22,8 +22,8 @@ hausdorff_distance <- function(m){
   stopifnot(n_vertex > 0)
   idx <- utils::combn(n_vertex, 2)
   d_h.vec <- apply(idx, 2, function(ii){
-    x1 <- m$X(m$vertices[[ii[1]]])
-    x2 <- m$X(m$vertices[[ii[2]]])
+    x1 <- m$data(m$vertices[[ii[1]]])
+    x2 <- m$data(m$vertices[[ii[2]]])
     xy <- mean(RANN::nn2(data = x1, query = x2, k = 1)$nn.dist)
     yx <- mean(RANN::nn2(data = x2, query = x1, k = 1)$nn.dist)
     max(xy, yx)

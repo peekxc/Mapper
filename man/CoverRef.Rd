@@ -24,9 +24,9 @@ cover for details.
 The following is a list of the fields available for derived classes. Each may be accessed 
 by the \code{self} environment. See \code{?R6} for more details. 
 \itemize{
- \item{\emph{level_sets}:}{ named list, indexed by \code{index_set}, whose values represent indices in the original data set to cluster over.}
- \item{\emph{index_set}:}{ character vector of keys that uniquely index the open sets of the cover.}
- \item{\emph{typename}:}{ unique string identifier identifying the covering method.}
+ \item{\emph{typename}:}{ name of the covering method.}
+ \item{\emph{sets}:}{ named list, indexed by \code{index_set}, representing the collection of sets.}
+ \item{\emph{index_set}:}{ character vector of keys that uniquely index the \code{sets} of the cover.}
 }
 }
 

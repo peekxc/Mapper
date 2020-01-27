@@ -26,7 +26,7 @@ vertices in the mapper. See the reference below for more details. \cr
 \strong{WARNING:} This function may be very computationally expensive.
 }
 \details{
-Currently, this requires the \pkg{RANN} to be installed, and only considers euclidean distance.
+Currently, this requires the \pkg{RANN} package to be installed, and only considers euclidean distance.
 }
 \references{
 Singh, Gurjeet, Facundo Memoli, and Gunnar E. Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.

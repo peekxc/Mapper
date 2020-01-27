@@ -63,7 +63,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Mapper</a>
-        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.2</span>
+        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.3</span>
       </span>
     </div>
 
@@ -90,9 +90,6 @@
     </li>
     <li>
       <a href="../articles/UsingCustomCover.html">Using a custom covering method</a>
-    </li>
-    <li>
-      <a href="../articles/extra/community.html">Community contributed use-cases</a>
     </li>
   </ul>
 </li>
@@ -142,20 +139,12 @@
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>vertex_scale</th>
-      <td><p>scaling function for the vertex sizes.</p></td>
-    </tr>
-    <tr>
       <th>vertex_min</th>
-      <td><p>minimum vertex size.</p></td>
+      <td><p>minimum vertex size. Default is 10.</p></td>
     </tr>
     <tr>
-      <th>vertex_min</th>
-      <td><p>maximum vertex size.</p></td>
-    </tr>
-    <tr>
-      <th>col_pal</th>
-      <td><p>color palette to color the vertices by.</p></td>
+      <th>vertex_max</th>
+      <td><p>maximum vertex size. Default is 25.</p></td>
     </tr>
     </table>
     
@@ -176,6 +165,11 @@ to the number of points they contain, scaled by <code>vertex_scale</code>, and b
 The edges are colored similarly by the average filter value of the points intersecting
 both nodes they connect too.</p>
     
+    <h2 class="hasAnchor" id="see-also"><a class="anchor" href="#see-also"></a>See also</h2>
+
+    <div class='dont-index'><p>Other mapper visualization functions: <code><a href='MapperRef.plot.html'>MapperRef.plot</a></code>,
+  <code><a href='as_pixiplex.html'>as_pixiplex</a></code></p></div>
+    
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
@@ -186,6 +180,8 @@ both nodes they connect too.</p>
       <li><a href="#value">Value</a></li>
 
       <li><a href="#details">Details</a></li>
+
+      <li><a href="#see-also">See also</a></li>
           </ul>
 
   </div>

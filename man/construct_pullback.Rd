@@ -9,7 +9,7 @@
 \item{...}{additional parameters to pass to the \code{clustering_algorithm}.}
 }
 \description{
-Executes the clustering algorithm on subsets of \code{X},
+Executes the clustering algorithm on subsets of \code{X} determined by the \code{$cover}.
 }
 \details{
 This methods uses the function given by \code{clustering_algorithm} field to 

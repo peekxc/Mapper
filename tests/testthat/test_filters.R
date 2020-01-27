@@ -10,14 +10,14 @@ X <- X[sample(seq(nrow(X)), size = 250, replace = FALSE),]
 
 ## Test assignment of filter
 test_that("Can use filters", {
-  m <- MapperRef$new(X = X)
+  m <- MapperRef$new(data = X)
   expect_is(m, "MapperRef")
   expect_silent(m$use_filter(filter = X))
   expect_equal(m$filter(), X)
 })
 
 ## Start with global mapper object
-m <- MapperRef$new(X = X)
+m <- MapperRef$new(data = X)
 
 ## Test principle component filter
 test_that("Principle Components filter works", {

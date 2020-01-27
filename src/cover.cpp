@@ -58,19 +58,6 @@ get_fn_ptr(const std::function<_Res(_ArgTypes...)>& f) {
   fun_ptr_helper<_UniqueId, _Res, _ArgTypes...>::bind(f);
   return fun_ptr_helper<_UniqueId, _Res, _ArgTypes...>::ptr();
 }
-
-// Converts a flat index to a multi index
-vector< size_t > as_multi_idx(size_t idx, const size_t d, const vector< size_t > ni){
-  size_t rem;
-  vector< size_t > res(d);
-  for (size_t d_i = 0; d_i < d; ++d_i) {
-    rem = idx % ni[d_i];
-    res[d_i] = rem;
-    idx -= rem;
-    idx /= ni[d_i];
-  }
-  return(res);
-}
  
 
 // Grid iterator. 
@@ -78,98 +65,97 @@ vector< size_t > as_multi_idx(size_t idx, const size_t d, const vector< size_t >
 // k := highest order simplex to consider
 // order := ply of the cover
 // (return): a function that iterates through the k-fold combinations, constrained to the order of the cover.
-// [[Rcpp::export]]
-void grid_iterator(const std::vector< size_t > ni, const size_t k, const size_t order){
-  
-  // Get the number of open sets + dimension of the space
-  const size_t n_sets = std::accumulate( ::begin(ni), ::end(ni), 1, std::multiplies< size_t >());
-  const size_t dim = ni.size(); 
-  
-  // Maximum simplex dimension is the minimum between the ply and the k
-  const size_t simplex_dim = std::min(k, order);
-  
-  // Maximum different allowed between the indices 
-  const size_t max_dim_diff = std::log(order)/std::log(2);
-  
-  // Evaluates whether a given pair of multi-indices meet the threshold requirement
-  using multi_idx_t = vector< size_t >; 
-  const auto is_potential = [max_dim_diff](const multi_idx_t m1, const multi_idx_t m2) -> bool {
-    size_t max_diff = 0; 
-    for (size_t i = 0; i < m1.size() && max_diff <= max_dim_diff; ++i){
-      size_t diff = m1[i] > m2[i] ? m1[i] - m2[i] : m2[i] - m1[i];
-      if (diff > max_diff){ max_diff = diff; };
-    }
-    return(max_diff <= max_dim_diff);
-  };
-  
-  // Evaluates whether all pairs of a *partial* combination meets the above requirement
-  using comb_t = vector< int32_t >;
-  const auto valid_partial = [&is_potential, ni](const comb_t& comb){
-    const size_t partial_k = comb.size();
-    bool is_valid = true; 
-		apply_combinations(comb.size(), 2, [&is_potential, &is_valid, ni, partial_k](vector< size_t > idx) -> bool {
-		  multi_idx_t m1 = as_multi_idx(idx[0], partial_k, ni);
-		  multi_idx_t m2 = as_multi_idx(idx[1], partial_k, ni);
-		  is_valid = (is_valid && is_potential(m1, m2));
-		  return(is_valid);
-		});
-		Rcout << "is valid: " << is_valid << std::endl; 
-		return(is_valid);
-  };
-  
-  // Predicate to prune invalid combinations
-  const auto valid_comb = [valid_partial](const comb_t& comb) -> bool {
-    if (comb.size() <= 1){ return(true); }
-    return(valid_partial(comb));
-  };
-  
-  // TODO: Return closure which compares k-combination,moves the order 
-  // computation elsewhere
-  const auto tr = pruned_ct(n_sets, k+1, valid_comb);
-  IntegerVector cc = IntegerVector(k+1);
-  Rcout << cc.size() << std::endl; 
-	for (auto& el: tr){
-		std::copy(std::begin(el), std::end(el), std::begin(cc));
-		Rcout << cc << std::endl;
-	}
-  // for (size_t k_i = 1; k_i < simplex_dim; ++k_i){
-  //   
-  // }
-
-  
-  // // Variables to alter in the loop 
-  // vector< bool > v = vector< bool >(n_sets, false);   // permutation vector 
-  // array< size_t, 2 > idx;                             // current k-length combination
-  
-  // // Initialize
-  // std::fill(v.begin(), v.begin() + 2, true);
-  // for (size_t i = 0, cc = 0; i < n_sets; ++i) { 
-  //   if (v[i]) { idx[cc++] = i; }
-  // }
-  //     
-  
-
-  // std::prev_permutation(v.begin(), v.end()); 
-  // array< size_t, 2 > operator*() override { 
-  //       for (size_t i = 0, cc = 0; i < n; ++i) { 
-  //         if (v[i]) { idx[cc++] = i; }
-  //       }
-  //       return idx; 
-  //     }
-  // 
-  // iterator& begin() override { return *new iterator(n_sets, 0); }
-  // iterator& end() override { 
-  //   const size_t n_combs = ((n_sets*(n_sets-1))/2)-1;
-  // 
-  // std::string bitmask(K, 1); // K leading 1's
-  // bitmask.resize(N, 0); // N-K trailing 0's
-  // do {
-  //   for (int i = 0; i < N; ++i) {
-  //     if (bitmask[i]) Rcout << " " << i;
-  //   }
-  //   Rcout << std::endl;
-  // } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
-}
+// void grid_iterator(const std::vector< size_t > ni, const size_t k, const size_t order){
+//   
+//   // Get the number of open sets + dimension of the space
+//   const size_t n_sets = std::accumulate( ::begin(ni), ::end(ni), 1, std::multiplies< size_t >());
+//   const size_t dim = ni.size(); 
+//   
+//   // Maximum simplex dimension is the minimum between the ply and the k
+//   const size_t simplex_dim = std::min(k, order);
+//   
+//   // Maximum different allowed between the indices 
+//   const size_t max_dim_diff = std::log(order)/std::log(2);
+//   
+//   // Evaluates whether a given pair of multi-indices meet the threshold requirement
+//   using multi_idx_t = vector< size_t >; 
+//   const auto is_potential = [max_dim_diff](const multi_idx_t m1, const multi_idx_t m2) -> bool {
+//     size_t max_diff = 0; 
+//     for (size_t i = 0; i < m1.size() && max_diff <= max_dim_diff; ++i){
+//       size_t diff = m1[i] > m2[i] ? m1[i] - m2[i] : m2[i] - m1[i];
+//       if (diff > max_diff){ max_diff = diff; };
+//     }
+//     return(max_diff <= max_dim_diff);
+//   };
+//   
+//   // Evaluates whether all pairs of a *partial* combination meets the above requirement
+//   using comb_t = vector< int32_t >;
+//   const auto valid_partial = [&is_potential, ni](const comb_t& comb){
+//     const size_t partial_k = comb.size();
+//     bool is_valid = true; 
+// 		apply_combinations(comb.size(), 2, [&is_potential, &is_valid, ni, partial_k](vector< size_t > idx) -> bool {
+// 		  multi_idx_t m1 = as_multi_idx(idx[0], partial_k, ni);
+// 		  multi_idx_t m2 = as_multi_idx(idx[1], partial_k, ni);
+// 		  is_valid = (is_valid && is_potential(m1, m2));
+// 		  return(is_valid);
+// 		});
+// 		Rcout << "is valid: " << is_valid << std::endl; 
+// 		return(is_valid);
+//   };
+//   
+//   // Predicate to prune invalid combinations
+//   const auto valid_comb = [valid_partial](const comb_t& comb) -> bool {
+//     if (comb.size() <= 1){ return(true); }
+//     return(valid_partial(comb));
+//   };
+//   
+//   // TODO: Return closure which compares k-combination,moves the order 
+//   // computation elsewhere
+//   const auto tr = pruned_ct(n_sets, k+1, valid_comb);
+//   IntegerVector cc = IntegerVector(k+1);
+//   Rcout << cc.size() << std::endl; 
+// 	for (auto& el: tr){
+// 		std::copy(std::begin(el), std::end(el), std::begin(cc));
+// 		Rcout << cc << std::endl;
+// 	}
+//   // for (size_t k_i = 1; k_i < simplex_dim; ++k_i){
+//   //   
+//   // }
+// 
+//   
+//   // // Variables to alter in the loop 
+//   // vector< bool > v = vector< bool >(n_sets, false);   // permutation vector 
+//   // array< size_t, 2 > idx;                             // current k-length combination
+//   
+//   // // Initialize
+//   // std::fill(v.begin(), v.begin() + 2, true);
+//   // for (size_t i = 0, cc = 0; i < n_sets; ++i) { 
+//   //   if (v[i]) { idx[cc++] = i; }
+//   // }
+//   //     
+//   
+// 
+//   // std::prev_permutation(v.begin(), v.end()); 
+//   // array< size_t, 2 > operator*() override { 
+//   //       for (size_t i = 0, cc = 0; i < n; ++i) { 
+//   //         if (v[i]) { idx[cc++] = i; }
+//   //       }
+//   //       return idx; 
+//   //     }
+//   // 
+//   // iterator& begin() override { return *new iterator(n_sets, 0); }
+//   // iterator& end() override { 
+//   //   const size_t n_combs = ((n_sets*(n_sets-1))/2)-1;
+//   // 
+//   // std::string bitmask(K, 1); // K leading 1's
+//   // bitmask.resize(N, 0); // N-K trailing 0's
+//   // do {
+//   //   for (int i = 0; i < N; ++i) {
+//   //     if (bitmask[i]) Rcout << " " << i;
+//   //   }
+//   //   Rcout << std::endl;
+//   // } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
+// }
 
 
 

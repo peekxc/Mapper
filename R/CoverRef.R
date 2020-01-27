@@ -23,7 +23,8 @@
 CoverRef <- R6::R6Class("CoverRef", 
   private = list(
     .typename = character(0),
-    .sets = NULL
+    .sets = list(), 
+    .cached = FALSE
   ), 
   lock_class = FALSE,  ## Feel free to add your own members
   lock_objects = FALSE ## Or change existing ones 
@@ -42,7 +43,7 @@ CoverRef$set("active", "typename", function(value){
   }
 })
 
-## The level sets must be a list indexed by the index set. If the list is named, a check is performed to make sure the 
+## The sets must be a list indexed by the index set. If the list is named, a check is performed to make sure the 
 ## names match the values of the index set, and in the proper order. Otherwise, the order is assumed to be correct. 
 ## sets ----
 CoverRef$set("active", "sets", 
@@ -70,6 +71,16 @@ CoverRef$set("active", "index_set", function(value){
   }
 })
 
+## Deprecated
+# CoverRef$set("active", "level_sets", function(value){
+#   if (missing(value)){ names(private$.sets) } 
+#   else {
+#     stopifnot(is.vector(value), length(value) == length(self$sets), all(is.character(value)))
+#     names(private$.set) <- value
+#   }
+# })
+
+
 ## The order of a cover is the smallest number n such that
 ## each point of the space belongs to at most n sets in the cover.
 CoverRef$set("active", "order", function(value){
@@ -82,10 +93,10 @@ CoverRef$set("active", "order", function(value){
 ## Defaults to every pairwise combination of level sets. 
 ## neighborhood ----
 CoverRef$set("public", "neighborhood", function(filter, k=1){
-  # if (length(private$.index_set) <= 1L){ return(NULL) }
-  self$index_set 
+  # if (length(private$.index_set) <= 1L){ return(NULL) }  self$index_set 
   # k_combs <- t(combn(length(private$.index_set), k+1))
   # relist(private$.index_set[k_combs], k_combs)
+  return(generic_neighborhood(length(private$.sets), k=k+1L))
 })
 
 ## Validates that the constructed cover is indeed a valid cover. 

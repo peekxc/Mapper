@@ -60,7 +60,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Mapper</a>
-        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.2</span>
+        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.3</span>
       </span>
     </div>
 
@@ -87,9 +87,6 @@
     </li>
     <li>
       <a href="../articles/UsingCustomCover.html">Using a custom covering method</a>
-    </li>
-    <li>
-      <a href="../articles/extra/community.html">Community contributed use-cases</a>
     </li>
   </ul>
 </li>
@@ -127,6 +124,19 @@
       <small>Source: <a href='https://github.com/peekxc/Mapper/blob/master/NEWS.md'><code>NEWS.md</code></a></small>
     </div>
 
+    <div id="mapper-0-9-3" class="section level1">
+<h1 class="page-header">
+<a href="#mapper-0-9-3" class="anchor"></a>Mapper 0.9.3</h1>
+<ul>
+<li>Removed active X field in favor of ‘data’ accessor</li>
+<li>Added support for precomputed ‘dist’ objects</li>
+<li>Refactored covers to ‘construct’; moved ‘construct_cover’ as higher-order method for MapperRef</li>
+<li>Improved BallCover to match more intuitive notion of a ball cover</li>
+<li>Overhauled nerve calculation to use a combination tree to speed up intersection calculations</li>
+<li>Changed measure field to use proxy registry entries and by extension to accept custom distance functions</li>
+<li>Added a few more unit tests</li>
+</ul>
+</div>
     <div id="mapper-0-9-2" class="section level1">
 <h1 class="page-header">
 <a href="#mapper-0-9-2" class="anchor"></a>Mapper 0.9.2</h1>
@@ -170,6 +180,7 @@
     <div id="tocnav">
       <h2>Contents</h2>
       <ul class="nav nav-pills nav-stacked">
+        <li><a href="#mapper-0-9-3">0.9.3</a></li>
         <li><a href="#mapper-0-9-2">0.9.2</a></li>
         <li><a href="#mapper-0-9-1">0.9.1</a></li>
         <li><a href="#mapper-0-9-0">0.9.0</a></li>

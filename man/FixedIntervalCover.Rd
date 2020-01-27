@@ -30,7 +30,7 @@ The mapper corresponding to this cover may be thought of as a relaxed Reeb graph
 
 \seealso{
 Other cover: \code{\link{ArbitraryCover}},
-  \code{\link{BallCover}}, \code{\link{IndexedCover}}
+  \code{\link{BallCover}}
 }
 \author{
 Matt Piekenbrock

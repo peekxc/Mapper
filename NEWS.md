@@ -1,3 +1,12 @@
+# Mapper 0.9.3
+- Removed active X field in favor of 'data' accessor
+- Added support for precomputed 'dist' objects
+- Refactored covers to 'construct'; moved 'construct_cover' as higher-order method for MapperRef
+- Improved BallCover to match more intuitive notion of a ball cover
+- Overhauled nerve calculation to use a combination tree to speed up intersection calculations 
+- Changed measure field to use proxy registry entries and by extension to accept custom distance functions 
+- Added a few more unit tests
+
 # Mapper 0.9.2
 - Added use_data to MapperRef class for uniformity with other methods
 - Added first tutorial vignette on shape comparison

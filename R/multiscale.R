@@ -26,9 +26,9 @@ multiscale <- function(m, max_dim=1L, max_overlap = 50, time = c("integer", "mea
   
   ## Get initial eps parameter to minimize bias on the clusters
   eps_vals <- sapply(m$cover$index_set, function(alpha){
-    preimage <- m$cover$construct_cover(m$filter, alpha)
+    preimage <- as.vector(unlist(m$cover$construct(m$filter, alpha)))
     if (length(preimage) < 3){ return(0) }
-    hcl <- hclust(dist(m$X(preimage)), method = "single")
+    hcl <- hclust(dist(m$data(preimage)), method = "single")
     cutoff_first_threshold(hcl)
   })
   global_eps <- mean(Filter(function(x){ x != 0 }, eps_vals))
@@ -145,7 +145,7 @@ multiscale <- function(m, max_dim=1L, max_overlap = 50, time = c("integer", "mea
       # idx_pairs <- unique(rbind(idx_pairs, do.call(rbind, pairs_to_update)))
       
       ## Update the nerve locally
-      simplices <- m$construct_nerve(indices = pid_labels_to_update, k = k, modify = FALSE)
+      simplices <- do.call(rbind, m$construct_nerve(indices = pid_labels_to_update, k = k, modify = FALSE))
       c_env <- environment(m$clustering_algorithm)
       insert <- FALSE
       for (j in seq(nrow(simplices))){
@@ -197,7 +197,7 @@ multiscale <- function(m, max_dim=1L, max_overlap = 50, time = c("integer", "mea
       if (0 %in% idx){ stop("0-based indices given. Expects 1-based.") }
       if (is.null(idx) || length(idx) == 0){ return(NULL) }
       if (length(idx) <= 2L){ return(rep(1L, length(idx))); }
-      base_hcl <- stats::hclust(parallelDist::parallelDist(self$X(idx)), method = "single")
+      base_hcl <- stats::hclust(parallelDist::parallelDist(self$data(idx)), method = "single")
       cutree(base_hcl, h = g_eps)
     }
   })(global_eps))
@@ -253,7 +253,7 @@ stable_clustering <- function(g_eps){
       if (0 %in% idx){ stop("0-based indices given. Expects 1-based.") }
       if (is.null(idx) || length(idx) == 0){ return(NULL) }
       if (length(idx) <= 2L){ return(rep(1L, length(idx))); }
-      base_hcl <- hclust(parallelDist::parallelDist(self$X(idx)), method = "single")
+      base_hcl <- hclust(parallelDist::parallelDist(self$data(idx)), method = "single")
       c_eps[[pid]] <<- get_eps(self$data(idx))
       return(cutree(base_hcl, h = c_eps[[pid]]))
     } else {
@@ -263,7 +263,7 @@ stable_clustering <- function(g_eps){
       ## Eps-neighborhood check: where in the metric space does this new point fall? 
       p_idx <- setdiff(idx, new_idx)
       nn_eps <- (if (length(p_idx) == 0){ NULL } 
-                 else { RANN::nn2(data=self$X(p_idx), query=self$X(new_idx), searchtype="radius", radius=c_eps[[pid]]) })
+                 else { RANN::nn2(data=self$data(p_idx), query=self$data(new_idx), searchtype="radius", radius=c_eps[[pid]]) })
       nn_idx <- (if (length(p_idx) == 0){ numeric(0) } else { nn_eps$nn.idx[nn_eps$nn.idx != 0] })
       
       ## If the point is not in the eps-neighborhood of any CC, it is a new cluster, perform elementary inclusion

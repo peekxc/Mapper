@@ -63,7 +63,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Mapper</a>
-        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.2</span>
+        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.3</span>
       </span>
     </div>
 
@@ -90,9 +90,6 @@
     </li>
     <li>
       <a href="../articles/UsingCustomCover.html">Using a custom covering method</a>
-    </li>
-    <li>
-      <a href="../articles/extra/community.html">Community contributed use-cases</a>
     </li>
   </ul>
 </li>
@@ -153,8 +150,13 @@
     
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p><code>filter</code> must be either a matrix of coordinate values, a function that returns a matrix of 
-coordinate values, or one of the following predefined filters:</p><ul>
+    <p><code>filter</code> must be either matrix of coordinate values, a function that returns a matrix of 
+coordinate values, or a string selecting from one of the predefined filters below. <br />
+<br /> 
+If a matrix is given (or function returning a matrix), the convention here is that each row 
+represents a point and each column a dimension. <br />
+<br />
+Here's a list of the pre-defined filtering methods supported:</p><ul>
 <li><p><strong>PC</strong> Principle components (with <code><a href='https://www.rdocumentation.org/packages/stats/topics/prcomp'>prcomp</a></code>)</p></li>
 <li><p><strong>IC</strong> Independent components (with <code><a href='https://www.rdocumentation.org/packages/fastICA/topics/fastICA'>fastICA</a></code>)</p></li>
 <li><p><strong>ECC</strong> Eccentricity (internal, change the norm by passing one of \(p\) = [1, 2, Inf])</p></li>

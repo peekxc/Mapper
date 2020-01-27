@@ -32,9 +32,11 @@
 
 <meta property="og:title" content="Ball Cover — BallCover" />
 
-<meta property="og:description" content="This class provides a cover whose open sets are formed by the union of $$\epsilon$$-balls centered 
-about each point. Using this class requires the RANN package to be installed, and thus explicitly assumes
-the filter space endowed with the euclidean metric." />
+<meta property="og:description" content="This class provides a cover whose open sets are formed by landmarks that 
+are each at least epsilon-distance from each other. The landmarks are chosen 
+by the maxmin method (1), in a similar way as e.g. witness 
+complexes are constructed (2). One interpretation of this cover in the context 
+of mapper is given by Dłotko (3)." />
 <meta name="twitter:card" content="summary" />
 
 <meta name="robots" content="noindex">
@@ -65,7 +67,7 @@ the filter space endowed with the euclidean metric." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Mapper</a>
-        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.2</span>
+        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.3</span>
       </span>
     </div>
 
@@ -92,9 +94,6 @@ the filter space endowed with the euclidean metric." />
     </li>
     <li>
       <a href="../articles/UsingCustomCover.html">Using a custom covering method</a>
-    </li>
-    <li>
-      <a href="../articles/extra/community.html">Community contributed use-cases</a>
     </li>
   </ul>
 </li>
@@ -135,9 +134,11 @@ the filter space endowed with the euclidean metric." />
 
     <div class="ref-description">
     
-    <p>This class provides a cover whose open sets are formed by the union of $$\epsilon$$-balls centered 
-about each point. Using this class requires the <code>RANN</code> package to be installed, and thus explicitly assumes
-the filter space endowed with the euclidean metric.</p>
+    <p>This class provides a cover whose open sets are formed by landmarks that 
+are each at least <code>epsilon</code>-distance from each other. The landmarks are chosen 
+by the <code>maxmin</code> method (1), in a similar way as e.g. witness 
+complexes are constructed (2). One interpretation of this cover in the context 
+of mapper is given by Dłotko (3).</p>
     
     </div>
 
@@ -151,8 +152,20 @@ the filter space endowed with the euclidean metric.</p>
 
     
     <dl class='dl-horizontal'>
-<dt><code>epsilon</code></dt><dd><p>:= radius of the ball to form around each point</p></dd>
+<dt><code>epsilon</code></dt><dd><p>radius of the ball to form the \(\epsilon\)-cover</p></dd>
+    <dt><code>method</code></dt><dd><p>metric to create the \(\epsilon\)-cover with</p></dd>
 </dl>
+    
+    <h2 class="hasAnchor" id="references"><a class="anchor" href="#references"></a>References</h2>
+
+    <p>1. Arafat, Naheed Anjum, Debabrota Basu, and Stéphane Bressan. "Topological Data Analysis with \(\epsilon\)-net Induced Lazy Witness Complex." arXiv preprint arXiv:1906.06122 (2019).</p>
+<p>2. De Silva, Vin, and Gunnar E. Carlsson. "Topological estimation using witness complexes." SPBG 4 (2004): 157-166.</p>
+<p>3. Dłotko, Paweł. "Ball mapper: a shape summary for topological data analysis." arXiv preprint arXiv:1901.07410 (2019).</p>
+    
+    <h2 class="hasAnchor" id="see-also"><a class="anchor" href="#see-also"></a>See also</h2>
+
+    <div class='dont-index'><p>Other cover: <code><a href='ArbitraryCover.html'>ArbitraryCover</a></code>,
+  <code><a href='FixedIntervalCover.html'>FixedIntervalCover</a></code></p></div>
     
 
   </div>
@@ -163,6 +176,10 @@ the filter space endowed with the euclidean metric.</p>
       <li><a href="#format">Format</a></li>
 
       <li><a href="#fields">Fields</a></li>
+
+      <li><a href="#references">References</a></li>
+
+      <li><a href="#see-also">See also</a></li>
           </ul>
 
     <h2>Author</h2>

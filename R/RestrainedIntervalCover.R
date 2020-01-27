@@ -30,6 +30,7 @@ RestrainedIntervalCover$set("active", "percent_overlap",
     else {
       if (any(value < 0) || any(value >= 100)){ stop("The percent overlap must be a percentage between [0, 100).") }
       private$.percent_overlap <- value
+      private$.cached <- FALSE
       self
     }
   }
@@ -45,6 +46,7 @@ RestrainedIntervalCover$set("active", "number_intervals",
     else {
       stopifnot(all(value > 0))
       private$.number_intervals <- value
+      private$.cached <- FALSE
       self
     }
   }
@@ -84,38 +86,88 @@ RestrainedIntervalCover$set("public", "format", function(...){
 ## construct_index_set ----
 RestrainedIntervalCover$set("public", "construct_index_set", function(...){
   cart_prod <- arrayInd(seq(prod(self$number_intervals)), .dim = self$number_intervals)
-  self$index_set <- apply(cart_prod, 1, function(x){ sprintf("(%s)", paste0(x, collapse = " ")) })
+  return(apply(cart_prod, 1, function(x){ sprintf("(%s)", paste0(x, collapse = " ")) }))
 })
 
+## Calculates the interval bounds for the sets
+## interval_bounds ----
+RestrainedIntervalCover$set("public", "interval_bounds", function(filter, index=NULL){
+  self$validate(filter)
+  
+  ## Get filter min and max ranges
+  fv <- filter()
+  filter_rng <- apply(fv, 2, range)
+  { filter_min <- filter_rng[1,]; filter_max <- filter_rng[2,] }
+  filter_len <- diff(filter_rng)
+  
+  ## hyper-parameters
+  { k <- self$number_intervals; g <- self$percent_overlap/100 } 
+  r <- filter_len/(k - g*(k - 1L))
+  e <- r * (1 - g)
+  
+  ## If no index is given, construct the entire cover
+  if (missing(index) || is.null(index)){
+    cart_prod <- arrayInd(seq(prod(self$number_intervals)), .dim = self$number_intervals)
+    set_bounds <- t(apply(cart_prod, 1, function(idx){
+      s <- filter_min + (as.integer(idx)-1L) * e
+      c(s, s + r)
+    }))
+  } else {
+    ## index supplied,  check is valid, then compute bounds if so
+    stopifnot(index %in% self$construct_index_set())
+    set_bounds <- do.call(rbind, lapply(index, function(idx_str){
+      idx <- strsplit(substr(idx_str, start=2L, stop=nchar(idx_str)-1L), split = " ")[[1]]
+      s <- filter_min + (as.integer(idx)-1L) * e
+      return(c(s, s + r))
+    }))
+  }
+  
+  ## Expand the sets by a little bit to handle rounding errors
+  idx <- seq(ncol(set_bounds))
+  set_bounds[,idx[idx %% 2 == 0]] <- set_bounds[,idx[idx %% 2 == 0]] + 5*.Machine$double.eps
+  set_bounds[,idx[idx %% 2 == 1]] <- set_bounds[,idx[idx %% 2 == 1]] - 5*.Machine$double.eps
+  return(set_bounds)
+})
 
 ## Given the current set of parameter values, construct the level sets whose union covers the filter space
-## construct_cover ----
-RestrainedIntervalCover$set("public", "construct_cover", function(filter, index=NULL){
+## construct ----
+RestrainedIntervalCover$set("public", "construct", function(filter, index=NULL, cache=FALSE){
   stopifnot(is.function(filter))
   self$validate(filter)
+  
+  ## Check to see if need to reconstruct cover or not. 
+  if (private$.cached && !is.null(self$sets)){ 
+    if (!missing(index)){ return(self$sets[index]) }
+    return(self$sets) 
+  }
   
   ## Get filter values 
   fv <- filter()
   f_dim <- ncol(fv)
   
-  ## If the index set hasn't been made yet, construct it.
-  self$construct_index_set()
-  
-  ## Get filter min and max ranges
-  filter_rng <- apply(fv, 2, range)
-  { filter_min <- filter_rng[1,]; filter_max <- filter_rng[2,] }
-  filter_len <- diff(filter_rng)
-  
-  ## Construct the level sets
-  { k <- self$number_intervals; g <- self$percent_overlap/100 } 
-  r <- filter_len/(k - g*(k - 1L))
-  e <- r * (1 - g)
-  cart_prod <- arrayInd(seq(prod(self$number_intervals)), .dim = self$number_intervals)
-  ls_bnds <- t(apply(cart_prod, 1, function(idx){
-    s <- filter_min + (as.integer(idx)-1L) * e
-    c(s, s + r)
-  }))
-  self$level_sets <- constructIsoAlignedLevelSets(fv, as.matrix(ls_bnds))
-  if (!missing(index)){ return(self$level_sets[[index]]) }
-  invisible(self)
+  ## If no index specified, construct all the sets, saved to the cover.  
+  sets <- NULL
+  if (missing(index) || is.null(index)){
+    set_bnds <- self$interval_bounds(filter)
+    sets <- structure(
+      constructIsoAlignedLevelSets(fv, as.matrix(set_bnds)),
+      names = self$construct_index_set()
+    )
+  } else {
+    index_set <- self$construct_index_set()
+    stopifnot(all(index %in% index_set))
+    set_bnds <- self$interval_bounds(filter, index)  
+    sets <- structure(
+      constructIsoAlignedLevelSets(fv, set_bnds), 
+      names = index_set[match(index, index_set)]
+    )
+  }
+    
+  ## Either cache and return, or just return 
+  if (cache){
+    private$.cached <- TRUE
+    self$sets <- modifyList(self$sets, sets)
+    return(invisible(self$sets))
+  }
+  return(sets)
 })

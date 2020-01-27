@@ -22,6 +22,32 @@ NumericVector dist_subset(const NumericVector& dist, IntegerVector idx){
   return(new_dist);
 }
 
+// Given a 'dist' object (vector) and two (n, m)-length integer vectors of indices (1-based), 
+// create a (n x m) matrix of the pairwise distance between the indices of points represented 
+// in the 'dist' object. Does not check dimensions or indices. 
+// [[Rcpp::export]]
+NumericMatrix dist_subset_pw(const NumericVector& dist, IntegerVector idx1, IntegerVector idx2){
+  const int dist_n = dist.attr("Size");
+  const size_t n = idx1.size();
+  const size_t m = idx2.size();
+  NumericMatrix row_dist = NumericMatrix(n, m);
+  size_t ii, jj; 
+  for (size_t i = 0; i < n; ++i){
+    for (size_t j = 0; j < m; ++j){
+      ii = idx1[i] - 1;
+      jj = idx2[j] - 1;
+      const size_t ij_idx = INDEX_TF(dist_n, (ii < jj ? ii : jj), (ii < jj ? jj : ii));
+      row_dist(i, j) = dist[ij_idx];
+    }
+  }
+  CharacterVector rn = CharacterVector(idx1.begin(), idx1.end());
+  CharacterVector cn = CharacterVector(idx2.begin(), idx2.end());
+  rownames(row_dist) = rn; 
+  colnames(row_dist) = cn; 
+  return(row_dist);
+}
+
+
 NumericVector combine(const NumericVector& t1, const NumericVector& t2){
   std::size_t n = t1.size() + t2.size();
   NumericVector output = Rcpp::no_init(n);

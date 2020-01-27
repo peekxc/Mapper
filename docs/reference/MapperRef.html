@@ -63,7 +63,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Mapper</a>
-        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.2</span>
+        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.3</span>
       </span>
     </div>
 
@@ -90,9 +90,6 @@
     </li>
     <li>
       <a href="../articles/UsingCustomCover.html">Using a custom covering method</a>
-    </li>
-    <li>
-      <a href="../articles/extra/community.html">Community contributed use-cases</a>
     </li>
   </ul>
 </li>
@@ -154,20 +151,20 @@ The underlying complex does not need to be modified by the user, i.e. is complet
     <h2 class="hasAnchor" id="usage"><a class="anchor" href="#usage"></a>Usage</h2>
 
     
-    <pre>m = MapperRef$new(X)</pre>
+    <pre>m = MapperRef$new(data)</pre>
     
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
 
     
     <ul>
-<li><p><strong>X</strong>: The data, either as a matrix, or a function that returns a matrix.</p></li>
+<li><p><strong>data</strong>: The data, either as a matrix, a 'dist' object, or a function that returns a matrix.</p></li>
 </ul>
     
     <h2 class="hasAnchor" id="fields"><a class="anchor" href="#fields"></a>Fields</h2>
 
     
     <ul>
-<li><p><strong>X</strong>: The data, as a function. Evaluation returns the data as a matrix.</p></li>
+<li><p><strong>data</strong>: The data, as a function. Evaluation returns the data as a matrix.</p></li>
 <li><p><strong>filter</strong>: The filter, as a function. Evaluation returns the filtered data as a matrix.</p></li>
 <li><p><strong>cover</strong>: The cover (a <code><a href='CoverRef.html'>CoverRef</a></code> derived object).</p></li>
 <li><p><strong>clustering_algorithm</strong>: The clustering algorithm to use in the pullback.</p></li>
@@ -203,6 +200,15 @@ The underlying complex does not need to be modified by the user, i.e. is complet
     <p>Gurjeet Singh, Facundo Mémoli, and Gunnar Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.</p>
     
 
+    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
+    <pre class="examples"><div class='input'><span class='fu'><a href='https://www.rdocumentation.org/packages/utils/topics/data'>data</a></span>(<span class='st'>"noisy_circle"</span>, <span class='kw'>package</span><span class='kw'>=</span><span class='st'>"Mapper"</span>)
+<span class='no'>left_pt</span> <span class='kw'>&lt;-</span> <span class='no'>noisy_circle</span>[<span class='fu'><a href='https://www.rdocumentation.org/packages/base/topics/which.min'>which.min</a></span>(<span class='no'>noisy_circle</span>[, <span class='fl'>1</span>]),]
+<span class='no'>f_x</span> <span class='kw'>&lt;-</span> <span class='fu'><a href='https://www.rdocumentation.org/packages/base/topics/matrix'>matrix</a></span>(<span class='fu'><a href='https://www.rdocumentation.org/packages/base/topics/apply'>apply</a></span>(<span class='no'>noisy_circle</span>, <span class='fl'>1</span>, <span class='kw'>function</span>(<span class='no'>pt</span>) (<span class='no'>pt</span> - <span class='no'>left_pt</span>)[<span class='fl'>1</span>]))
+<span class='no'>m</span> <span class='kw'>&lt;-</span> <span class='no'>MapperRef</span>$<span class='fu'>new</span>()
+<span class='no'>m</span>$<span class='fu'><a href='use_data.html'>use_data</a></span>(<span class='no'>noisy_circle</span>)
+<span class='no'>m</span>$<span class='fu'><a href='use_filter.html'>use_filter</a></span>(<span class='no'>f_x</span>)
+<span class='no'>m</span>$<span class='fu'><a href='use_cover.html'>use_cover</a></span>(<span class='st'>"fixed interval"</span>, <span class='kw'>number_intervals</span><span class='kw'>=</span><span class='fl'>8L</span>, <span class='kw'>percent_overlap</span><span class='kw'>=</span><span class='fl'>50</span>)
+<span class='no'>m</span>$<span class='fu'><a href='construct_k_skeleton.html'>construct_k_skeleton</a></span>(<span class='kw'>k</span> <span class='kw'>=</span> <span class='fl'>1</span>)</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <h2>Contents</h2>
@@ -223,7 +229,9 @@ The underlying complex does not need to be modified by the user, i.e. is complet
       <li><a href="#more-information">More information</a></li>
 
       <li><a href="#references">References</a></li>
-          </ul>
+      
+      <li><a href="#examples">Examples</a></li>
+    </ul>
 
     <h2>Author</h2>
     <p>Matt Piekenbrock, <a href='mailto:matt.piekenbrock@gmail.com'>matt.piekenbrock@gmail.com</a></p>

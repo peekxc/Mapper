@@ -12,22 +12,22 @@ knitr::opts_chunk$set(
 # Mapper <img src="man/figures/mapper_sticker.png" align="right" width=120 />
 
 ![CRAN\_Status\_Badge](https://www.r-pkg.org/badges/version/mapper)
-[![Appveyor Windows Build status](https://img.shields.io/appveyor/ci/peekxc/Mapper.svg?logo=windows&logoColor=DDDDDD)](https://ci.appveyor.com/project/peekxc/mapper)
-[![Travis OS X Build status](https://img.shields.io/travis/com/peekxc/Mapper.svg?logo=Apple&logoColor=DDDDDD&env=BADGE=osx&label=build&branch=master)](https://travis-ci.com/peekxc/Mapper)
-[![Travis Linux X Build status](https://img.shields.io/travis/com/peekxc/Mapper.svg?logo=linux&logoColor=DDDDDD&env=BADGE=linux&label=build&branch=master)](https://travis-ci.com/peekxc/Mapper)
+[![Appveyor Windows Build status](https://img.shields.io/appveyor/ci/peekxc/Mapper/master.svg?logo=windows&logoColor=DDDDDD)](https://ci.appveyor.com/project/peekxc/mapper)
+[![Travis OS X Build status](https://img.shields.io/travis/com/peekxc/Mapper/master.svg?logo=Apple&logoColor=DDDDDD&env=BADGE=osx&label=build)](https://travis-ci.com/peekxc/Mapper)
+[![Travis Linux X Build status](https://img.shields.io/travis/com/peekxc/Mapper/master.svg?logo=linux&logoColor=DDDDDD&env=BADGE=linux&label=build&branch=master)](https://travis-ci.com/peekxc/Mapper)
 [![Package status](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://www.tidyverse.org/lifecycle/#maturing)
 
 The `Mapper` package provides an [R](https://www.r-project.org/) implementation of the *Mapper* framework (see [1](#mapper_paper)). The package includes: 
 
 - Efficient implementations of *Mapper* components using [Rcpp](https://cran.r-project.org/web/packages/Rcpp/index.html)
 
-- Practical default filters, covers, and other settings for those unfamiliar with *Mapper*
+- Practical default parameters (filters, covers, etc.) for those unfamiliar with *Mapper*
 
-- Composable API via [method chaining](https://adv-r.hadley.nz/r6.html#method-chaining) 
+- Composability via [method chaining](https://adv-r.hadley.nz/r6.html#method-chaining) 
 
-- Pre-configured tools for visualizing and interacting with _mappers_
+- Various options to plot, visualize, and interact with _mappers_
 
-The package is designed to make modifying or extending the *Mapper* method simple and efficient, _without_ limiting its generality. 
+The package is designed to make modifying or extending the *Mapper* method simple and efficient, without limiting its generality. 
 
 ## Installation
 
@@ -38,7 +38,7 @@ require("devtools")
 devtools::install_github("peekxc/Mapper")
 ```
 
-A CRAN release is planned for the near future. 
+A CRAN release is planned for the future. 
 
 ## Getting started
 
@@ -67,17 +67,18 @@ points(cbind(f_x, 1), pch = "|", col = bin_color(f_x), cex = 2)
 
 Below is a illustrative example of how one may go about constructing a _mapper_. 
 ```{r, echo=TRUE, eval=TRUE}
-m <- MapperRef$new(X = eight)$
-  use_filter(filter= f_x)$
+m <- MapperRef$new()$
+  use_data(data = eight)$
+  use_filter(filter = f_x)$
   use_cover(cover = "fixed interval", number_intervals = 5, percent_overlap = 20)$
   use_clustering_algorithm(cl = "single")$
   construct_k_skeleton(k = 1L)
 print(m)
 ```
 
-There are multiple options one may use to visualize __mapper__. A default plotting method is available using an `igraph` determined layout:
+There are multiple options one may use to visualize __mapper__. A default plotting that colors nodes and edges on raindbow gradient is available via the S3 `plot` override:
 ```{r}
-plot(m$simplicial_complex)
+plot(m)
 ```
 
 For other visualization options, see below. 
@@ -92,6 +93,12 @@ Want to change the metric? Pass the name of any proximity measure used in the [p
 m$use_distance_measure("manhattan") ## This is stored as m$measure
 ```
 
+You can also pass an arbitrary 'dist' object:
+```{r}
+x_dist <- dist(eight, method = "manhattan")
+m$use_data(x_dist)
+```
+
 Prefer a different [linkage criteria](https://en.wikipedia.org/wiki/Hierarchical_clustering#Linkage_criteria) to cluster with? Any of the criteria used by [hclust](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/hclust.html) can be swapped in.
 ```{r}
 m$use_clustering_algorithm(cl = "average")
@@ -104,7 +111,7 @@ Or, just replace the clustering algorithm entirely by supplying a function.
 ## idx := point indices in the preimage of the open set indexed by 'pid' 
 ## self := mapper instance object ('m' in this case)
 m$use_clustering_algorithm(cl = function(pid, idx, self){
-  dist_x <- dist(self$X(idx), method = self$measure)
+  dist_x <- self$distance_subset(idx)
   hc <- hclust(dist_x, method = "average")
   eps <- cutoff_first_threshold(hc)
   cutree(hc, h = eps)
@@ -152,14 +159,16 @@ m$simplicial_complex
 The maximum dimension of the nerve is up to you. It's common restrict the *mapper* to $1$-skeleton.
 ```{r}
 m$construct_nerve(k = 0L)
+print(m$simplicial_complex)
 m$construct_nerve(k = 1L)
+print(m$simplicial_complex)
 plot(m$simplicial_complex)
 ```
 
-By default, the `construct...` series of functions enact side-effects and return the instance invisibly, making them suitable to chain. If you want to inspect the result before modifying the instance, pass `modify=FALSE`. For example, to list the vertices that have a non-empty intersection:
+By default, the `construct...` series of functions enact side-effects and return the instance invisibly, making them suitable to chain. If you want to inspect the result before modifying the instance, pass `modify=FALSE`. For example, to list the vertices that have a non-empty intersection (edges that would appear in the 1-skeleton):
 
 ```{r}
-m$construct_nerve(k = 1L, modify = FALSE)
+do.call(rbind, m$construct_nerve(k = 1L, modify = FALSE))
 ```
 
 The $1$-skeleton can be exported to any of the usual graph-type data structures.
@@ -171,7 +180,12 @@ m$simplicial_complex$as_edge_list()
 
 ### Visualizing the __mapper__
 
-To get a quick overview of what the __mapper__ looks like, you can use the default plotting method above given by the [simplextree package](https://github.com/peekxc/simplextree). 
+To get a quick overview of what the __mapper__ looks like, you can use the default S3 `plot` method, which by default uses the underlying [simplextree package](https://github.com/peekxc/simplextree) to plot the complex with sufficient color and size defaults. 
+
+```{r, eval = TRUE, echo = TRUE, out.width='100%'}
+plot(m)
+```
+
 
 Alternatively, the $1$-skeleton can be automatically converted to [igraph](https://igraph.org/r/) objects and customized as needed.
 ```{r, eval = TRUE, echo = TRUE, out.width='100%'}
@@ -185,7 +199,7 @@ For more interactive visualization options, consider the (experimental) [pixiple
 ```{r, eval=TRUE, echo=TRUE, out.width='100%'}
 ## Install with devtools::install_github("peekxc/pixiplex")
 library("pixiplex")
-plot(m$as_pixiplex())
+plot(m$as_pixiplex()) %>% enableForce()
 ```
 
 

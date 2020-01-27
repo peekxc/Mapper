@@ -63,7 +63,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Mapper</a>
-        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.2</span>
+        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.3</span>
       </span>
     </div>
 
@@ -90,9 +90,6 @@
     </li>
     <li>
       <a href="../articles/UsingCustomCover.html">Using a custom covering method</a>
-    </li>
-    <li>
-      <a href="../articles/extra/community.html">Community contributed use-cases</a>
     </li>
   </ul>
 </li>
@@ -171,7 +168,7 @@ If a typename is given, the cover is automatically constructed before being assi
 
 <span class='co'>## Alternative way to specify (and construct) the cover</span>
 <span class='no'>cover</span> <span class='kw'>&lt;-</span> <span class='no'>FixedIntervalCover</span>$<span class='fu'>new</span>(<span class='kw'>number_intervals</span> <span class='kw'>=</span> <span class='fl'>5</span>, <span class='kw'>percent_overlap</span> <span class='kw'>=</span> <span class='fl'>25</span>)
-<span class='no'>cover</span>$<span class='fu'>construct_cover</span>(<span class='kw'>filter</span> <span class='kw'>=</span> <span class='no'>m</span>$<span class='no'>filter</span>)
+<span class='no'>cover</span>$<span class='fu'>construct</span>(<span class='kw'>filter</span> <span class='kw'>=</span> <span class='no'>m</span>$<span class='no'>filter</span>, <span class='kw'>cache</span><span class='kw'>=</span><span class='fl'>TRUE</span>) <span class='co'>## cache=TRUE saves the constructed sets</span>
 <span class='no'>m</span>$<span class='no'>cover</span> <span class='kw'>&lt;-</span> <span class='no'>cover</span></div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">

@@ -22,20 +22,20 @@ The underlying complex does not need to be modified by the user, i.e. is complet
 
 \section{Usage}{
 
-\preformatted{m = MapperRef$new(X)}
+\preformatted{m = MapperRef$new(data)}
 }
 
 \section{Arguments}{
 
 \itemize{
-   \item{\strong{X}}: The data, either as a matrix, or a function that returns a matrix.
+   \item{\strong{data}}: The data, either as a matrix, a 'dist' object, or a function that returns a matrix.
 }
 }
 
 \section{Fields}{
 
 \itemize{
-  \item{\strong{X}}: The data, as a function. Evaluation returns the data as a matrix.
+  \item{\strong{data}}: The data, as a function. Evaluation returns the data as a matrix.
   \item{\strong{filter}}: The filter, as a function. Evaluation returns the filtered data as a matrix.  
   \item{\strong{cover}}: The cover (a \code{\link{CoverRef}} derived object). 
   \item{\strong{clustering_algorithm}}: The clustering algorithm to use in the pullback.
@@ -67,6 +67,16 @@ The underlying complex does not need to be modified by the user, i.e. is complet
 Full documentation available \href{https://peekxc.github.io/Mapper}{online}.
 }
 
+\examples{
+data("noisy_circle", package="Mapper")
+left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
+f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
+m <- MapperRef$new()
+m$use_data(noisy_circle)
+m$use_filter(f_x)
+m$use_cover("fixed interval", number_intervals=8L, percent_overlap=50)
+m$construct_k_skeleton(k = 1)
+}
 \references{
 Gurjeet Singh, Facundo Mémoli, and Gunnar Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.
 }

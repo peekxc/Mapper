@@ -47,7 +47,7 @@ You can construct a _mapper_ with [R6 method chaining](https://adv-r.hadley.nz/r
 ```R
 ## Define the main via chaining R6 methods
 m <- MapperRef$new(noisy_circle)$
-  use_filter(filter = matrix(f_x))$
+  use_filter(filter = f_x)$
   use_cover(cover="fixed interval", number_intervals=5L, percent_overlap=20)$
   use_distance_measure(measure="euclidean")$
   construct_k_skeleton(k=1L)
@@ -66,6 +66,12 @@ print(m$simplicial_complex)
 ```R
 Simplex Tree with (8, 8) (0, 1)-simplices
 ```
+
+You can get a quick 2D plot of the mapper with the overridden `plot` S3 method. 
+```R
+plot(m)
+```
+![Noisy circle example](man/figures/circle.png)
 
 Or print out the full trie structure
 ```R

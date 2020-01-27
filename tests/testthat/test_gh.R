@@ -1,5 +1,26 @@
-# 
-# 
+
+library("Mapper")
+library("testthat")
+testthat::context("Testing hausdorff-like measures")
+
+## Test hausdorff distance
+data("noisy_circle", package="Mapper")
+left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
+f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
+m <- MapperRef$new()$
+  use_data(noisy_circle)$
+  use_filter(f_x)$
+  use_cover(cover="fixed interval", number_intervals=5L, percent_overlap=50)$
+  use_distance_measure("euclidean")$
+  use_clustering_algorithm(cl="single", cutoff_method = "continuous", threshold = 0.0)$
+  construct_k_skeleton(k = 1L)
+
+testthat::test_that("Can compute hausdorff distance", {
+   testthat::expect_silent(Mapper::hausdorff_distance(m))
+  testthat::expect_is(Mapper::hausdorff_distance(m), "dist")                   
+})
+
+
 # invisible(sapply(c("ROI", "ROI.plugin.glpk", "nloptr"), function(lib) { library(lib, character.only = TRUE) }))
 # rotate <- function(X, theta){
 #   theta <- theta*pi/180 # radians

@@ -32,8 +32,7 @@ of mapper is given by Dłotko (3).
 }
 \seealso{
 Other cover: \code{\link{ArbitraryCover}},
-  \code{\link{FixedIntervalCover}},
-  \code{\link{IndexedCover}}
+  \code{\link{FixedIntervalCover}}
 }
 \author{
 Matt Piekenbrock

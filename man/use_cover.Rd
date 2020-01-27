@@ -29,6 +29,6 @@ m$use_cover("fixed interval", number_intervals = 5, percent_overlap = 25)
 
 ## Alternative way to specify (and construct) the cover
 cover <- FixedIntervalCover$new(number_intervals = 5, percent_overlap = 25)
-cover$construct_cover(filter = m$filter)
+cover$construct(filter = m$filter, cache=TRUE) ## cache=TRUE saves the constructed sets
 m$cover <- cover
 }

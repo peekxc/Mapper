@@ -31,7 +31,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Mapper</a>
-        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.2</span>
+        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.3</span>
       </span>
     </div>
 
@@ -58,9 +58,6 @@
     </li>
     <li>
       <a href="../articles/UsingCustomCover.html">Using a custom covering method</a>
-    </li>
-    <li>
-      <a href="../articles/extra/community.html">Community contributed use-cases</a>
     </li>
   </ul>
 </li>
@@ -124,7 +121,7 @@
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/library">library</a></span>(<span class="st">"Mapper"</span>)</a>
 <a class="sourceLine" id="cb2-2" data-line-number="2">left_pt &lt;-<span class="st"> </span>noisy_circle[<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/which.min">which.min</a></span>(noisy_circle[, <span class="dv">1</span>]),]</a>
 <a class="sourceLine" id="cb2-3" data-line-number="3">f_x &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/matrix">matrix</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/apply">apply</a></span>(noisy_circle, <span class="dv">1</span>, <span class="cf">function</span>(pt) (pt <span class="op">-</span><span class="st"> </span>left_pt)[<span class="dv">1</span>]))</a>
-<a class="sourceLine" id="cb2-4" data-line-number="4">m &lt;-<span class="st"> </span><span class="kw"><a href="../reference/Mapper.html">mapper</a></span>(<span class="dt">X =</span> noisy_circle, </a>
+<a class="sourceLine" id="cb2-4" data-line-number="4">m &lt;-<span class="st"> </span><span class="kw"><a href="../reference/Mapper.html">mapper</a></span>(<span class="dt">data =</span> noisy_circle, </a>
 <a class="sourceLine" id="cb2-5" data-line-number="5">            <span class="dt">filter =</span> f_x, </a>
 <a class="sourceLine" id="cb2-6" data-line-number="6">            <span class="dt">cover =</span> <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/list">list</a></span>(<span class="dt">typename=</span><span class="st">"fixed interval"</span>, <span class="dt">number_intervals=</span>5L, <span class="dt">percent_overlap=</span><span class="dv">50</span>),</a>
 <a class="sourceLine" id="cb2-7" data-line-number="7">            <span class="dt">distance_measure =</span> <span class="st">"euclidean"</span>, </a>
@@ -180,8 +177,8 @@
 <div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" data-line-number="1"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/print">print</a></span>(cover)</a></code></pre></div>
 <pre><code>## Fixed Interval Cover: (number intervals = [5], percent overlap = [20]%)</code></pre>
 <p>Once parameterized, the cover may be explicitly constructed via the <code>construct_cover</code> member, before passing back to the <code>MapperRef</code> instance. The <code>construct_cover</code> function uses the given set of parameters to populate the intersection between the open sets in the cover and the given filter data.</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" data-line-number="1">cover<span class="op">$</span><span class="kw">construct_cover</span>(<span class="dt">filter =</span> m<span class="op">$</span>filter) <span class="co">## Now the level sets are populated</span></a>
-<a class="sourceLine" id="cb12-2" data-line-number="2"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/summary">summary</a></span>(cover<span class="op">$</span>level_sets)</a></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" data-line-number="1">cover<span class="op">$</span><span class="kw">construct</span>(<span class="dt">filter =</span> m<span class="op">$</span>filter, <span class="dt">cache =</span> <span class="ot">TRUE</span>) <span class="co">## Now the sets are populated in "$sets"</span></a>
+<a class="sourceLine" id="cb12-2" data-line-number="2"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/summary">summary</a></span>(cover<span class="op">$</span>sets)</a></code></pre></div>
 <pre><code>##     Length Class  Mode   
 ## (1) 459    -none- numeric
 ## (2) 269    -none- numeric
@@ -220,14 +217,14 @@
 <a class="sourceLine" id="cb18-2" data-line-number="2">  dependencies_met &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/lapply">sapply</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">"parallelDist"</span>, <span class="st">"fastcluster"</span>), requireNamespace)</a>
 <a class="sourceLine" id="cb18-3" data-line-number="3">  <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/stopifnot">stopifnot</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/all">all</a></span>(dependencies_met))</a>
 <a class="sourceLine" id="cb18-4" data-line-number="4">  <span class="cf">function</span>(pid, idx, self) {</a>
-<a class="sourceLine" id="cb18-5" data-line-number="5">    dist_x &lt;-<span class="st"> </span>parallelDist<span class="op">::</span><span class="kw"><a href="https://www.rdocumentation.org/packages/parallelDist/topics/parDist">parallelDist</a></span>(self<span class="op">$</span><span class="kw">X</span>(idx), <span class="dt">method =</span> self<span class="op">$</span>measure)</a>
+<a class="sourceLine" id="cb18-5" data-line-number="5">    dist_x &lt;-<span class="st"> </span>self<span class="op">$</span><span class="kw"><a href="../reference/distance_subset.html">distance_subset</a></span>(idx)</a>
 <a class="sourceLine" id="cb18-6" data-line-number="6">    hcl &lt;-<span class="st"> </span>fastcluster<span class="op">::</span><span class="kw"><a href="https://www.rdocumentation.org/packages/fastcluster/topics/hclust">hclust</a></span>(dist_x, <span class="dt">method =</span> <span class="st">"single"</span>)</a>
 <a class="sourceLine" id="cb18-7" data-line-number="7">    eps &lt;-<span class="st"> </span><span class="kw"><a href="../reference/cutoff_first_bin.html">cutoff_first_bin</a></span>(hcl, <span class="dt">num_bins =</span> num_bins.default)</a>
 <a class="sourceLine" id="cb18-8" data-line-number="8">    <span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/cutree">cutree</a></span>(hcl, <span class="dt">h =</span> eps)</a>
 <a class="sourceLine" id="cb18-9" data-line-number="9">  }</a>
 <a class="sourceLine" id="cb18-10" data-line-number="10">}</a>
 <a class="sourceLine" id="cb18-11" data-line-number="11">m<span class="op">$</span><span class="kw"><a href="../reference/use_clustering_algorithm.html">use_clustering_algorithm</a></span>(<span class="dt">cl =</span> <span class="kw">custom_clustering_f</span>(10L))</a></code></pre></div>
-<p>The above example also demonstrates a simplified example of what one of the pre-configured options might look like. Functions supplied via the <code>use_clustering_algorithm</code> accessor are given access to the instance fields and methods, e.g. the data <code>self$X(...)</code> and the measure with <code>self$measure</code>.</p>
+<p>The above example also demonstrates a simplified example of what one of the pre-configured options might look like. Functions supplied via the <code>use_clustering_algorithm</code> accessor are given access to the instance fields and methods, e.g. the data <code>self$data(...)</code> and the measure with <code>self$measure</code>.</p>
 <p>By default, the metric to cluster on is set to euclidean distance. However, the distance measure may also be any one of the 49 (at this time of writing) proximity measures available in from the <code>proxy</code> package. To change the distance measure, use the <code>use_distance_measure</code> method.</p>
 <div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb19-1" data-line-number="1">m<span class="op">$</span><span class="kw"><a href="../reference/use_distance_measure.html">use_distance_measure</a></span>(<span class="dt">measure =</span> <span class="st">"euclidean"</span>)</a></code></pre></div>
 <p>For a complete list of the distance/similarity measures supported, see <code><a href="https://www.rdocumentation.org/packages/proxy/topics/registry">?proxy::pr_DB</a></code>.</p>
@@ -267,15 +264,29 @@
 <pre><code>## Simplex Tree with (8, 8) (0, 1)-simplices</code></pre>
 <p>The reason for this design is that, for some practical applications, there may be dimension-dependent operations one may want to isolate. For example, if instead of modifying the complex directly, you want to just get the <span class="math inline">\(k\)</span>-simplices that <em>would</em> be added to complex, i.e. had a non-empty intersection, you can specify <code>modify=FALSE</code></p>
 <div class="sourceCode" id="cb29"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb29-1" data-line-number="1">m<span class="op">$</span><span class="kw"><a href="../reference/construct_nerve.html">construct_nerve</a></span>(<span class="dt">k =</span> 1L, <span class="dt">modify =</span> <span class="ot">FALSE</span>)</a></code></pre></div>
-<pre><code>##      [,1] [,2]
-## [1,]    0    1
-## [2,]    0    2
-## [3,]    1    4
-## [4,]    2    3
-## [5,]    3    6
-## [6,]    4    5
-## [7,]    5    7
-## [8,]    6    7</code></pre>
+<pre><code>## [[1]]
+## [1] 0 1
+## 
+## [[2]]
+## [1] 0 2
+## 
+## [[3]]
+## [1] 2 3
+## 
+## [[4]]
+## [1] 1 4
+## 
+## [[5]]
+## [1] 4 5
+## 
+## [[6]]
+## [1] 3 6
+## 
+## [[7]]
+## [1] 5 7
+## 
+## [[8]]
+## [1] 6 7</code></pre>
 <p>Just like the <code>$construct_pullback</code> method, <code>$construct_nerve</code> optionally accepts a subset of indices which can be used to restrict the intersection computation to specific subsets of the data. For example, the following only considers non-empty intersections between vertices whose connected components intersected the sets indexed by “(1)” and “(2)”</p>
 <div class="sourceCode" id="cb31"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb31-1" data-line-number="1"><span class="co">## This checks the pairs given by: expand.grid(v1=m$pullback$`(1)`, v2=m$pullback$`(2)`)</span></a>
 <a class="sourceLine" id="cb31-2" data-line-number="2">m<span class="op">$</span><span class="kw"><a href="../reference/construct_nerve.html">construct_nerve</a></span>(<span class="dt">k =</span> 1L, <span class="dt">indices =</span> <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/matrix">matrix</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">"(1)"</span>, <span class="st">"(2)"</span>), <span class="dt">nrow =</span> <span class="dv">1</span>))</a></code></pre></div>
@@ -306,7 +317,7 @@
 <a class="sourceLine" id="cb35-4" data-line-number="4"><span class="st">  </span><span class="kw"><a href="../reference/construct_k_skeleton.html">construct_k_skeleton</a></span>(<span class="dt">k =</span> 1L)</a></code></pre></div>
 <p>If the Mapper is constantly being reparameterized, this interface is preferred over the more concise <code>mapper</code> call because of the efficiency that comes with mutability. To illustrate this, consider the case where you want to use a different distance measure for the clustering algorithm. To change the metric with the ‘static’ approach, one might do something like the following:</p>
 <div class="sourceCode" id="cb36"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb36-1" data-line-number="1">all_params &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/list">list</a></span>(</a>
-<a class="sourceLine" id="cb36-2" data-line-number="2">  <span class="dt">X =</span> noisy_circle, </a>
+<a class="sourceLine" id="cb36-2" data-line-number="2">  <span class="dt">data =</span> noisy_circle, </a>
 <a class="sourceLine" id="cb36-3" data-line-number="3">  <span class="dt">filter =</span> f_x, </a>
 <a class="sourceLine" id="cb36-4" data-line-number="4">  <span class="dt">cover =</span> <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/list">list</a></span>(<span class="dt">cover=</span><span class="st">"fixed interval"</span>, <span class="dt">number_intervals=</span>10L, <span class="dt">percent_overlap=</span><span class="dv">50</span>), </a>
 <a class="sourceLine" id="cb36-5" data-line-number="5">  <span class="dt">clustering_algorithm =</span> <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/list">list</a></span>(<span class="dt">cl=</span><span class="st">"single"</span>, <span class="dt">cutoff_method=</span><span class="st">"histogram"</span>, <span class="dt">num_bins=</span>10L)</a>
@@ -334,7 +345,7 @@
 <div class="sourceCode" id="cb39"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb39-1" data-line-number="1"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/library">library</a></span>(<span class="st">"pixiplex"</span>)</a>
 <a class="sourceLine" id="cb39-2" data-line-number="2"><span class="kw"><a href="https://www.rdocumentation.org/packages/graphics/topics/plot">plot</a></span>(m<span class="op">$</span><span class="kw"><a href="../reference/as_pixiplex.html">as_pixiplex</a></span>())</a></code></pre></div>
 <div id="pixiplex_vis" style="width:700px;height:432.632880098888px;" class="pixiplex_vis html-widget"></div>
-<script type="application/json" data-for="pixiplex_vis">{"x":{"plex":{"nodes":{"id":[0,1,2,3,4,5,6,7],"x":[0.55912630568847,0.897021861883842,0.189111654765168,0,1,0.811461496354473,0.103861830783854,0.441525126423137],"y":[1,0.812500018307327,0.895175848345743,0.558745521586501,0.441622660201888,0.106040627175461,0.187994344204086,0]},"links":{"source":[0,0,1,2,3,4,5,6],"target":[1,2,4,3,6,5,7,7]}},"canvas":false,"api":[{"method":"setNodeStyle","node_ids":[0,1,2,3,4,5,6,7],"style":{"color":[255,63487,65532,65295,392960,16580352,15924992,16711680],"radius":[15,5.7909604519774,5.87570621468927,5.67796610169492,5,5.76271186440678,5.59322033898305,14.9152542372881],"alpha":[1,1,1,1,1,1,1,1]}}]},"evals":[],"jsHooks":[]}</script><p>For more information, see the <a href="https://github.com/peekxc/pixiplex">package repository</a>.</p>
+<script type="application/json" data-for="pixiplex_vis">{"x":{"plex":{"nodes":{"id":[0,1,2,3,4,5,6,7],"x":[0.55912630568847,0.897021861883842,0.189111654765168,0,1,0.811461496354473,0.103861830783854,0.441525126423137],"y":[1,0.812500018307327,0.895175848345743,0.558745521586501,0.441622660201888,0.106040627175461,0.187994344204086,0]},"links":{"source":[0,0,1,2,3,4,5,6],"target":[1,2,4,3,6,5,7,7]}},"canvas":false,"api":[{"method":"setNodeStyle","node_ids":[0,1,2,3,4,5,6,7],"style":{"color":[255,63487,65532,65295,392960,16580352,15924992,16711680],"radius":[15,5.7909604519774,5.87570621468927,5.67796610169492,5,5.76271186440678,5.59322033898305,14.9152542372881]}}]},"evals":[],"jsHooks":[]}</script><p>For more information, see the <a href="https://github.com/peekxc/pixiplex">package repository</a>.</p>
 <p>For a static rendering of the <em>mapper</em>, one can use either the <code>as_igraph</code> method or, for higher-order complexes, the default S3 plot method available in the simplextree package (e.g. <code><a href="https://www.rdocumentation.org/packages/graphics/topics/plot">plot(m$simplicial_complex)</a></code>). Other options for visualization are an ongoing effort. If you have a particular visualization package you prefer, feel free to <a href="https://github.com/peekxc/Mapper">submit a issue or PR on the github repository</a>.</p>
 <!-- If the clustering function depends on internal components of the `MapperRef` class instance, the function will error when it is first called. Consider the exact same code as above, but this time parameterized by a field of the `MapperRef` instance. -->
 <!-- ```{r, eval = FALSE, echo = TRUE} -->

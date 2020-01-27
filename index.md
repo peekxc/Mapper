@@ -3,11 +3,11 @@
 
 ![CRAN\_Status\_Badge](https://www.r-pkg.org/badges/version/mapper)
 [![Appveyor Windows Build
-status](https://img.shields.io/appveyor/ci/peekxc/Mapper.svg?logo=windows&logoColor=DDDDDD)](https://ci.appveyor.com/project/peekxc/mapper)
+status](https://img.shields.io/appveyor/ci/peekxc/Mapper/master.svg?logo=windows&logoColor=DDDDDD)](https://ci.appveyor.com/project/peekxc/mapper)
 [![Travis OS X Build
-status](https://img.shields.io/travis/com/peekxc/Mapper.svg?logo=Apple&logoColor=DDDDDD&env=BADGE=osx&label=build&branch=master)](https://travis-ci.com/peekxc/Mapper)
+status](https://img.shields.io/travis/com/peekxc/Mapper/master.svg?logo=Apple&logoColor=DDDDDD&env=BADGE=osx&label=build)](https://travis-ci.com/peekxc/Mapper)
 [![Travis Linux X Build
-status](https://img.shields.io/travis/com/peekxc/Mapper.svg?logo=linux&logoColor=DDDDDD&env=BADGE=linux&label=build&branch=master)](https://travis-ci.com/peekxc/Mapper)
+status](https://img.shields.io/travis/com/peekxc/Mapper/master.svg?logo=linux&logoColor=DDDDDD&env=BADGE=linux&label=build&branch=master)](https://travis-ci.com/peekxc/Mapper)
 [![Package
 status](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://www.tidyverse.org/lifecycle/#maturing)
 
@@ -18,16 +18,16 @@ package includes:
   - Efficient implementations of *Mapper* components using
     [Rcpp](https://cran.r-project.org/web/packages/Rcpp/index.html)
 
-  - Practical default filters, covers, and other settings for those
+  - Practical default parameters (filters, covers, etc.) for those
     unfamiliar with *Mapper*
 
-  - Composable API via [method
+  - Composability via [method
     chaining](https://adv-r.hadley.nz/r6.html#method-chaining)
 
-  - Pre-configured tools for visualizing and interacting with *mappers*
+  - Various options to plot, visualize, and interact with *mappers*
 
 The package is designed to make modifying or extending the *Mapper*
-method simple and efficient, *without* limiting its generality.
+method simple and efficient, without limiting its generality.
 
 ## Installation
 
@@ -38,7 +38,7 @@ require("devtools")
 devtools::install_github("peekxc/Mapper")
 ```
 
-A CRAN release is planned for the near future.
+A CRAN release is planned for the future.
 
 ## Getting started
 
@@ -72,8 +72,9 @@ Below is a illustrative example of how one may go about constructing a
 *mapper*.
 
 ``` r
-m <- MapperRef$new(X = eight)$
-  use_filter(filter= f_x)$
+m <- MapperRef$new()$
+  use_data(data = eight)$
+  use_filter(filter = f_x)$
   use_cover(cover = "fixed interval", number_intervals = 5, percent_overlap = 20)$
   use_clustering_algorithm(cl = "single")$
   construct_k_skeleton(k = 1L)
@@ -83,11 +84,11 @@ print(m)
 ```
 
 There are multiple options one may use to visualize **mapper**. A
-default plotting method is available using an `igraph` determined
-layout:
+default plotting that colors nodes and edges on raindbow gradient is
+available via the S3 `plot` override:
 
 ``` r
-plot(m$simplicial_complex)
+plot(m)
 ```
 
 ![](index_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
@@ -105,6 +106,13 @@ package.
 ``` r
 ## See ?proxy::pr_DB for more details.
 m$use_distance_measure("manhattan") ## This is stored as m$measure
+```
+
+You can also pass an arbitrary ‘dist’ object:
+
+``` r
+x_dist <- dist(eight, method = "manhattan")
+m$use_data(x_dist)
 ```
 
 Prefer a different [linkage
@@ -126,7 +134,7 @@ function.
 ## idx := point indices in the preimage of the open set indexed by 'pid' 
 ## self := mapper instance object ('m' in this case)
 m$use_clustering_algorithm(cl = function(pid, idx, self){
-  dist_x <- dist(self$X(idx), method = self$measure)
+  dist_x <- self$distance_subset(idx)
   hc <- hclust(dist_x, method = "average")
   eps <- cutoff_first_threshold(hc)
   cutree(hc, h = eps)
@@ -204,7 +212,7 @@ connected component.
 ``` r
 sapply(m$vertices, length)
 #>  0  1  2  3  4  5  6  7  8  9 10 11 12 13 
-#> 25  9  9  8  7 14 14 13 12  8  7 10 10 25
+#> 25  9  9  7  7 14 15 13 12  7  7 10 10 26
 ```
 
 Once you’re satisfied with the clustering, you can construct the nerve,
@@ -222,20 +230,24 @@ the *mapper* to \(1\)-skeleton.
 
 ``` r
 m$construct_nerve(k = 0L)
+print(m$simplicial_complex)
+#> Simplex Tree with (14) (0)-simplices
 m$construct_nerve(k = 1L)
+print(m$simplicial_complex)
+#> Simplex Tree with (14, 15) (0, 1)-simplices
 plot(m$simplicial_complex)
 ```
 
-![](index_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
+![](index_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
 
 By default, the `construct...` series of functions enact side-effects
 and return the instance invisibly, making them suitable to chain. If you
 want to inspect the result before modifying the instance, pass
 `modify=FALSE`. For example, to list the vertices that have a non-empty
-intersection:
+intersection (edges that would appear in the 1-skeleton):
 
 ``` r
-m$construct_nerve(k = 1L, modify = FALSE)
+do.call(rbind, m$construct_nerve(k = 1L, modify = FALSE))
 #>       [,1] [,2]
 #>  [1,]    0    1
 #>  [2,]    0    2
@@ -266,8 +278,15 @@ m$simplicial_complex$as_edge_list()
 ### Visualizing the **mapper**
 
 To get a quick overview of what the **mapper** looks like, you can use
-the default plotting method above given by the [simplextree
-package](https://github.com/peekxc/simplextree).
+the default S3 `plot` method, which by default uses the underlying
+[simplextree package](https://github.com/peekxc/simplextree) to plot the
+complex with sufficient color and size defaults.
+
+``` r
+plot(m)
+```
+
+<img src="index_files/figure-gfm/unnamed-chunk-18-1.png" width="100%" />
 
 Alternatively, the \(1\)-skeleton can be automatically converted to
 [igraph](https://igraph.org/r/) objects and customized as
@@ -277,7 +296,7 @@ needed.
 plot(m$as_igraph(), vertex.label=NA)
 ```
 
-<img src="index_files/figure-gfm/unnamed-chunk-17-1.png" width="100%" />
+<img src="index_files/figure-gfm/unnamed-chunk-19-1.png" width="100%" />
 
 <!-- One of the standard way of visualizing __mappers__ is to size the vertices logarithmically according to how many points they have in them and colored based on the mean value of the points $f$ values. Each vertex is given a label of the form "x:y" where 'x' denotes the vertex id, and 'y' denotes the number of points in the vertex.   -->
 
@@ -287,10 +306,10 @@ For more interactive visualization options, consider the (experimental)
 ``` r
 ## Install with devtools::install_github("peekxc/pixiplex")
 library("pixiplex")
-plot(m$as_pixiplex())
+plot(m$as_pixiplex()) %>% enableForce()
 ```
 
-<img src="index_files/figure-gfm/unnamed-chunk-18-1.png" width="100%" />
+<img src="index_files/figure-gfm/unnamed-chunk-20-1.png" width="100%" />
 
 ## References
 

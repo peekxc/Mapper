@@ -4,7 +4,7 @@
 \alias{use_data}
 \title{Sets the data}
 \arguments{
-\item{data}{either a matrix, a function, or a data set name. See details.}
+\item{data}{The data to cluster on with mapper. See details.}
 
 \item{...}{additional parameters to pass to the filter function.}
 }
@@ -12,8 +12,9 @@
 Sets the data matrix to associate with the mapper.
 }
 \details{
-This function sets the data for the Mapper to work on. If \code{data} is a string, 
-it must be one of the (illustrative) data sets listed in \code{data(package="Mapper")}. 
-Otherwise, \code{data} must be either a matrix of coordinate values, a function that returns a matrix of 
-coordinate values.
+Sets the data for the mapper construction. \code{data} can either be any input accepted
+by the proxy package or a 'dist' object, 
+or a function that returns a matrix of coordinate values. \cr
+\cr
+Alternatively, if \code{data} can also be a string giving the name of an existing data set listed in \code{data(package="Mapper")}.
 }

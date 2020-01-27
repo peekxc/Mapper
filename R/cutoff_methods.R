@@ -22,7 +22,7 @@ cutoff_first_bin <- function(hcl, num_bins, check_skew=TRUE) {
   breaks <- as.double(seq(head(hcl$height,1L), tail(hcl$height,1L), length.out = num_bins))
   bin_idx <- tabulate(findInterval(x = as.double(hcl$height), vec = breaks, rightmost.closed = FALSE, all.inside = TRUE, left.open = FALSE), nbins = num_bins)
   
-  ## If the majority of the mass of linkage-distances are left-skewed (high), then the 
+  ## If the majority of the mass of linkage-distances are left-skewed (on the right), then the 
   ## motivation for the heuristic is not met, return everything in 1 cluster.
   if (check_skew){
     mid <- median(seq(num_bins))

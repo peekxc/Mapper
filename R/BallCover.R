@@ -46,9 +46,15 @@ BallCover$set("public", "format", function(...){
   sprintf("%s Cover: (epsilon = %.2f)", titlecase(private$.typename), self$epsilon)
 })
 
-## construct_cover ------
-BallCover$set("public", "construct", function(filter, index=NULL, cache=FALSE){
+## construct ------
+BallCover$set("public", "construct", function(filter, index=NULL, cache=TRUE){
   self$validate()
+  
+  ## Check to see if need to reconstruct cover or not. 
+  if (private$.cached && !is.null(self$sets)){ 
+    if (!missing(index)){ return(self$sets[index]) }
+    return(self$sets) 
+  }
   
   ## Get filter values 
   fv <- filter()
@@ -61,28 +67,37 @@ BallCover$set("public", "construct", function(filter, index=NULL, cache=FALSE){
   pts_within_eps <- function(lm_dist){ which(lm_dist < self$epsilon) }
   
   ## Construct the index set + the preimages
-  self$index_set <- as.character(eps_lm)
-  preimages <- structure(as.list(apply(dist_to_lm, 2, pts_within_eps)), names=self$index_set)
+  index_set <- as.character(eps_lm)
+  sets <- structure(as.list(apply(dist_to_lm, 2, pts_within_eps)), names=index_set)
   
-  ## If cache is TRUE, store the preimages
-  if (cache){
-    self$level_sets <- preimages
+  ## Very dumb way to support index queries
+  if (!missing(index)){
+    stopifnot(index %in% index_set)
+    sets <- sets[index]
   }
   
-  ## Return specific index if requested, otherwise return the preimages
-  if (!missing(index)){ return(preimages[[index]]) }
-  return(preimages)
+  ## Either cache and return, or just return 
+  if (cache){
+    private$.cached <- TRUE
+    self$sets <- modifyList(self$sets, sets)
+    return(invisible(self$sets))
+  }
+  return(sets)
 })
 
-## Returns the order of the cover, i.e. the smallest n s.t. each point 
-## of the filter belongs to at most n sets. 
-BallCover$set("public", "order", function(filter){
-  if (!is.null(self$level_sets)){
+## Returns the pairs of sets to check for potential non-empty intersection
+BallCover$set("public", "neighborhood", function(filter, k){
+  if (length(self$sets) > 0){
     fv <- filter()
-    eps_lm <- as.integer(names(self$level_sets))
-    dist_to_lm <- proxy::dist(fv[eps_lm,,drop=FALSE], method = self$method)
-    within_eps <- function(lm_dist){ sum(lm_dist < self$epsilon) }
-    return(max(apply(as.matrix(dist_to_lm), 1, within_eps)))
+    eps_lm <- as.integer(names(self$sets)) ## the names correspond to the landmark indices
+    dist_to_lm <- as.matrix(proxy::dist(fv[eps_lm,,drop=FALSE], method = self$method)) ## distance between landmarks
+    within_eps <- function(lm_dist){ unname(which((lm_dist/2.0) < self$epsilon)) }
+    pairs <- do.call(rbind, lapply(1:length(eps_lm), function(i){
+      cbind(i, within_eps(dist_to_lm[i,,drop=FALSE]))
+    }))
+    return(apply(pairs, 2, function(idx){ self$index_set[idx] }))
+  } else {
+    return(super$neighborhood(filter, k))
   }
 })
 

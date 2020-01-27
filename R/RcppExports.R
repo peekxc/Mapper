@@ -9,10 +9,6 @@ test_merge2 <- function(data) {
     .Call(`_Mapper_test_merge2`, data)
 }
 
-grid_iterator <- function(ni, k, order) {
-    invisible(.Call(`_Mapper_grid_iterator`, ni, k, order))
-}
-
 valid_pairs <- function(level_set_pairs) {
     .Call(`_Mapper_valid_pairs`, level_set_pairs)
 }
@@ -51,6 +47,10 @@ dist_to_boxes <- function(positions, interval_length, num_intervals, dist_to_low
 
 dist_subset <- function(dist, idx) {
     .Call(`_Mapper_dist_subset`, dist, idx)
+}
+
+dist_subset_pw <- function(dist, idx1, idx2) {
+    .Call(`_Mapper_dist_subset_pw`, dist, idx1, idx2)
 }
 
 concatDist <- function(dist, n_new, new_dists) {
@@ -93,6 +93,14 @@ maxmin_eps_f <- function(x, eps, dist_f, seed = 0L) {
     .Call(`_Mapper_maxmin_eps_f`, x, eps, dist_f, seed)
 }
 
+generic_neighborhood <- function(n, k) {
+    .Call(`_Mapper_generic_neighborhood`, n, k)
+}
+
+fixed_interval_neighborhood <- function(ni, overlap, k, filter_len) {
+    .Call(`_Mapper_fixed_interval_neighborhood`, ni, overlap, k, filter_len)
+}
+
 nondecreasing_seq <- function(lst) {
     .Call(`_Mapper_nondecreasing_seq`, lst)
 }
@@ -117,12 +125,12 @@ build_k_skeleton <- function(pullback_ids, pullback, vertices, k, stree, modify)
     .Call(`_Mapper_build_k_skeleton`, pullback_ids, pullback, vertices, k, stree, modify)
 }
 
-test_ct <- function(v) {
-    invisible(.Call(`_Mapper_test_ct`, v))
+build_k_skeleton_ids <- function(pullback_ids, pullback, vertices, stree, modify, threshold) {
+    .Call(`_Mapper_build_k_skeleton_ids`, pullback_ids, pullback, vertices, stree, modify, threshold)
 }
 
-build_k_skeleton2 <- function(pullback_ids, pullback, vertices, k, stree, modify) {
-    .Call(`_Mapper_build_k_skeleton2`, pullback_ids, pullback, vertices, k, stree, modify)
+build_k_skeleton_gen <- function(subset_sexp, pullback, vertices, stree, modify, threshold) {
+    .Call(`_Mapper_build_k_skeleton_gen`, subset_sexp, pullback, vertices, stree, modify, threshold)
 }
 
 build_flag_complex <- function(k, stree) {

@@ -63,7 +63,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Mapper</a>
-        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.2</span>
+        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.3</span>
       </span>
     </div>
 
@@ -90,9 +90,6 @@
     </li>
     <li>
       <a href="../articles/UsingCustomCover.html">Using a custom covering method</a>
-    </li>
-    <li>
-      <a href="../articles/extra/community.html">Community contributed use-cases</a>
     </li>
   </ul>
 </li>
@@ -143,7 +140,7 @@
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
       <th>data</th>
-      <td><p>either a matrix, a function, or a data set name. See details.</p></td>
+      <td><p>The data to cluster on with mapper. See details.</p></td>
     </tr>
     <tr>
       <th>...</th>
@@ -153,10 +150,11 @@
     
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>This function sets the data for the Mapper to work on. If <code>data</code> is a string, 
-it must be one of the (illustrative) data sets listed in <code><a href='https://www.rdocumentation.org/packages/utils/topics/data'>data(package="Mapper")</a></code>. 
-Otherwise, <code>data</code> must be either a matrix of coordinate values, a function that returns a matrix of 
-coordinate values.</p>
+    <p>Sets the data for the mapper construction. <code>data</code> can either be any input accepted
+by the proxy package or a 'dist' object, 
+or a function that returns a matrix of coordinate values. <br />
+<br />
+Alternatively, if <code>data</code> can also be a string giving the name of an existing data set listed in <code><a href='https://www.rdocumentation.org/packages/utils/topics/data'>data(package="Mapper")</a></code>.</p>
     
 
   </div>

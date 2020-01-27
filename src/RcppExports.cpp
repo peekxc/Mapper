@@ -27,18 +27,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// grid_iterator
-void grid_iterator(const std::vector< size_t > ni, const size_t k, const size_t order);
-RcppExport SEXP _Mapper_grid_iterator(SEXP niSEXP, SEXP kSEXP, SEXP orderSEXP) {
-BEGIN_RCPP
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const std::vector< size_t > >::type ni(niSEXP);
-    Rcpp::traits::input_parameter< const size_t >::type k(kSEXP);
-    Rcpp::traits::input_parameter< const size_t >::type order(orderSEXP);
-    grid_iterator(ni, k, order);
-    return R_NilValue;
-END_RCPP
-}
 // valid_pairs
 IntegerMatrix valid_pairs(const IntegerMatrix& level_set_pairs);
 RcppExport SEXP _Mapper_valid_pairs(SEXP level_set_pairsSEXP) {
@@ -166,6 +154,19 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const NumericVector& >::type dist(distSEXP);
     Rcpp::traits::input_parameter< IntegerVector >::type idx(idxSEXP);
     rcpp_result_gen = Rcpp::wrap(dist_subset(dist, idx));
+    return rcpp_result_gen;
+END_RCPP
+}
+// dist_subset_pw
+NumericMatrix dist_subset_pw(const NumericVector& dist, IntegerVector idx1, IntegerVector idx2);
+RcppExport SEXP _Mapper_dist_subset_pw(SEXP distSEXP, SEXP idx1SEXP, SEXP idx2SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const NumericVector& >::type dist(distSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type idx1(idx1SEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type idx2(idx2SEXP);
+    rcpp_result_gen = Rcpp::wrap(dist_subset_pw(dist, idx1, idx2));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -298,6 +299,32 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// generic_neighborhood
+SEXP generic_neighborhood(const size_t n, const size_t k);
+RcppExport SEXP _Mapper_generic_neighborhood(SEXP nSEXP, SEXP kSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const size_t >::type n(nSEXP);
+    Rcpp::traits::input_parameter< const size_t >::type k(kSEXP);
+    rcpp_result_gen = Rcpp::wrap(generic_neighborhood(n, k));
+    return rcpp_result_gen;
+END_RCPP
+}
+// fixed_interval_neighborhood
+SEXP fixed_interval_neighborhood(std::vector< size_t > ni, std::vector< double > overlap, const size_t k, std::vector< double > filter_len);
+RcppExport SEXP _Mapper_fixed_interval_neighborhood(SEXP niSEXP, SEXP overlapSEXP, SEXP kSEXP, SEXP filter_lenSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::vector< size_t > >::type ni(niSEXP);
+    Rcpp::traits::input_parameter< std::vector< double > >::type overlap(overlapSEXP);
+    Rcpp::traits::input_parameter< const size_t >::type k(kSEXP);
+    Rcpp::traits::input_parameter< std::vector< double > >::type filter_len(filter_lenSEXP);
+    rcpp_result_gen = Rcpp::wrap(fixed_interval_neighborhood(ni, overlap, k, filter_len));
+    return rcpp_result_gen;
+END_RCPP
+}
 // nondecreasing_seq
 List nondecreasing_seq(const List& lst);
 RcppExport SEXP _Mapper_nondecreasing_seq(SEXP lstSEXP) {
@@ -380,29 +407,35 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// test_ct
-void test_ct(IntegerVector v);
-RcppExport SEXP _Mapper_test_ct(SEXP vSEXP) {
-BEGIN_RCPP
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< IntegerVector >::type v(vSEXP);
-    test_ct(v);
-    return R_NilValue;
-END_RCPP
-}
-// build_k_skeleton2
-List build_k_skeleton2(CharacterMatrix pullback_ids, const List& pullback, List& vertices, int k, SEXP stree, const bool modify);
-RcppExport SEXP _Mapper_build_k_skeleton2(SEXP pullback_idsSEXP, SEXP pullbackSEXP, SEXP verticesSEXP, SEXP kSEXP, SEXP streeSEXP, SEXP modifySEXP) {
+// build_k_skeleton_ids
+List build_k_skeleton_ids(CharacterMatrix pullback_ids, const List& pullback, List& vertices, SEXP stree, const bool modify, const size_t threshold);
+RcppExport SEXP _Mapper_build_k_skeleton_ids(SEXP pullback_idsSEXP, SEXP pullbackSEXP, SEXP verticesSEXP, SEXP streeSEXP, SEXP modifySEXP, SEXP thresholdSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< CharacterMatrix >::type pullback_ids(pullback_idsSEXP);
     Rcpp::traits::input_parameter< const List& >::type pullback(pullbackSEXP);
     Rcpp::traits::input_parameter< List& >::type vertices(verticesSEXP);
-    Rcpp::traits::input_parameter< int >::type k(kSEXP);
     Rcpp::traits::input_parameter< SEXP >::type stree(streeSEXP);
     Rcpp::traits::input_parameter< const bool >::type modify(modifySEXP);
-    rcpp_result_gen = Rcpp::wrap(build_k_skeleton2(pullback_ids, pullback, vertices, k, stree, modify));
+    Rcpp::traits::input_parameter< const size_t >::type threshold(thresholdSEXP);
+    rcpp_result_gen = Rcpp::wrap(build_k_skeleton_ids(pullback_ids, pullback, vertices, stree, modify, threshold));
+    return rcpp_result_gen;
+END_RCPP
+}
+// build_k_skeleton_gen
+List build_k_skeleton_gen(SEXP subset_sexp, const List& pullback, List& vertices, SEXP stree, const bool modify, const size_t threshold);
+RcppExport SEXP _Mapper_build_k_skeleton_gen(SEXP subset_sexpSEXP, SEXP pullbackSEXP, SEXP verticesSEXP, SEXP streeSEXP, SEXP modifySEXP, SEXP thresholdSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type subset_sexp(subset_sexpSEXP);
+    Rcpp::traits::input_parameter< const List& >::type pullback(pullbackSEXP);
+    Rcpp::traits::input_parameter< List& >::type vertices(verticesSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type stree(streeSEXP);
+    Rcpp::traits::input_parameter< const bool >::type modify(modifySEXP);
+    Rcpp::traits::input_parameter< const size_t >::type threshold(thresholdSEXP);
+    rcpp_result_gen = Rcpp::wrap(build_k_skeleton_gen(subset_sexp, pullback, vertices, stree, modify, threshold));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -439,7 +472,6 @@ RcppExport SEXP _rcpp_module_boot_multiscale_module();
 static const R_CallMethodDef CallEntries[] = {
     {"_Mapper_test_merge", (DL_FUNC) &_Mapper_test_merge, 1},
     {"_Mapper_test_merge2", (DL_FUNC) &_Mapper_test_merge2, 1},
-    {"_Mapper_grid_iterator", (DL_FUNC) &_Mapper_grid_iterator, 3},
     {"_Mapper_valid_pairs", (DL_FUNC) &_Mapper_valid_pairs, 1},
     {"_Mapper_constructLevelSetIndex", (DL_FUNC) &_Mapper_constructLevelSetIndex, 2},
     {"_Mapper_constructIsoAlignedLevelSets", (DL_FUNC) &_Mapper_constructIsoAlignedLevelSets, 3},
@@ -450,6 +482,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Mapper_findFirstEqual", (DL_FUNC) &_Mapper_findFirstEqual, 2},
     {"_Mapper_dist_to_boxes", (DL_FUNC) &_Mapper_dist_to_boxes, 5},
     {"_Mapper_dist_subset", (DL_FUNC) &_Mapper_dist_subset, 2},
+    {"_Mapper_dist_subset_pw", (DL_FUNC) &_Mapper_dist_subset_pw, 3},
     {"_Mapper_concatDist", (DL_FUNC) &_Mapper_concatDist, 3},
     {"_Mapper_dist_from_to", (DL_FUNC) &_Mapper_dist_from_to, 2},
     {"_Mapper_gh_make_A", (DL_FUNC) &_Mapper_gh_make_A, 1},
@@ -460,14 +493,16 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Mapper_maxmin_n_f", (DL_FUNC) &_Mapper_maxmin_n_f, 4},
     {"_Mapper_maxmin_eps", (DL_FUNC) &_Mapper_maxmin_eps, 4},
     {"_Mapper_maxmin_eps_f", (DL_FUNC) &_Mapper_maxmin_eps_f, 4},
+    {"_Mapper_generic_neighborhood", (DL_FUNC) &_Mapper_generic_neighborhood, 2},
+    {"_Mapper_fixed_interval_neighborhood", (DL_FUNC) &_Mapper_fixed_interval_neighborhood, 4},
     {"_Mapper_nondecreasing_seq", (DL_FUNC) &_Mapper_nondecreasing_seq, 1},
     {"_Mapper_connected_pullbacks", (DL_FUNC) &_Mapper_connected_pullbacks, 3},
     {"_Mapper_decompose_preimages", (DL_FUNC) &_Mapper_decompose_preimages, 5},
     {"_Mapper_build_0_skeleton", (DL_FUNC) &_Mapper_build_0_skeleton, 2},
     {"_Mapper_build_1_skeleton", (DL_FUNC) &_Mapper_build_1_skeleton, 6},
     {"_Mapper_build_k_skeleton", (DL_FUNC) &_Mapper_build_k_skeleton, 6},
-    {"_Mapper_test_ct", (DL_FUNC) &_Mapper_test_ct, 1},
-    {"_Mapper_build_k_skeleton2", (DL_FUNC) &_Mapper_build_k_skeleton2, 6},
+    {"_Mapper_build_k_skeleton_ids", (DL_FUNC) &_Mapper_build_k_skeleton_ids, 6},
+    {"_Mapper_build_k_skeleton_gen", (DL_FUNC) &_Mapper_build_k_skeleton_gen, 6},
     {"_Mapper_build_flag_complex", (DL_FUNC) &_Mapper_build_flag_complex, 2},
     {"_Mapper_intersectNodes", (DL_FUNC) &_Mapper_intersectNodes, 4},
     {"_rcpp_module_boot_segment_tree_module", (DL_FUNC) &_rcpp_module_boot_segment_tree_module, 0},

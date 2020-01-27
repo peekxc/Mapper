@@ -5,12 +5,12 @@
 \alias{mapper}
 \title{mapper}
 \usage{
-mapper(X, filter, cover = c(cover = "fixed interval", number_intervals =
-  10L, percent_overlap = 35), distance_measure = "euclidean",
+mapper(data, filter, cover = c(cover = "fixed interval", number_intervals
+  = 10L, percent_overlap = 35), distance_measure = "euclidean",
   clustering_algorithm = c(cl = "single"), return_reference = FALSE)
 }
 \arguments{
-\item{X}{Either an \eqn{n x D} data matrix.}
+\item{data}{An \eqn{n x D} data matrix, or a \code{\link[stats:dist]{dist}} object.}
 
 \item{filter}{An \eqn{n x d} data matrix, or a function.}
 
@@ -27,7 +27,7 @@ If \code{return_reference} is TRUE, the \code{MapperRef} object is returned, oth
 }
 \description{
 Computes the mapper graph. Mapper is a tool for summarizing topological information from datasets and
-maps defined on them. It takes as input a set of 'point cloud' data, a (possibly lower dimensional) map defined on the data,
+maps defined on them. It takes as input a set of 'point cloud' data, a map defined on such data,
 and produces a topological summary of the data expressed through a cover equipped to the codomain of the map. For more 
 information, see the references below.
 }
@@ -47,7 +47,7 @@ The \code{clustering_algorithm} must be a named list the parameters needed to pa
 data("noisy_circle", package="Mapper")
 left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
 f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
-m <- mapper(X = noisy_circle, 
+m <- mapper(data = noisy_circle, 
             filter = f_x, 
             cover = list(cover="fixed interval", number_intervals=10L, percent_overlap=50),
             distance_measure = "euclidean", 

@@ -1,11 +1,11 @@
 #' @title mapper
 #'
 #' @description Computes the mapper graph. Mapper is a tool for summarizing topological information from datasets and
-#' maps defined on them. It takes as input a set of 'point cloud' data, a (possibly lower dimensional) map defined on the data,
+#' maps defined on them. It takes as input a set of 'point cloud' data, a map defined on such data,
 #' and produces a topological summary of the data expressed through a cover equipped to the codomain of the map. For more 
 #' information, see the references below. 
 #'
-#' @param X Either an \eqn{n x D} data matrix.
+#' @param data An \eqn{n x D} data matrix, or a \code{\link[stats:dist]{dist}} object.
 #' @param filter An \eqn{n x d} data matrix, or a function.
 #' @param cover Named list of cover parameters. See details. 
 #' @param distance_measure String indicating the measure in the data space. Accepts any in \link[proxy]{pr_DB}. 
@@ -37,13 +37,13 @@
 #' data("noisy_circle", package="Mapper")
 #' left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
 #' f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
-#' m <- mapper(X = noisy_circle, 
+#' m <- mapper(data = noisy_circle, 
 #'             filter = f_x, 
 #'             cover = list(cover="fixed interval", number_intervals=10L, percent_overlap=50),
 #'             distance_measure = "euclidean", 
 #'             clustering_algorithm = list(cl="single", threshold = 0.0))
 #' @export
-mapper <- function(X, filter, 
+mapper <- function(data, filter, 
                    cover = c(cover="fixed interval", number_intervals=10L, percent_overlap=35), 
                    distance_measure = "euclidean",
                    clustering_algorithm = c(cl="single"),
@@ -53,9 +53,9 @@ mapper <- function(X, filter,
   # getParam <- function(param, default){  ifelse(is.null(extra[[param]]), default, extra[[param]]) }
 
   ## Setup 
-  if (!is.null(dim(X))){ X <- as.matrix(X) } ## convert to matrix
-  if (!class(X) %in% c("matrix")){ stop("Mapper expects 'X' to be either a matrix-coercible data type.") }
-  m <- MapperRef$new(X = X)
+  if (!is.null(dim(data))){ data <- as.matrix(data) } ## convert to matrix
+  if (!class(data) %in% c("matrix")){ stop("Mapper expects 'data' to be either a matrix-coercible data type.") }
+  m <- MapperRef$new(data)
   
   ## Configure mapper 
   do.call(m$use_filter, list(filter=filter))

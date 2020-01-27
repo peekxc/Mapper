@@ -3,20 +3,8 @@
 // Includes exported functions for building the skeletons both with and without the simplex tree. 
 #include "skeleton.h"
 
-// Checks for empty intersection between sorted vectors
-// bool empty_intersection(const IntegerVector& x, const IntegerVector& y) {
-//   IntegerVector::const_iterator i = x.begin(), j = y.begin();
-//   while (i != x.end() && j != y.end()){
-//     if (*i<*j) ++i; else if(*j<*i) ++j; else return false;
-//   }
-//   return true;
-// }
-
-// Alias to a function that accepts simplices and returns void
-using set_f = std::function< void(vector< size_t >) >;
-
-// Function ptr that accepts a lambda function and returns void
-typedef void (*set_f_ptr)( set_f );
+#include "nerve_utility.h"
+#include "neighborhood.h"
 
 using str = std::string;
 
@@ -306,6 +294,7 @@ List decompose_preimages(
   vector< str > pids = as< vector< str > >(pullback_ids);
   for (str pid: pids){
     IntegerVector vids = pullback[pid];
+    // if (vids.size() == 0){ continue; }
     
     // Remove vids in vertex list, pullback, and simplex tree
     // vertices = remove_by_id(vids, vertices);
@@ -489,8 +478,9 @@ List build_k_skeleton(CharacterMatrix pullback_ids, const List& pullback, List& 
 }
 
 
-template< typename T > 
-T subset(const T& v, vector< size_t > idx){
+template< typename T , typename I > 
+T subset(const T& v, vector< I > idx){
+  static_assert(std::is_integral<I>::value, "Must be integral type");
   T subset_(idx.size()); 
   std::transform(begin(idx), end(idx), begin(subset_), [&v](size_t pos) {
     return(v[pos]);
@@ -551,37 +541,23 @@ auto convert_pullback(const List& pullback)
   }
   return(pb_map);
 }
-
-
-// [[Rcpp::export]]
-void test_ct(IntegerVector v){
-  vector< size_t > vs = as< vector< size_t > >(v);
-  cart_prod(vs, [](vector< size_t > idx){
-    IntegerVector idx_ivec = wrap(idx);
-    Rcout << idx_ivec << std::endl;
-  });
-}
   
-// local_nerve 
+// nerve_functor 
 // Creates a closure which accepts a vector of pullback indices. On evaluation, given a k-length 
 // vector of pullback indices, k-combinations of nodes whose within each pullback are tested for 
 // a non-empty intersection, provided their (k-1, k-2, ..., 0) simplices exist. 
-std::function< void(vector< size_t >) > local_nerve(
+std::function< void(vector< size_t >) > nerve_functor(
     const List& pullback, 
     List& vertices, 
-    SEXP stree
+    SEXP stree, 
+    bool modify, 
+    int threshold, 
+    List& res
 ){
   using map_t = std::unordered_map< str, IntegerVector >;
   
   // Obtain (converted) pullback map
   map_t pb_map = convert_pullback(pullback);
-  
-  Rcout << "Pullback: " << std::endl;
-  for (auto kv: pb_map){
-    str key = kv.first;
-    IntegerVector val = kv.second; 
-    Rcout << key << ": " << val << std::endl;
-  }
   
   // Given a map-type container and a vector of ids, check if any of the 
   // containers mapped to by the id vectors are empty
@@ -629,51 +605,37 @@ std::function< void(vector< size_t >) > local_nerve(
   Rcpp::XPtr< SimplexTree > st_ptr(stree); // Collect the simplex tree
   SimplexTree& st = (*st_ptr);
     
+  enum INTERSECTION_TYPE { NE_INSERT, INT_INSERT, NE_RETURN, INT_RETURN };
+  INTERSECTION_TYPE int_check;
+  if (threshold == 1 && modify){
+    int_check = NE_INSERT;
+  }
+  else if (threshold == 1 && !modify){
+    int_check = NE_RETURN;
+  }
+  else if (threshold > 1 && modify){
+    int_check = INT_INSERT;
+  }
+  else {
+    int_check = INT_RETURN;
+  }
+    
   // Create the closure to add a simplex to the complex, given (0-based) indices yielding 
   // the subset of the pullback to compare
-  const auto add_simplex = [&st, &vertices, pb_map, any_empty, index_set, size_nested, extract_inner](vector< size_t > pid_idx){
-    
-    // Check if any of the preimages are empty
-    Rcout << "Pairs: ";
-    for (auto idx: pid_idx){
-      Rcout << idx << ",";
-    }
-    Rcout << std::endl;
-
-    // Rcout << "Pullback: " << std::endl;
-    // for (auto kv: pb_map){
-    //   str key = kv.first;
-    //   IntegerVector val = kv.second; 
-    //   Rcout << key << ": " << val << std::endl;
-    // }
-    // Rcout << index_set.size() << std::endl;
+  std::function< void(vector< size_t >) > add_simplex = [&st, &vertices, &res, threshold, pb_map, any_empty, index_set, size_nested, extract_inner, int_check](vector< size_t > pid_idx){
     
     // Get the subset to work with
     vector< str > c_pids = subset(index_set, pid_idx);
-    
-    Rcout << "Corresponding pullback ids:" << std::endl;
-    for (auto pid: c_pids){
-      Rcout << "Current pid: " << pid << std::endl;
-    }
-    
-    if (any_empty(pb_map, c_pids)){ Rcout << "empty pb" << std::endl; return; }
+    // if (any_empty(pb_map, c_pids)){ Rcout << "empty pb" << std::endl; return; }
 
     // Otherwise, get the number of vertices per index
     const vector< size_t > pb_sizes = size_nested(pb_map, c_pids);
-
-    Rcout << "pullback sizes" << std::endl;
-    for (auto pb_size: pb_sizes){
-      Rcout << pb_size << std::endl;
-    }
     
     // Check the product of the connected components between k-pairs of sets
-    cart_prod(pb_sizes, [&st, &vertices, &c_pids, &pb_map, &extract_inner](vector< size_t > idx){
+    cart_prod(pb_sizes, [&st, &vertices, &c_pids, &pb_map, &extract_inner, &res, int_check, threshold](vector< size_t > idx){
 
       // Get the potential simplex to add
       vector< size_t > k_simplex = extract_inner(pb_map, c_pids, idx);
-      
-      IntegerVector si = wrap(k_simplex); 
-      Rcout << "test simplex insert: " << si << std::endl;
 
       // Prior to adding a k-simplex, check all (k+1 choose k) (k-1)-simplices exist
       const size_t k = k_simplex.size()-1;
@@ -681,16 +643,39 @@ std::function< void(vector< size_t >) > local_nerve(
         return(st.find_simplex(subset(k_simplex, idx)));
       });
 
-      // If all the (k-1) faces exist, check for nonempty intersection
+      // If all the (k-1) faces exist, check the intersection criterion
       if (all_exists){
+        
+        // Get the ranges to work on
         auto v_pts = map_f(k_simplex, [&vertices](const size_t vid){
           const IntegerVector vertex = vertices[ std::to_string(vid) ];
           return std::make_pair(vertex.begin(), vertex.end());
         });
 
         // Add a simplex if there's a nonempty intersection between all vertices
-        if (nonempty_intersection(v_pts)){
-          st.insert_simplex(k_simplex);
+        switch(int_check){
+          case NE_INSERT: {
+            if (nfold_nonempty(v_pts)){
+              st.insert_simplex(k_simplex);
+            }
+            break;
+          }
+          case NE_RETURN: {
+            if (nfold_nonempty(v_pts)){
+              res.push_back(k_simplex);
+            }
+            break; 
+          }
+          case INT_INSERT:
+            if (nfold_intersection(v_pts).size() >= threshold){
+              st.insert_simplex(k_simplex);
+            }
+            break;
+          case INT_RETURN:
+            if (nfold_intersection(v_pts).size() >= threshold){
+              res.push_back(k_simplex);
+            }
+            break; 
         }
       }
     });
@@ -700,50 +685,52 @@ std::function< void(vector< size_t >) > local_nerve(
 
 // Accepts a generic matrix of pullback ids, then computes the Cech nerve.
 // [[Rcpp::export]]
-List build_k_skeleton2(CharacterMatrix pullback_ids, const List& pullback, List& vertices, int k, SEXP stree, const bool modify){
-  using simplex_f = std::function< void(vector< size_t >) >; 
+List build_k_skeleton_ids(CharacterMatrix pullback_ids, const List& pullback, List& vertices, SEXP stree, const bool modify, const size_t threshold){
+  using simplex_f = std::function< void(vector< size_t >) >;
 
   // Extract an enclosed simplex insertion function
-  const simplex_f nerve_f = local_nerve(pullback, vertices, stree); 
-  
+  List resulting_simplices = List();
+  const simplex_f nerve_f = nerve_functor(pullback, vertices, stree, modify, threshold, resulting_simplices); 
+
   // Returns the 0-based index of the str pullback id
-  vector< str > index_set = as< vector< str > >(pullback.names()); 
+  vector< str > index_set = as< vector< str > >(pullback.names());
   const auto index_of = [&index_set](str pid) -> size_t {
     auto it = std::find(begin(index_set), end(index_set), pid);
-    return(std::distance(begin(index_set), it));
+    return(static_cast< size_t >(std::distance(begin(index_set), it)));
   };
-  
-  for (auto n: index_set){
-    Rcout << n << std::endl;
-  }
-  
+
   // Casts given row i as a vector of std::string's
   const auto extract_pids = [&pullback_ids](const size_t i) -> vector< str > {
     CharacterVector ids = pullback_ids.row(i);
     return(as< vector< str > >(ids));
   };
-  
+
   // Loop through the pullback ids
-  const size_t n = pullback_ids.nrow(); 
+  const size_t n = pullback_ids.nrow();
   for (size_t i = 0; i < n; ++i){
     vector< size_t > indices = map_f(extract_pids(i), index_of);
     nerve_f(indices);
   }
-  
-  return(List::create());
+
+  return(resulting_simplices);
 }
 
 // Also computes the nerve of a cover, however allows for generic functions-producing iterators 
 // to be passed as well. 
-void build_k_skeleton3(SEXP subset_sexp, const List& pullback, List& vertices, int k, SEXP stree, const bool modify){
-  XPtr< set_f_ptr > subset_fun(subset_sexp); 
-  set_f_ptr subset_f = *subset_fun;
+// [[Rcpp::export]]
+List build_k_skeleton_gen(SEXP subset_sexp, const List& pullback, List& vertices, SEXP stree, const bool modify, const size_t threshold){
+  XPtr< del_f > subset_fun(subset_sexp); 
+  del_f subset_f = *subset_fun;
   
   // Extract an enclosed simplex insertion function
-  const set_f nerve_f = local_nerve(pullback, vertices, stree); 
+  List resulting_simplices = List();
+  const set_f nerve_f = nerve_functor(pullback, vertices, stree, modify, threshold, resulting_simplices); 
   
-  // Send the nerve function to the generator
-  (*subset_f)(nerve_f);
+  // Send the nerve function to the index generator
+  subset_f(nerve_f);
+  
+  // Return the added simplices
+  return(resulting_simplices);
 }
 
 // Builds the k-skeleton as a flag complex by inserting k-simplexes which have a 

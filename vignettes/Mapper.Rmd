@@ -38,7 +38,7 @@ To get the __mapper__ of this circle, first supply the data via `X` and the mapp
 library("Mapper")
 left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
 f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
-m <- mapper(X = noisy_circle, 
+m <- mapper(data = noisy_circle, 
             filter = f_x, 
             cover = list(typename="fixed interval", number_intervals=5L, percent_overlap=50),
             distance_measure = "euclidean", 
@@ -124,8 +124,8 @@ print(cover)
 Once parameterized, the cover may be explicitly constructed via the `construct_cover` member, before passing back to the `MapperRef` instance. The `construct_cover` function uses the given set of parameters to populate the intersection between the open sets in the cover and the given filter data.
 
 ```{r}
-cover$construct_cover(filter = m$filter) ## Now the level sets are populated
-summary(cover$level_sets)
+cover$construct(filter = m$filter, cache = TRUE) ## Now the sets are populated in "$sets"
+summary(cover$sets)
 ```
 `Mapper` accepts any cover that derives from the abstract `CoverRef` R6 class. Any such derived cover instance can be assigned to the `$cover` member.
 ```{r}
@@ -169,7 +169,7 @@ custom_clustering_f <- function(num_bins.default = 10L){
   dependencies_met <- sapply(c("parallelDist", "fastcluster"), requireNamespace)
   stopifnot(all(dependencies_met))
   function(pid, idx, self) {
-    dist_x <- parallelDist::parallelDist(self$X(idx), method = self$measure)
+    dist_x <- self$distance_subset(idx)
     hcl <- fastcluster::hclust(dist_x, method = "single")
     eps <- cutoff_first_bin(hcl, num_bins = num_bins.default)
     cutree(hcl, h = eps)
@@ -178,7 +178,7 @@ custom_clustering_f <- function(num_bins.default = 10L){
 m$use_clustering_algorithm(cl = custom_clustering_f(10L))
 ```
 
-The above example also demonstrates a simplified example of what one of the pre-configured options might look like. Functions supplied via the `use_clustering_algorithm` accessor are given access to the instance fields and methods, e.g. the data `self$X(...)` and the measure with `self$measure`. 
+The above example also demonstrates a simplified example of what one of the pre-configured options might look like. Functions supplied via the `use_clustering_algorithm` accessor are given access to the instance fields and methods, e.g. the data `self$data(...)` and the measure with `self$measure`. 
 
 By default, the metric to cluster on is set to euclidean distance. However, the distance measure may also be any one of the 49 (at this time of writing) proximity measures available in from the `proxy` package. To change the distance measure, use the `use_distance_measure` method. 
 ```{r}
@@ -273,7 +273,7 @@ m <- MapperRef$new(noisy_circle)$
 If the Mapper is constantly being reparameterized, this interface is preferred over the more concise `mapper` call because of the efficiency that comes with mutability. To illustrate this, consider the case where you want to use a different distance measure for the clustering algorithm. To change the metric with the 'static' approach, one might do something like the following:
 ```{r}
 all_params <- list(
-  X = noisy_circle, 
+  data = noisy_circle, 
   filter = f_x, 
   cover = list(cover="fixed interval", number_intervals=10L, percent_overlap=50), 
   clustering_algorithm = list(cl="single", cutoff_method="histogram", num_bins=10L)
@@ -305,10 +305,11 @@ In this case, compared to the static method, we save on needing to recompute the
 
 The `pixiplex` package provides a [htmlwidget](https://www.htmlwidgets.org/) implementation of a subset of the [pixi.js](https://www.pixijs.com/) geared for visualizing and interacting with simplicial complexes, which can be used to visualize the _mapper_ construction. An export option is available via the `$as_pixiplex` function, which provides a few default coloring and sizing options.
 ```{r, eval=TRUE, echo=FALSE}
-m <- MapperRef$new(noisy_circle)$
-  use_filter(filter = f_x)$
+m <- MapperRef$new()$
+  use_data(noisy_circle)$
+  use_filter(f_x)$
   use_cover(number_intervals = 5L, percent_overlap = 20)$
-  construct_k_skeleton(k = 1L)
+  construct_k_skeleton(1L)
 ```
 
 ```{r, echo=FALSE, eval=TRUE}

@@ -63,7 +63,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Mapper</a>
-        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.2</span>
+        <span class="version label label-danger" data-toggle="tooltip" data-placement="bottom" title="Package under development">0.9.3</span>
       </span>
     </div>
 
@@ -90,9 +90,6 @@
     </li>
     <li>
       <a href="../articles/UsingCustomCover.html">Using a custom covering method</a>
-    </li>
-    <li>
-      <a href="../articles/extra/community.html">Community contributed use-cases</a>
     </li>
   </ul>
 </li>
@@ -137,8 +134,7 @@
     
     </div>
 
-    <pre class="usage"><span class='fu'>landmarks</span>(<span class='no'>x</span>, <span class='no'>n</span>, <span class='kw'>dist_method</span> <span class='kw'>=</span> <span class='st'>"euclidean"</span>, <span class='kw'>seed_index</span> <span class='kw'>=</span> <span class='fl'>1</span>,
-  <span class='kw'>shuffle_data</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>)</pre>
+    <pre class="usage"><span class='fu'>landmarks</span>(<span class='no'>x</span>, <span class='no'>n</span>, <span class='no'>eps</span>, <span class='kw'>dist_method</span> <span class='kw'>=</span> <span class='st'>"euclidean"</span>, <span class='kw'>seed_index</span> <span class='kw'>=</span> <span class='fl'>1</span>)</pre>
     
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -158,10 +154,6 @@
     <tr>
       <th>seed_index</th>
       <td><p>the first landmark to seed the algorithm.</p></td>
-    </tr>
-    <tr>
-      <th>shuffle_data</th>
-      <td><p>whether to first randomly shuffle the data.</p></td>
     </tr>
     </table>
     

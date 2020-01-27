@@ -9,14 +9,14 @@
 #' The underlying complex does not need to be modified by the user, i.e. is completely maintained by \code{\link{MapperRef}} methods 
 #' (e.g. \code{\link{construct_nerve}}, \code{\link{construct_k_skeleton}}, etc.).
 #' @section Usage:
-#' \preformatted{m = MapperRef$new(X)} 
+#' \preformatted{m = MapperRef$new(data)} 
 #' @section Arguments:
 #' \itemize{
-#'    \item{\strong{X}}: The data, either as a matrix, or a function that returns a matrix.
+#'    \item{\strong{data}}: The data, either as a matrix, a 'dist' object, or a function that returns a matrix.
 #' }
 #' @section Fields:
 #' \itemize{
-#'   \item{\strong{X}}: The data, as a function. Evaluation returns the data as a matrix.
+#'   \item{\strong{data}}: The data, as a function. Evaluation returns the data as a matrix.
 #'   \item{\strong{filter}}: The filter, as a function. Evaluation returns the filtered data as a matrix.  
 #'   \item{\strong{cover}}: The cover (a \code{\link{CoverRef}} derived object). 
 #'   \item{\strong{clustering_algorithm}}: The clustering algorithm to use in the pullback.
@@ -50,12 +50,21 @@
 #' @encoding UTF-8
 #' @references Gurjeet Singh, Facundo Mémoli, and Gunnar Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.
 #' @useDynLib Mapper
+#' @examples 
+#' data("noisy_circle", package="Mapper")
+#' left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
+#' f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
+#' m <- MapperRef$new()
+#' m$use_data(noisy_circle)
+#' m$use_filter(f_x)
+#' m$use_cover("fixed interval", number_intervals=8L, percent_overlap=50)
+#' m$construct_k_skeleton(k = 1)
 NULL
 
 #' @export
 MapperRef <- R6::R6Class("MapperRef", 
   private = list(
-    .X = NULL, 
+    .data = NULL, 
     .filter = NULL,
     .cover = NULL, 
     .clustering_algorithm = NULL, 
@@ -68,6 +77,16 @@ MapperRef <- R6::R6Class("MapperRef",
   lock_class = FALSE,  ## Feel free to add your own members
   lock_objects = FALSE ## Or change existing ones 
 )
+
+## initialize ----
+## Initialization method relies on active binding 
+MapperRef$set("public", "initialize", function(data = NULL){
+  private$.simplicial_complex <- simplextree::simplex_tree()
+  self$use_distance_measure(measure = "euclidean")
+  self$use_clustering_algorithm(cl = "single", cutoff_method = "continuous")
+  if (!missing(data) && !is.null(data)){ self$use_data(data) }
+  return(self)
+})
 
 ## To add a public member function 
 ## add function ----
@@ -154,48 +173,61 @@ MapperRef$set("active", "clustering_algorithm",
 
 ## data ----
 MapperRef$set("active", "data", function(value){
-    if (missing(value)){ return(private$.X) }
+    if (missing(value)){ return(private$.data) }
     else {
       if (is.matrix(value)){
-        X_acc <- function(data_matrix){
+        data_accessor <- function(data_matrix){
           function(idx=NULL){ 
             if (missing(idx)){ return(data_matrix) }
             return(data_matrix[idx,,drop=FALSE]) 
           }
         }
-        private$.X <- X_acc(value)
+        private$.data <- data_accessor(value)
+        attr(private$.data, ".data_type") <- "data_matrix"
+      } else if (is(value, "dist")){
+        data_accessor <- function(dist_obj){
+          function(idx=NULL){ 
+            if (missing(idx)){ return(dist_obj) }
+            stopifnot(all(idx > 0 & idx <= attr(dist_obj, "Size")))
+            return(dist_subset(dist_obj, idx))
+          }
+        }
+        private$.data <- data_accessor(value)
+        attr(private$.data, ".data_type") <- "dist"
       } else if (is.function(value)){
-        private$.X <- value
+        private$.data <- value
+        attr(private$.data, ".data_type") <- "function"
       } else {
-        stop("X must be either a matrix or a function that returns a matrix of coordinates.")
+        stop("X must be either a matrix-coercible object, a function that returns 
+              a matrix of coordinates, or a 'dist' object.")
       }
     }
 })
               
 
-## X ----
 ## The data should be held fixed
-MapperRef$set("active", "X", 
-  function(value){
-    if (missing(value)){ return(private$.X) }
-    else {
-      if (is.matrix(value)){
-        X_acc <- function(data_matrix){
-          function(idx=NULL){ 
-            if (missing(idx)){ return(data_matrix) }
-            return(data_matrix[idx,,drop=FALSE]) 
-          }
-        }
-        private$.X <- X_acc(value)
-      } else if (is.function(value)){
-        private$.X <- value
-      } else {
-        stop("X must be either a matrix or a function that returns a matrix of coordinates.")
-      }
-      # stop("`$X` is read-only. The data points 'X' are specific to a MapperRef object.")
-    }
-  }
-)
+## deprecated
+# MapperRef$set("active", "X", 
+#   function(value){
+#     if (missing(value)){ return(private$.data) }
+#     else {
+#       if (is.matrix(value)){
+#         X_acc <- function(data_matrix){
+#           function(idx=NULL){ 
+#             if (missing(idx)){ return(data_matrix) }
+#             return(data_matrix[idx,,drop=FALSE]) 
+#           }
+#         }
+#         private$.data <- X_acc(value)
+#       } else if (is.function(value)){
+#         private$.data <- value
+#       } else {
+#         stop("X must be either a matrix or a function that returns a matrix of coordinates.")
+#       }
+#       # stop("`$X` is read-only. The data points 'X' are specific to a MapperRef object.")
+#     }
+#   }
+# )
 
 
 ## filter ----
@@ -267,6 +299,8 @@ MapperRef$set("active", "measure",
 #' The convention followed by this function that is each row represents a point, 
 #' and each column a dimension.
 MapperRef$set("public", "distance", function(x, y = NULL, ...){
+  if (is.vector(x)){ x <- as.matrix(x) }
+  if (is.vector(y)){ y <- as.matrix(y) }
   stopifnot(is.matrix(x))
   has_pd <- requireNamespace("parallelDist", quietly = TRUE)
   dist_f <- ifelse(has_pd, parallelDist::parallelDist, proxy::dist)
@@ -281,35 +315,43 @@ MapperRef$set("public", "distance", function(x, y = NULL, ...){
   }
 })
 
-## initialize ----
-## Initialization method relies on active binding 
-MapperRef$set("public", "initialize", function(X = NULL){
-  private$.simplicial_complex <- simplextree::simplex_tree()
-  self$use_distance_measure(measure = "euclidean")
-  self$use_clustering_algorithm(cl = "single", cutoff_method = "continuous")
-  if (!missing(X) && !is.null(X)){ self$use_data(X) }
-  return(self)
+## distance_subset ----
+#' @name distance_subset
+#' @title Extract subset of distances 
+#' @description Returns the distances between all pairs of points
+#' @param idx Indices in the range [1, n]. 
+#' @return a \code{\link[stats]{dist}} object. 
+MapperRef$set("public", "distance_subset", function(idx){
+  if (attr(private$.data, ".data_type") == "dist"){
+    return(self$data(idx))
+  } else {
+    return(self$distance(x=self$data(idx)))
+  }
 })
 
 ## use_data ----
 #' @name use_data
 #' @title Sets the data
 #' @description Sets the data matrix to associate with the mapper.
-#' @param data either a matrix, a function, or a data set name. See details. 
+#' @param data The data to cluster on with mapper. See details. 
 #' @param ... additional parameters to pass to the filter function.
-#' @details This function sets the data for the Mapper to work on. If \code{data} is a string, 
-#' it must be one of the (illustrative) data sets listed in \code{data(package="Mapper")}. 
-#' Otherwise, \code{data} must be either a matrix of coordinate values, a function that returns a matrix of 
-#' coordinate values.
-MapperRef$set("public", "use_data", function(X){
-  if (is.character(X)){
-    stopifnot(X %in% c("noisy_circle", "wvs_us_wave6"))
-    self$X <- local({ 
+#' @details Sets the data for the mapper construction. \code{data} can either be any input accepted
+#' by the proxy package or a 'dist' object, 
+#' or a function that returns a matrix of coordinate values. \cr
+#' \cr
+#' Alternatively, if \code{data} can also be a string giving the name of an existing data set listed in \code{data(package="Mapper")}. 
+MapperRef$set("public", "use_data", function(data){
+  if (is.character(data)){
+    stopifnot(data %in% c("noisy_circle", "wvs_us_wave6"))
+    self$data <- local({ 
       data("wvs_us_wave6", package="Mapper", envir = environment())
-      X <- eval(parse(text=X))
-      return(scale(as.matrix(X))) 
+      data <- eval(parse(text=data))
+      return(scale(as.matrix(data))) 
     })
-  } else { self$X <- X }
+  } else {
+    ## Let active binding take care of assignment checks
+    self$data <- data 
+  }
   return(invisible(self))
 })
 
@@ -370,14 +412,14 @@ MapperRef$set("public", "use_filter", function(filter=c("PC", "IC", "ECC", "KDE"
       if (is.null(params[[d_name]])){
         has_pd <- requireNamespace("parallelDist", quietly = TRUE)
         dist_f <- ifelse(has_pd, parallelDist::parallelDist, stats::dist)
-        params[[d_name]] <- dist_f(self$X(), method=tolower(self$measure))
+        params[[d_name]] <- dist_f(self$data(), method=tolower(self$measure))
       }
       return(params)
     }
     
     ## Basic filters
     if (filter == "PC"){
-      default_params <- list(x = self$X(), scale. = TRUE, center = TRUE, rank. = 2L)
+      default_params <- list(x = self$data(), scale. = TRUE, center = TRUE, rank. = 2L)
       params <- modifyList(default_params, given_params)
       res <- do.call(stats::prcomp, params)
       self$filter <- matrix(res$x, ncol = params[["rank."]])  
@@ -385,7 +427,7 @@ MapperRef$set("public", "use_filter", function(filter=c("PC", "IC", "ECC", "KDE"
     }
     else if (filter == "IC"){
       require_but_ask("fastICA")
-      default_params <- list(X=self$X(), n.comp=2, method="C", alg.typ="parallel", fun="logcosh")
+      default_params <- list(X=self$data(), n.comp=2, method="C", alg.typ="parallel", fun="logcosh")
       params <- modifyList(default_params, given_params)
       res <- do.call(fastICA::fastICA, params)
       self$filter <- matrix(res$S, ncol = params[["n.comp"]]) ## S stores independent components
@@ -396,12 +438,12 @@ MapperRef$set("public", "use_filter", function(filter=c("PC", "IC", "ECC", "KDE"
       params <- modifyList(list(p=1), given_params)
       p_str <- c("manhattan", "euclidean", "maximum")[match(params$p, list(1, 2, Inf))]
       if (params$p != Inf) { 
-        self$filter <- matrix(colMeans(as.matrix(dist_f(self$X())^(1/params$p))), ncol = 1)
-      } else { self$filter <- matrix(apply(as.matrix(dist_f(self$X())), 2, max), ncol = 1) } 
+        self$filter <- matrix(colMeans(as.matrix(dist_f(self$data())^(1/params$p))), ncol = 1)
+      } else { self$filter <- matrix(apply(as.matrix(dist_f(self$data())), 2, max), ncol = 1) } 
     }
     else if (filter == "KDE"){
       require_but_ask("ks")
-      X <- self$X()
+      X <- self$data()
       default_params <- list(x = X, eval.points = X, verbose = FALSE)
       if (is.null(given_params[["H"]])){
         H <- if (ncol(X) <= 4L){ ks::Hpi(X) } else { diag(apply(X, 2, stats::bw.nrd0)) }
@@ -411,7 +453,7 @@ MapperRef$set("public", "use_filter", function(filter=c("PC", "IC", "ECC", "KDE"
       self$filter <- matrix(do.call(ks::kde, params)$estimate, ncol = 1L)
     } else if (filter == "DTM"){
       require_but_ask("TDA")
-      X <- self$X()
+      X <- self$data()
       params <- modifyList(list(X=X, Grid=X, m0=0.20, r=2), given_params)
       self$filter <- matrix(do.call(TDA::dtm, params), ncol = 1L)
     } else if (filter == "MDS"){
@@ -433,7 +475,7 @@ MapperRef$set("public", "use_filter", function(filter=c("PC", "IC", "ECC", "KDE"
     } else if (filter == "LE"){
       require_but_ask("geigen")
       given_params <- make_dist(given_params, "dist")
-      params <- modifyList(list(k=2L, sigma=mean(apply(self$X(), 2, stats::bw.nrd0))), given_params)
+      params <- modifyList(list(k=2L, sigma=mean(apply(self$data(), 2, stats::bw.nrd0))), given_params)
       W <- as.matrix(exp(-(params[["dist"]]/(params[["sigma"]]))))
       D <- diag(colSums(W))
       L <- D - W
@@ -441,7 +483,7 @@ MapperRef$set("public", "use_filter", function(filter=c("PC", "IC", "ECC", "KDE"
       self$filter <- res$vector[,seq(2, 2L+(params[["k"]]-1)),drop=FALSE]
     } else if (filter == "UMAP"){
       require_but_ask("umap")
-      self$filter <- do.call(umap::umap, list(d=self$X()))$layout
+      self$filter <- do.call(umap::umap, list(d=self$data()))$layout
     } else {
       stop(sprintf("Unknown filter: %s", filter))
     }
@@ -494,15 +536,18 @@ MapperRef$set("public", "use_filter", function(filter=c("PC", "IC", "ECC", "KDE"
 #' @seealso \code{\link[parallelDist]{parDist}} \code{\link[proxy]{pr_DB}}
 MapperRef$set("public", "use_distance_measure", function(measure, ...){
   if (is.character(measure)){
+    measure <- tolower(measure)
     possible_measures <- tolower(proxy::pr_DB$get_entry_names())
     stopifnot(measure %in% possible_measures)
     self$measure <- proxy::pr_DB$get_entry(measure)
   } else if (methods::is(measure, "proxy_registry_entry")){
     self$measure <- measure
   } else if (is.function(measure)){
-    # function(x, y){ sum(x*y) }
+    measure_name <- as.character(match.call()[["measure"]])
+    pr_DB$set_entry(FUN = measure, names = measure_name)
+    self$measure <- proxy::pr_DB$get_entry(measure_name)
   } else {
-    stop("'measure' must be either a string or proxy registry entry.")
+    stop("'measure' must be either a string, proxy registry entry, or a function that computes a pairwise distance.")
   }
   if (!missing(...)){ private$.measure_opt <- list(...) }
   invisible(self)
@@ -531,20 +576,29 @@ MapperRef$set("public", "use_distance_measure", function(measure, ...){
 #' 
 #' ## Alternative way to specify (and construct) the cover
 #' cover <- FixedIntervalCover$new(number_intervals = 5, percent_overlap = 25)
-#' cover$construct_cover(filter = m$filter)
+#' cover$construct(filter = m$filter, cache=TRUE) ## cache=TRUE saves the constructed sets
 #' m$cover <- cover
 MapperRef$set("public", "use_cover", function(cover="fixed interval", ...){
   stopifnot(!is.null(self$filter))
   if (missing(cover)){ cover <- "fixed interval"}
-  cover <- tolower(gsub(x=trimws(cover), pattern="\\s+", replacement ="_")) 
-  self$cover <- switch(cover, 
-    "fixed_interval"=FixedIntervalCover$new(...)$construct_cover(self$filter), 
-    "restrained_interval"=RestrainedIntervalCover$new(...)$construct_cover(self$filter),
-    # "adaptive"=AdaptiveCover$new(...)$construct_cover(self$filter),
-    "ball"=BallCover$new(...)$construct_cover(self$filter),
-    "indexed_interval"=IndexedCover$new(...)$construct_cover(self$filter),
-    stop(sprintf("Unknown cover type: %s, please specify a cover typename listed in `covers_available()`", cover))
-  )
+  if (is.character(cover)){
+    cover_options <- c("fixed_interval", "restrained_interval", "ball")
+    cover <- gsub(pattern="(.*)cover(.*)", replacement="\\1\\2", x=cover)
+    cover <- tolower(gsub(x=trimws(cover), pattern="\\s+", replacement ="_")) 
+    match_idx <- which.min(adist(cover, cover_options, partial = TRUE, fixed = FALSE, ignore.case = TRUE))
+    self$cover <- switch(cover_options[match_idx], 
+      "fixed_interval"=FixedIntervalCover$new(...), 
+      "restrained_interval"=RestrainedIntervalCover$new(...),
+      # "adaptive"=AdaptiveCover$new(...)$construct_cover(self$filter),
+      "ball"=BallCover$new(...),
+      "indexed_interval"=IndexedCover$new(...),
+      stop(sprintf("Unknown cover type: %s, please specify a cover typename listed in `covers_available()`", cover))
+    )
+  } else if (is(cover, "CoverRef")){
+    self$cover <- cover
+  } else {
+    stop("Unknown type passed to 'cover'; Must be either valid cover or character string.")
+  }
   invisible(self)
 })
 #@param filter_values (n x d) numeric matrix of values giving the results of the map. 
@@ -588,7 +642,7 @@ MapperRef$set("public", "use_clustering_algorithm",
           override_params <- list(...)
           
           ## Get distances of subset
-          dist_x <- self$distance(x=self$data(idx))
+          dist_x <- self$distance_subset(idx)
           
           ## Use fastcluster if available 
           has_fc <- requireNamespace("fastcluster", quietly = TRUE)
@@ -613,10 +667,24 @@ MapperRef$set("public", "use_clustering_algorithm",
   }
 )
 
+## construct_cover ----
+#' @name construct_cover 
+#' @title Constructs the cover on the codomain of the map. 
+#' @description Executes the clustering algorithm on subsets of \code{X}, 
+#' @param index indices of the \code{\link[Mapper:CoverRef]{covers}} \code{index_set}, or \code{NULL}.
+#' @param ... additional parameters to pass to the \code{construct} method of the cover.
+#' @details Constructs the cover over the codomain of the filter function. 
+MapperRef$set("public", "construct_cover", function(index=NULL, ...){
+  stopifnot(is.function(self$filter))
+  stopifnot(is(self$cover, "CoverRef"))
+  invisible(self$cover$construct(self$filter, cache=TRUE)) ## Cache results into sets
+  invisible(self) ## Return self
+})
+
 ## construct_pullback ----
 #' @name construct_pullback 
 #' @title Constructs the (decomposed) pullback cover. 
-#' @description Executes the clustering algorithm on subsets of \code{X}, 
+#' @description Executes the clustering algorithm on subsets of \code{X} determined by the \code{$cover}. 
 #' @param pullback_ids indices of the \code{\link[Mapper:CoverRef]{covers}} \code{index_set}, or \code{NULL}.
 #' @param ... additional parameters to pass to the \code{clustering_algorithm}.
 #' @details This methods uses the function given by \code{clustering_algorithm} field to 
@@ -628,24 +696,25 @@ MapperRef$set("public", "use_clustering_algorithm",
 #' modify the simplicial complex. 
 #' @seealso \code{\link{construct_k_skeleton}} \code{\link{construct_nerve}} \code{\link{use_clustering_algorithm}}
 MapperRef$set("public", "construct_pullback", function(pullback_ids=NULL, ...){
-  stopifnot(!is.null(self$cover$level_sets))
   stopifnot(is.function(private$.clustering_algorithm))
   pids_supplied <- (!missing(pullback_ids) && !is.null(pullback_ids))
-  if (pids_supplied){ stopifnot(all(pullback_ids %in% self$cover$index_set)) }
-  pullback_ids <- if (pids_supplied){ pullback_ids } else { self$cover$index_set }
+  if (!pids_supplied){
+    sets <- if (length(self$cover$sets) == 0) { self$cover$construct(self$filter) } else { self$cover$sets }
+    pullback_ids <- names(sets) ## index set
+  }
   
   ## If no specific indices given, then the full pullback will be recomputed. 
   ## If so, this resets everything to a valid state.
   if (!pids_supplied || length(private$.pullback) == 0){
-    n_sets <- length(self$cover$index_set)
+    n_sets <- length(pullback_ids)
     self$simplicial_complex$clear()
     self$vertices <- list()
-    private$.pullback <- structure(replicate(n_sets, integer(0)), names = self$cover$index_set)
+    private$.pullback <- structure(replicate(n_sets, integer(0)), names = pullback_ids)
   }
   
   ## Calculates the preimage at a given index.
   calc_preimage <- function(){
-    function(index){ self$cover$construct_cover(self$filter, index) }
+    function(index){ as.vector(unlist(self$cover$construct(self$filter, index)), mode = "integer") }
   }
   
   ## Re-parameterizes clustering algorithm for C++ side. 
@@ -678,12 +747,12 @@ MapperRef$set("public", "construct_pullback", function(pullback_ids=NULL, ...){
 #' @details Compared to \code{construct_k_skeleton}, this method \emph{only} intersections 
 #' between (k-1) simplices in the complex.
 MapperRef$set("public", "construct_nerve", function(k, indices = NULL, min_weight=1L, modify=TRUE){
-  stopifnot(length(private$.vertices) > 0)
+  stopifnot(length(self$pullback) > 0, length(self$vertices) > 0)
   stopifnot(k == trunc(k), k >= 0)
   idx_specified <- (!missing(indices) && !is.null(indices))
   if (idx_specified){
     stopifnot(is.matrix(indices))
-    stopifnot(all(unlist(indices) %in% self$cover$index_set))
+    stopifnot(all(unlist(indices) %in% names(self$pullback)))
     stopifnot(k >= 1)
   }
 
@@ -697,24 +766,27 @@ MapperRef$set("public", "construct_nerve", function(k, indices = NULL, min_weigh
   
   ## Retrieve the valid level set index pairs to compare. In the worst case, with no cover-specific optimization, 
   ## this may just be all pairwise combinations of LSFI's for the full simplicial complex.
-  indices <- if (idx_specified){ indices } else { self$cover$neighborhood(self$filter, k) }
+  neighborhood <- if (idx_specified){ indices } else { self$cover$neighborhood(self$filter, k) }
   
   ## If no indices to compute, nothing to do for k > 1. return self invisibly.
-  if (is.null(indices)){ return(invisible(self)) }
+  if (is.null(neighborhood)){ return(invisible(self)) }
   
   ## Build the parameter list
-  params <- list(pullback_ids = indices, vertices = self$vertices, pullback = private$.pullback, stree = stree_ptr, modify = modify)
-  if (k == 1){ 
-    params <- modifyList(params, list(min_sz = min_weight)) 
-    if (!params$modify){ return(do.call(rbind, do.call(build_1_skeleton, params)) ) } 
-    do.call(build_1_skeleton, params)
-    return(invisible(self))
-  } else { 
-    params <- modifyList(params, list(k = k)) 
-    if (!params$modify){ return(do.call(rbind, do.call(build_k_skeleton, params)) ) } 
-    do.call(build_k_skeleton, params)
-    return(invisible(self))
-  }  
+  res <- NULL
+  if (is.matrix(neighborhood) && length(neighborhood) > 0){
+    stopifnot(all(unlist(neighborhood) %in% names(self$pullback)))
+    res <- build_k_skeleton_ids(neighborhood, private$.pullback, self$vertices,  stree_ptr, modify, min_weight)
+  } else if ("externalptr" %in% class(neighborhood)){
+    res <- build_k_skeleton_gen(neighborhood, private$.pullback, self$vertices,  stree_ptr, modify, min_weight)
+  } else {
+    stop("Unknown set of indices supplied.")
+  }
+  
+  ## If modifying the complex, return the instance invisibly, otherwise return the requested simplices
+  if (modify){ return(invisible(self)) }
+  else {
+    return(res)
+  }
 })
 
 ## construct_k_skeleton ----
@@ -735,6 +807,7 @@ MapperRef$set("public", "construct_nerve", function(k, indices = NULL, min_weigh
 #' @references Gurjeet Singh, Facundo Mémoli, and Gunnar Carlsson. "Topological methods for the analysis of high dimensional data sets and 3d object recognition." SPBG. 2007.
 MapperRef$set("public", "construct_k_skeleton", function(k=1L){
   stopifnot(k >= 0)
+  self$construct_cover()
   self$construct_pullback()
   for (k_i in seq(0L, k)){ self$construct_nerve(k = k_i) }
   invisible(self)
@@ -743,7 +816,7 @@ MapperRef$set("public", "construct_k_skeleton", function(k=1L){
 ## format ----
 ## S3-like print override
 MapperRef$set("public", "format", function(...){
-  #if ("dist" %in% class(private$.X)){ n <- attr(private$.X, "Size") } else { n <- nrow(private$.X) }
+  #if ("dist" %in% class(private$.data)){ n <- attr(private$.data, "Size") } else { n <- nrow(private$.data) }
   max_k <- length(private$.simplicial_complex$n_simplices)
   if (max_k == 0){ message <- "(empty) Mapper construction" }
   else {
@@ -1031,7 +1104,7 @@ MapperRef$set("public", "exportMapper", function(graph_type=c("adjacency_matrix"
                          "edgelist"=self$simplicial_complex$as_edge_list(), 
                          stop("'graph_type' must be one of: 'adjacency_matrix', 'adjacency_list', 'edgelist'"))
   n_simplices <- self$simplicial_complex$n_simplices
-  x_dim <- ncol(self$X())
+  x_dim <- ncol(self$data())
   z_dim <- ncol(self$filter())
   attr(result, ".summary") <- c(sprintf("Mapper with filter f: %s -> %s",
                                         ifelse(x_dim > 1, sprintf("X^%d", x_dim), "X"),
