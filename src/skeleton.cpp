@@ -1,11 +1,15 @@
 // skeleton.cpp
 // Primary functions for building the k-skeletons
 // Includes exported functions for building the skeletons both with and without the simplex tree. 
-#include "skeleton.h"
 
+// Shim to get the simplextree definitions exposed 
+// [[Rcpp::depends(simplextree)]]
+#include "simplextree.h"
+#include "utilities.h"
 #include "nerve_utility.h"
 #include "neighborhood.h"
 
+#include <unordered_map>
 using str = std::string;
 
 // Given a set of pullback indices and a simplex tree, for each pullback id, find the ids the

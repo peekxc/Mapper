@@ -7,7 +7,7 @@
 using namespace Rcpp;
 
 // [[Rcpp::depends(simplextree)]]
-#include "skeleton.h" // skeleton update functions, simplex tree, etc.
+#include "simplextree.h"
 #include "utilities.h" // many useful utilities
 #include <memory> // smart pointers
 #include <cstdint> // integer types
