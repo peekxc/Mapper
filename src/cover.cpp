@@ -6,7 +6,7 @@ using namespace Rcpp;
 #include <limits>
 #include <map>
 #include "CombinationTree.hpp"
-#include "utilities.h"
+#include "discrete.h"
 // [[Rcpp::plugins(cpp11)]]
 
 using std::size_t;

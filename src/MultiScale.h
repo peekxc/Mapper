@@ -8,7 +8,7 @@ using namespace Rcpp;
 
 // [[Rcpp::depends(simplextree)]]
 #include "simplextree.h"
-#include "utilities.h" // many useful utilities
+#include "discrete.h" // many useful utilities
 #include <memory> // smart pointers
 #include <cstdint> // integer types
 

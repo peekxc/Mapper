@@ -1,5 +1,5 @@
-#ifndef UTILITIES_H_
-#define UTILITIES_H_
+#ifndef DISCRETE_H_
+#define DISCRETE_H_
 
 #include <memory>   // smart ptrs
 #include <vector>   // vector

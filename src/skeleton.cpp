@@ -5,7 +5,7 @@
 // Shim to get the simplextree definitions exposed 
 // [[Rcpp::depends(simplextree)]]
 #include "simplextree.h"
-#include "utilities.h"
+#include "discrete.h"
 #include "nerve_utility.h"
 #include "neighborhood.h"
 

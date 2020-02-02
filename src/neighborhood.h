@@ -1,7 +1,7 @@
 #include <Rcpp.h>
 using namespace Rcpp;
 
-#include "utilities.h"
+#include "discrete.h"
 #include "combinations.h"
 #include "delegate.hpp"
 

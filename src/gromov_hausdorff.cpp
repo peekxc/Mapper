@@ -1,8 +1,7 @@
 #include <Rcpp.h>
 using namespace Rcpp;
 
-// [[Rcpp::depends(simplextree)]]
-#include "utilities.h"
+#include "discrete.h"
 #include <cmath>
 
 // std::pair<NumericMatrix, NumericMatrix> make_constraints(const size_t N){
