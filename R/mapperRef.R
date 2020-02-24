@@ -480,7 +480,7 @@ MapperRef$set("public", "use_cover", function(cover="fixed interval", ...){
     "restrained interval"=RestrainedIntervalCover$new(...)$construct_cover(self$filter),
     # "adaptive"=AdaptiveCover$new(...)$construct_cover(self$filter),
     "ball"=BallCover$new(...)$construct_cover(self$filter),
-    "ys_ball"=LandmarkBallCover$new(...)$construct_cover(self$filter),
+    "landmark_ball"=LandmarkBallCover$new(...)$construct_cover(self$filter),
     stop(sprintf("Unknown cover type: %s, please specify a cover typename listed in `covers_available()`", cover))
   )
   print("leaving use cover")

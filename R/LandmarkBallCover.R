@@ -23,7 +23,7 @@ LandmarkBallCover <- R6::R6Class(
 
 ## initialize ------
 LandmarkBallCover$set("public", "initialize", function(...){
-  super$initialize(typename="ys_ball")
+  super$initialize(typename="landmark_ball")
   params <- list(...)
   if ("epsilon" %in% names(params)){ self$epsilon <- params[["epsilon"]] }
   if ("num_sets" %in% names(params)){ self$num_sets <- params[["num_sets"]] }
