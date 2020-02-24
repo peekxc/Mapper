@@ -15,14 +15,14 @@ library(proxy)
 
 # TODO: make default spec with default seed 1l -> user can use default 1 or specify other seed
 # Seed methods: SPEC, RAND, ECC (or specify seed_index, unspecified uses the first index)
-YS_BallCover <- R6::R6Class(
-  classname = "YS_BallCover",
+LandmarkBallCover <- R6::R6Class(
+  classname = "LandmarkBallCover",
   inherit = CoverRef,
   public = list(epsilon=NULL, num_sets=NULL, seed_index=1, seed_method="SPEC")
 )
 
 ## initialize ------
-YS_BallCover$set("public", "initialize", function(...){
+LandmarkBallCover$set("public", "initialize", function(...){
   super$initialize(typename="ys_ball")
   params <- list(...)
   if ("epsilon" %in% names(params)){ self$epsilon <- params[["epsilon"]] }
@@ -32,7 +32,7 @@ YS_BallCover$set("public", "initialize", function(...){
 })
 
 ## validate ------
-YS_BallCover$set("public", "validate", function(filter){
+LandmarkBallCover$set("public", "validate", function(filter){
   stopifnot(!is.null(self$epsilon) || !is.null(self$num_sets))
   writeLines("\n(eps, num_sets, seed_index, seed_method):\n")
   print(self$epsilon)
@@ -42,7 +42,7 @@ YS_BallCover$set("public", "validate", function(filter){
 })
 
 ## format ----
-YS_BallCover$set("public", "format", function(...){
+LandmarkBallCover$set("public", "format", function(...){
   titlecase <- function(x){
     s <- strsplit(x, " ")[[1]]
     paste(toupper(substring(s, 1, 1)), substring(s, 2), sep = "", collapse = " ")
@@ -56,7 +56,7 @@ YS_BallCover$set("public", "format", function(...){
 })
 
 ## construct_cover ------
-YS_BallCover$set("public", "construct_cover", function(filter, index=NULL){
+LandmarkBallCover$set("public", "construct_cover", function(filter, index=NULL){
   writeLines("Index:")
   print(index)
   print("constructing")
