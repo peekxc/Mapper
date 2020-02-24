@@ -483,7 +483,6 @@ MapperRef$set("public", "use_cover", function(cover="fixed interval", ...){
     "landmark_ball"=LandmarkBallCover$new(...)$construct_cover(self$filter),
     stop(sprintf("Unknown cover type: %s, please specify a cover typename listed in `covers_available()`", cover))
   )
-  print("leaving use cover")
   invisible(self)
 })
 #@param filter_values (n x d) numeric matrix of values giving the results of the map.
@@ -577,7 +576,6 @@ MapperRef$set("public", "construct_pullback", function(pullback_ids=NULL, ...){
   pids_supplied <- (!missing(pullback_ids) && !is.null(pullback_ids))
   if (pids_supplied){ stopifnot(all(pullback_ids %in% self$cover$index_set)) }
   pullback_ids <- if (pids_supplied){ pullback_ids } else { self$cover$index_set }
-  print("constructing pullback")
   ## If specific pullback ids not given, then resist the pullback mapping
   if (!pids_supplied || length(private$.pullback) == 0){
     n_sets <- length(self$cover$index_set)
@@ -585,16 +583,13 @@ MapperRef$set("public", "construct_pullback", function(pullback_ids=NULL, ...){
     self$vertices <- list()
     private$.pullback <- structure(replicate(n_sets, integer(0)), names = self$cover$index_set)
   }
-  print("after if")
   ## Update the vertices for the given level sets. This requires updating both the simplex tree's
   ## internal representation as well as the outward-facing vertex list. The new vertices are returned
   ## to replace the current list. The pullback map is also updated.
   calc_preimage <- function(){
-    print("begin preimage")
     function(index){ self$cover$construct_cover(self$filter, index) }
   }
   partial_cluster <- function(...){
-    print("begin cluster")
     extra <- list(...)
     function(pid, idx){ do.call(self$clustering_algorithm, append(list(pid, idx, self), extra)) }
   }
@@ -607,7 +602,6 @@ MapperRef$set("public", "construct_pullback", function(pullback_ids=NULL, ...){
   #   private$.simplicial_complex$insert(as.list(ids))
   #   return(ids)
   # }
-  print("decomposing")
   ## Do the decomposition
   private$.vertices <- Mapper:::decompose_preimages(
     pullback_ids = as.character(pullback_ids),
@@ -617,7 +611,6 @@ MapperRef$set("public", "construct_pullback", function(pullback_ids=NULL, ...){
     # id_generator = id_gen,
     pullback = private$.pullback
   )
-  print("made pullback")
   ## Return self
   invisible(self)
 })

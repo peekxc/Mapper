@@ -34,11 +34,6 @@ LandmarkBallCover$set("public", "initialize", function(...){
 ## validate ------
 LandmarkBallCover$set("public", "validate", function(filter){
   stopifnot(!is.null(self$epsilon) || !is.null(self$num_sets))
-  writeLines("\n(eps, num_sets, seed_index, seed_method):\n")
-  print(self$epsilon)
-  print(self$num_sets)
-  print(self$seed_index)
-  print(self$seed_method)
 })
 
 ## format ----
@@ -57,16 +52,11 @@ LandmarkBallCover$set("public", "format", function(...){
 
 ## construct_cover ------
 LandmarkBallCover$set("public", "construct_cover", function(filter, index=NULL){
-  writeLines("Index:")
-  print(index)
-  print("constructing")
   if (!requireNamespace("RANN", quietly = TRUE)){
     stop("Package \"RANN\" is needed for to use this cover.", call. = FALSE)
   }
-  print("validating")
   self$validate()
 
-  print("filtering")
   ## Get filter values
   fv <- filter()
   f_dim <- ncol(fv)
@@ -77,24 +67,16 @@ LandmarkBallCover$set("public", "construct_cover", function(filter, index=NULL){
   if(is.null(index)){
     if(all(self$seed_method == "RAND")) {
       self$seed_index = sample(1:f_size, 1)
-      print(self$seed_index)
-      print("rand")
     }
     if(all(self$seed_method == "ECC")) {
-      #self$seed_index = sample(1:f_size, 1)
-      print(self$seed_index)
-      print("ecc")
     }
 
   }
 
 
   if (!is.null(self$num_sets)) {
-    print("seed")
-    print(self$seed_index)
-    print(self$num_sets)
     eps_lm <- landmarks(x=fv, n=self$num_sets, seed_index=self$seed_index)
-    print(eps_lm)
+
     ## Get distance from each point to landmarks
     dist_to_lm <- proxy::dist(fv, fv[eps_lm,,drop=FALSE])
 
@@ -105,13 +87,9 @@ LandmarkBallCover$set("public", "construct_cover", function(filter, index=NULL){
 
     ## Construct the index set + the preimages
     self$index_set <- as.character(eps_lm)
-    print(self$index_set)
     self$level_sets <- structure(as.list(apply(dist_to_lm, 2, pts_within_eps)), names=self$index_set)
-    print("done level sets")
   }else{
     if (!is.null(self$epsilon)) {
-      print("eps")
-
     }
   }
 
@@ -187,12 +165,9 @@ LandmarkBallCover$set("public", "construct_cover", function(filter, index=NULL){
   # ls <- lapply(ls, function(i) Filter(function(x) any(x != 0), i))
   #
   # self$level_sets <- structure(ls, names=self$index_set)
-  print("test")
-  print(index)
+
   if (!missing(index)){
-    print("hello")
     return(self$level_sets[[index]]) }
-  print("done")
 
   ## Always return self
   invisible(self)
