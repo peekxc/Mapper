@@ -40,8 +40,7 @@ landmarks <- function(x, n=NULL, eps=NULL, dist_method = "euclidean", seed_index
       stop(sprintf("Unsupported distance method passed: %s\n", dist_method))
     }
   } else if(!is.null(eps)){
-    # TODO: Currently written for euclidean distance in 1-dimensional lens space
-    stopifnot(missing(dist_method) || toupper(dist_method) == "EUCLIDEAN")
+    stopifnot(toupper(dist_method) %in% toupper(proxy::pr_DB$get_entry_names()))
 
     # STEP 1: Pick point in the space (seed) and add it to the list of centers/landmarks
     C = list(seed_index)
@@ -49,7 +48,7 @@ landmarks <- function(x, n=NULL, eps=NULL, dist_method = "euclidean", seed_index
 
     # STEP 2: Compute distance between landmark set and each point in the space
     dists = sapply(f_C, function(c) {
-      abs(c-x)
+      proxy::dist(c, x, method = dist_method)
     })
     max = which.max(dists)
     d = dists[max]
@@ -62,9 +61,8 @@ landmarks <- function(x, n=NULL, eps=NULL, dist_method = "euclidean", seed_index
       # STEP 2: Compute distance between landmark set and each point in the space
       while(TRUE){
         dists = sapply(f_C, function(c) {
-          abs(c-x)
+          proxy::dist(c, x, method = dist_method)
         })
-
         orderedIndices = t(apply(dists,1, sort))
         max = which.max(orderedIndices[,1])
         d = orderedIndices[max,1]
