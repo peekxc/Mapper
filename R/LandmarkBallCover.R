@@ -5,7 +5,7 @@
 #' about each point. Using this class requires the \code{RANN} package to be installed, and thus explicitly assumes
 #' the filter space endowed with the euclidean metric.
 #'
-#' This differs from the DisjointBallCover in that it does NOT union intersecting cover sets.
+#' This differs from the BallCover in that it does NOT union intersecting cover sets.
 #'
 #' @field epsilon := radius of the ball to form around each point
 #' @author Cory Brunsion, Yara Skaf
@@ -13,8 +13,8 @@
 
 library(proxy)
 
-# TODO: make default spec with default seed 1l -> user can use default 1 or specify other seed
-# Seed methods: SPEC, RAND, ECC (or specify seed_index, unspecified uses the first index)
+# Seed methods: SPEC (specify index), RAND (random index), ECC (seed with highest eccentricity data point)
+# Default: specified index using first data point (seed_method = "SPEC", seed_index = 1)
 LandmarkBallCover <- R6::R6Class(
   classname = "LandmarkBallCover",
   inherit = CoverRef,
@@ -44,9 +44,10 @@ LandmarkBallCover$set("public", "format", function(...){
   }
   if (!is.null(self$num_sets)) {
     sprintf("%s Cover: (num_sets = %s, seed_index = %s)", titlecase(private$.typename), self$num_sets, self$seed_index)
-  }
-  if (!is.null(self$epsilon)) {
-    sprintf("%s Cover: (epsilon = %.2f, seed_index = %s)", titlecase(private$.typename), self$epsilon, self$seed_index)
+  }else{
+    if (!is.null(self$epsilon)) {
+      sprintf("%s Cover: (epsilon = %.2f, seed_index = %s)", titlecase(private$.typename), self$epsilon, self$seed_index)
+    }
   }
 })
 
@@ -59,9 +60,7 @@ LandmarkBallCover$set("public", "construct_cover", function(filter, index=NULL){
 
   ## Get filter values
   fv <- filter()
-  f_dim <- ncol(fv)
   f_size <- nrow(fv)
-
 
   ## Set the seed index if necessary
   if(is.null(index)){
@@ -69,102 +68,48 @@ LandmarkBallCover$set("public", "construct_cover", function(filter, index=NULL){
       self$seed_index = sample(1:f_size, 1)
     }
     if(all(self$seed_method == "ECC")) {
+      # todo
     }
-
   }
 
-
   if (!is.null(self$num_sets)) {
-    eps_lm <- landmarks(x=fv, n=self$num_sets, seed_index=self$seed_index)
+    eps_lm <- landmarks(x=fv, n=self$num_sets, seed_index=self$seed_index) # compute landmark set
 
     ## Get distance from each point to landmarks
     dist_to_lm <- proxy::dist(fv, fv[eps_lm,,drop=FALSE])
-
-    orderedIndices = t(apply(dist_to_lm,1, sort))
-    max = which.max(orderedIndices[,1])
-    self$epsilon = dist_to_lm[max]    # ball radius should be distance of the farthest point from the landmark set so that all points are in at least one ball
     pts_within_eps <- function(lm_dist){ which(lm_dist <= self$epsilon) }
 
-    ## Construct the index set + the preimages
+    ## Construct the index set
     self$index_set <- as.character(eps_lm)
-    self$level_sets <- structure(as.list(apply(dist_to_lm, 2, pts_within_eps)), names=self$index_set)
-  }else{
-    if (!is.null(self$epsilon)) {
+
+    ## Construct the preimages
+    if(length(eps_lm) == 1){
+      orderedIndices = apply(dist_to_lm,1, sort)
+      max = which.max(orderedIndices)
+      self$epsilon = dist_to_lm[max]    # ball radius should be distance of the farthest point from the landmark set so that all points are in at least one ball
+      self$level_sets <- structure(as.list(list(t(apply(dist_to_lm, 2, pts_within_eps))[1,])), names=self$index_set)
+    }else{
+      orderedIndices = t(apply(dist_to_lm,1, sort))
+      max = which.max(orderedIndices[,1])
+      self$epsilon = dist_to_lm[max]    # ball radius should be distance of the farthest point from the landmark set so that all points are in at least one ball
+      self$level_sets <- structure(as.list(apply(dist_to_lm, 2, pts_within_eps)), names=self$index_set)
     }
-  }
+  }else if (!is.null(self$epsilon)) {
+      eps_lm <- landmarks(x=fv, eps=self$epsilon, seed_index=self$seed_index) # compute landmark set
+      dist_to_lm <- proxy::dist(fv, fv[eps_lm,,drop=FALSE]) # Get distance from each point to landmarks
 
+      pts_within_eps <- function(lm_dist){ which(lm_dist <= self$epsilon) }
 
+      ## Construct the index set
+      self$index_set <- as.character(eps_lm)
 
-
-  ## Construct the balls
-  # if spec, elif rand, elif ecc -> set self$seed_index
-  # then if epsilon elif num_sets using self$seed_index
-  # if (!is.null(self$seed_method)){
-  #   if (all(self$seed_method == "RAND")) {
-  #     self$seed_index = sample(1:f_size, 1)
-  #     print(self$seed_index)
-  #     print("rand")
-  #     eps_lm <- landmarks(fv, self$num_sets, seed_index=self$seed_index)
-  #
-  #     ## Get distance from each point to landmarks
-  #     dist_to_lm <- proxy::dist(fv, fv[eps_lm,,drop=FALSE])
-  #     pts_within_eps <- function(lm_dist){ which(lm_dist < self$epsilon) } # TODO: does this make sense? we shouldnt be able to sepcify both eps and num_sets
-  #
-  #     ## Construct the index set + the preimages
-  #     self$index_set <- as.character(eps_lm)
-  #     writeLines("set index set")
-  #     self$level_sets <- structure(as.list(apply(dist_to_lm, 2, pts_within_eps)), names=self$index_set)
-  #     writeLines("set level sets")
-  #   }
-  #   if (all(self$seed_method == "ECC")) {
-  #     print("ecc")
-  #   }
-  # }else{
-  #   if (!is.null(self$num_sets)){
-  #     print("seed")
-  #     print(self$seed_index)
-  #     print(self$num_sets)
-  #     eps_lm <- landmarks(x=fv, n=self$num_sets, seed_index=self$seed_index)
-  #     print(eps_lm)
-  #     ## Get distance from each point to landmarks
-  #     dist_to_lm <- proxy::dist(fv, fv[eps_lm,,drop=FALSE])
-  #
-  #     orderedIndices = t(apply(dist_to_lm,1, sort))
-  #     max = which.max(orderedIndices[,1])
-  #     self$epsilon = dist_to_lm[max]    # ball radius should be distance of the farthest point from the landmark set so that all points are in at least one ball
-  #     pts_within_eps <- function(lm_dist){ which(lm_dist <= self$epsilon) }
-  #
-  #     ## Construct the index set + the preimages
-  #     self$index_set <- as.character(eps_lm)
-  #     print(self$index_set)
-  #     self$level_sets <- structure(as.list(apply(dist_to_lm, 2, pts_within_eps)), names=self$index_set)
-  #   }else {
-  #     writeLines("else")
-  #     eps_lm <- landmarks(fv, 2L)
-  #
-  #     ## Get distance from each point to landmarks
-  #     dist_to_lm <- proxy::dist(fv, fv[eps_lm,,drop=FALSE])
-  #     pts_within_eps <- function(lm_dist){ which(lm_dist < self$epsilon) }
-  #
-  #     ## Construct the index set + the preimages
-  #     self$index_set <- as.character(eps_lm)
-  #     self$level_sets <- structure(as.list(apply(dist_to_lm, 2, pts_within_eps)), names=self$index_set)
-  #   }
-  # }
-
-
-  # print("making balls")
-  # ## Construct the balls
-  # ball_cover  <- RANN::nn2(fv, query = fv, searchtype = "radius", radius = self$epsilon)
-  #
-  # ## Assign the centers of the balls as the index set
-  # self$index_set <- as.character(ball_cover[["nn.idx"]][,1])
-  #
-  # ## Calculate level (pullback) sets
-  # ls <- lapply(seq_len(nrow(ball_cover[["nn.idx"]])), function(i) ball_cover[["nn.idx"]][i,])
-  # ls <- lapply(ls, function(i) Filter(function(x) any(x != 0), i))
-  #
-  # self$level_sets <- structure(ls, names=self$index_set)
+      ## Construct the preimages
+      if(length(eps_lm) == 1){
+        self$level_sets <- structure(as.list(list(t(apply(dist_to_lm, 2, pts_within_eps))[1,])), names=self$index_set)
+      }else{
+        self$level_sets <- structure(as.list(apply(dist_to_lm, 2, pts_within_eps)), names=self$index_set)
+      }
+    }
 
   if (!missing(index)){
     return(self$level_sets[[index]]) }
