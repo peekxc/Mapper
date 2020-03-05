@@ -68,7 +68,8 @@ LandmarkBallCover$set("public", "construct_cover", function(filter, index=NULL){
       self$seed_index = sample(1:f_size, 1)
     }
     if(all(self$seed_method == "ECC")) {
-      # todo
+      ecc = eccentricity(from=fv, x=fv)
+      self$seed_index = which.max(ecc)
     }
   }
 
