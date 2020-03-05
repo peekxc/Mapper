@@ -33,7 +33,16 @@ LandmarkBallCover$set("public", "initialize", function(...){
 
 ## validate ------
 LandmarkBallCover$set("public", "validate", function(filter){
-  stopifnot(!is.null(self$epsilon) || !is.null(self$num_sets))
+  ## Get filter values
+  fv <- filter()
+  f_size <- nrow(fv)
+
+  ## validate parameters
+  stopifnot(!is.null(self$epsilon) || !is.null(self$num_sets)) # require either radius or # balls
+  stopifnot(is.null(self$num_sets) || (self$num_sets <= f_size && self$num_sets > 0)) # cannot have more cover sets than data points
+  stopifnot(is.null(self$epsilon) || self$epsilon >= 0) # radius must be positive
+  stopifnot(self$seed_index <= f_size && self$seed_index > 0) # seed index must be within the range of the data indices
+  stopifnot(all(self$seed_method == "RAND") || all(self$seed_method == "SPEC") || all(self$seed_method == "ECC")) # must use one of available seed methods
 })
 
 ## format ----
@@ -56,7 +65,7 @@ LandmarkBallCover$set("public", "construct_cover", function(filter, index=NULL){
   if (!requireNamespace("RANN", quietly = TRUE)){
     stop("Package \"RANN\" is needed for to use this cover.", call. = FALSE)
   }
-  self$validate()
+  self$validate(filter)
 
   ## Get filter values
   fv <- filter()
