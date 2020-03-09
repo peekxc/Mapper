@@ -11,10 +11,10 @@
 #' @param shuffle_data whether to first randomly shuffle the data.
 #' @references De Silva, Vin, and Gunnar E. Carlsson. "Topological estimation using witness complexes." SPBG 4 (2004): 157-166.
 #' @export
-landmarks <- function(x, n=NULL, eps=NULL, dist_method = "euclidean", seed_index = 1, shuffle_data=FALSE){
+landmarks <- function(x, n=NULL, eps=NULL, k=NULL, dist_method = "euclidean", seed_index = 1, shuffle_data=FALSE){
   stopifnot(is.matrix(x))
   stopifnot(seed_index >= 1L && seed_index <= nrow(x))
-  stopifnot(!is.null(n) || !is.null(eps)) # must specify either a number of balls or a radius
+  stopifnot(!is.null(n) || !is.null(eps) || !is.null(k)) # must specify a number of balls, a radius, or k-neighborhood
 
   shuffle_idx <- NA
   if (shuffle_data){
@@ -75,6 +75,48 @@ landmarks <- function(x, n=NULL, eps=NULL, dist_method = "euclidean", seed_index
       }
     }
     landmark_idx = unlist(C)
+  } else if (!is.null(k)){
+    stopifnot(toupper(dist_method) %in% toupper(proxy::pr_DB$get_entry_names()))
+
+    # STEP 1: Pick point in the space (seed) and add it to the list of centers/landmarks
+    C = list(seed_index)
+    f_C = list(x[seed_index])
+
+    # STEP 2: Compute distance between landmark set and each point in the space
+    dists = sapply(f_C, function(c) {
+      proxy::dist(c, x, method = dist_method)
+    })
+    max = which.max(dists)
+    d = dists[max]
+
+    k_nhds = list(apply(dists,2,order)[1:k])
+
+
+    # Continue if distance is greater than epsilon
+    if(!(max %in% k_nhds[[1]])){
+      C = append(C, max)
+      f_C = append(f_C, x[max])
+
+      # STEP 2: Compute distance between landmark set and each point in the space
+      while(TRUE){
+        dists = sapply(f_C, function(c) {
+          proxy::dist(c, x, method = dist_method)
+        })
+        orderedIndices = t(apply(dists,1, sort))
+        max = which.max(orderedIndices[,1])
+        d = orderedIndices[max,1]
+
+        k_nhds = append(k_nhds, list(apply(dists,2,order)[1:k,ncol(dists)]))
+
+        # Continue until all points are within a k-neighborhood
+        if(!(any(sapply(k_nhds,function(x) x==max)))){
+          C = append(C,max)
+          f_C = append(f_C,x[max])
+        } else{ break }
+      }
+    }
+    idx_list = as.character(unlist(C))
+    landmark_idx = structure(k_nhds, names=idx_list)
   }
 
   if (is.na(shuffle_idx)){ landmark_idx } else { shuffle_idx[landmark_idx] }

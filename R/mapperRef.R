@@ -481,6 +481,7 @@ MapperRef$set("public", "use_cover", function(cover="fixed interval", ...){
     # "adaptive"=AdaptiveCover$new(...)$construct_cover(self$filter),
     "ball"=BallCover$new(...)$construct_cover(self$filter),
     "landmark_ball"=LandmarkBallCover$new(...)$construct_cover(self$filter),
+    "neighborhood"=NeighborhoodCover$new(...)$construct_cover(self$filter),
     stop(sprintf("Unknown cover type: %s, please specify a cover typename listed in `covers_available()`", cover))
   )
   invisible(self)
