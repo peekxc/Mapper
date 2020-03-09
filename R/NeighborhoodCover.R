@@ -15,6 +15,7 @@ library(proxy)
 
 # Seed methods: SPEC (specify index), RAND (random index), ECC (seed with highest eccentricity data point)
 # Default: specified index using first data point (seed_method = "SPEC", seed_index = 1)
+#' @export
 NeighborhoodCover <- R6::R6Class(
   classname = "NeighborhoodCover",
   inherit = CoverRef,
@@ -22,6 +23,7 @@ NeighborhoodCover <- R6::R6Class(
 )
 
 ## initialize ------
+#' @export
 NeighborhoodCover$set("public", "initialize", function(...){
   super$initialize(typename="neighborhood")
   params <- list(...)
@@ -38,7 +40,7 @@ NeighborhoodCover$set("public", "validate", function(filter){
 
   ## validate parameters
   stopifnot(!is.null(self$k)) # require nieghborhood size
-  stopifnot(self$k >= 1 && self$k <= f_size) # radius must be at least 1 (ball around every point)
+  stopifnot(self$k >= 2 && self$k <= f_size) # size must be at least 2 points
   stopifnot(self$seed_index <= f_size && self$seed_index > 0) # seed index must be within the range of the data indices
   stopifnot(all(self$seed_method == "RAND") || all(self$seed_method == "SPEC") || all(self$seed_method == "ECC")) # must use one of available seed methods
 })

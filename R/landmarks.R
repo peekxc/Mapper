@@ -90,28 +90,25 @@ landmarks <- function(x, n=NULL, eps=NULL, k=NULL, dist_method = "euclidean", se
     d = dists[max]
 
     k_nhds = list(apply(dists,2,order)[1:k])
-
+    pt_list = k_nhds[[1]]
 
     # Continue if distance is greater than epsilon
-    if(!(max %in% k_nhds[[1]])){
-      C = append(C, max)
-      f_C = append(f_C, x[max])
-
+    if(!(max %in% pt_list)){
       # STEP 2: Compute distance between landmark set and each point in the space
       while(TRUE){
-        dists = sapply(f_C, function(c) {
-          proxy::dist(c, x, method = dist_method)
+        dists = sapply(pt_list, function(c) {
+          proxy::dist(x[c], x, method = dist_method)
         })
         orderedIndices = t(apply(dists,1, sort))
         max = which.max(orderedIndices[,1])
         d = orderedIndices[max,1]
 
-        k_nhds = append(k_nhds, list(apply(dists,2,order)[1:k,ncol(dists)]))
-
         # Continue until all points are within a k-neighborhood
-        if(!(any(sapply(k_nhds,function(x) x==max)))){
+        if(!(max %in% pt_list)){
           C = append(C,max)
-          f_C = append(f_C,x[max])
+          new_pts = order(proxy::dist(x[max], x, method = dist_method))[1:k]
+          k_nhds = append(k_nhds, list(new_pts))
+          pt_list = append(pt_list, new_pts)
         } else{ break }
       }
     }
