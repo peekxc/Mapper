@@ -80,38 +80,42 @@ landmarks <- function(x, n=NULL, eps=NULL, k=NULL, dist_method = "euclidean", se
 
     # STEP 1: Pick point in the space (seed) and add it to the list of centers/landmarks
     C = list(seed_index)
-    f_C = list(x[seed_index])
 
     # STEP 2: Compute distance between landmark set and each point in the space
-    dists = sapply(f_C, function(c) {
-      proxy::dist(c, x, method = dist_method)
-    })
-    max = which.max(dists)
-    d = dists[max]
+    dists = proxy::dist(x[seed_index], x, method = dist_method)
+    equivalent_pts = which(dists == 0)
 
-    k_nhds = list(apply(dists,2,order)[1:k])
+    if(length(equivalent_pts) > k){
+      k_nhds = list(equivalent_pts)
+    } else{
+      k_nhds = list(order(dists)[1:k])
+    }
     pt_list = k_nhds[[1]]
 
-    # Continue if distance is greater than epsilon
-    if(!(max %in% pt_list)){
+    while(TRUE){
       # STEP 2: Compute distance between landmark set and each point in the space
-      while(TRUE){
-        dists = sapply(pt_list, function(c) {
-          proxy::dist(x[c], x, method = dist_method)
-        })
-        orderedIndices = t(apply(dists,1, sort))
-        max = which.max(orderedIndices[,1])
-        d = orderedIndices[max,1]
+      dists = sapply(pt_list, function(pt) {
+        proxy::dist(x[pt], x, method = dist_method)
+      })
+      orderedIndices = t(apply(dists,1, sort))
 
-        # Continue until all points are within a k-neighborhood
-        if(!(max %in% pt_list)){
-          C = append(C,max)
-          new_pts = order(proxy::dist(x[max], x, method = dist_method))[1:k]
-          k_nhds = append(k_nhds, list(new_pts))
-          pt_list = append(pt_list, new_pts)
-        } else{ break }
+      max_vector = which(orderedIndices[,1] == max(orderedIndices[,1]))
+      max = max_vector[1]
+
+      if(length(max_vector) > k){
+        new_pts = max_vector
+      } else{
+        new_pts = order(proxy::dist(x[max], x, method = dist_method))[1:k]
       }
+
+      # Continue until all points are within a k-neighborhood
+      if(!(max %in% pt_list)){
+        C = append(C,max)
+        k_nhds = append(k_nhds, list(new_pts))
+        pt_list = append(pt_list, new_pts)
+      } else{ break }
     }
+
     idx_list = as.character(unlist(C))
     landmark_idx = structure(k_nhds, names=idx_list)
   }
