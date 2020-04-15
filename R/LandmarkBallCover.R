@@ -4,7 +4,8 @@
 #' @description This class provides a cover whose open sets are formed by balls centered about each
 #' point in a landmark set. Given a radius \deqn{\epsilon}, choose a set of landmark points via the
 #' algorithm presented in Dłotko to produce a cover by balls of radius \deqn{\epsilon}. Alternatively,
-#' given a number of cover sets \code{n}, choose \code{n} landmarks via maxmin algorithm.
+#' given a number of cover sets \code{n}, choose \code{n} landmarks via maxmin algorithm. If no seed
+#' or seed_method is specified, default behavior uses the first data point as the seed.
 #'
 #' This differs from BallCover.R in that it does NOT union intersecting cover sets.
 #'
@@ -14,16 +15,14 @@
 #' @field epsilon := radius of the ball to form around each landmark point
 #' @field num_sets := desired number of balls/cover sets
 #' @field seed_index := index of data point to use as the seed for landmark set calculation
-#' @field seed_method := method to select a seed (user specified, random, highest eccentricity)
+#' @field seed_method := method to select a seed ("SPEC" : user specified index | "RAND" : random index
+#'  | "ECC" : point with highest eccentricity in the filter space)
 #' @author Yara Skaf, Cory Brunsion
 #' @family cover
 #' @references Dłotko, Paweł. "Ball Mapper: A Shape Summary for Topological Data Analysis." (2019). Web.
-#' @export
 
 library(proxy)
 
-# Seed methods: SPEC (specify index), RAND (random index), ECC (seed with highest eccentricity data point)
-# Default: specified index using first data point (seed_method = "SPEC", seed_index = 1)
 #' @export
 LandmarkBallCover <- R6::R6Class(
   classname = "LandmarkBallCover",
@@ -32,6 +31,7 @@ LandmarkBallCover <- R6::R6Class(
 )
 
 ## initialize ------
+#' @export
 LandmarkBallCover$set("public", "initialize", function(...){
   super$initialize(typename="landmark_ball")
   params <- list(...)
@@ -62,9 +62,9 @@ LandmarkBallCover$set("public", "format", function(...){
     paste(toupper(substring(s, 1, 1)), substring(s, 2), sep = "", collapse = " ")
   }
   if (!is.null(self$num_sets)) {
-    sprintf("%s Cover: (num_sets = %s, seed_index = %s)", titlecase(private$.typename), self$num_sets, self$seed_index)
+    sprintf("%s Cover: (number of sets = %s, seed index = %s)", titlecase(private$.typename), self$num_sets, self$seed_index)
   }else if (!is.null(self$epsilon)){
-    sprintf("%s Cover: (epsilon = %.2f, seed_index = %s)", titlecase(private$.typename), self$epsilon, self$seed_index)
+    sprintf("%s Cover: (epsilon = %.2f, seed index = %s)", titlecase(private$.typename), self$epsilon, self$seed_index)
   }
 })
 
@@ -90,8 +90,10 @@ LandmarkBallCover$set("public", "construct_cover", function(filter, index=NULL){
     }
   }
 
+  ## Construct the balls
   if (!is.null(self$num_sets)) {
-    eps_lm <- landmarks(x=fv, n=self$num_sets, seed_index=self$seed_index) # compute landmark set
+    ## Compute the landmark set
+    eps_lm <- landmarks(x=fv, n=self$num_sets, seed_index=self$seed_index)
 
     ## Get distance from each point to landmarks
     dist_to_lm <- proxy::dist(fv, fv[eps_lm,,drop=FALSE])
@@ -121,31 +123,31 @@ LandmarkBallCover$set("public", "construct_cover", function(filter, index=NULL){
       }
     }
   }else if (!is.null(self$epsilon)) {
-      eps_lm <- landmarks(x=fv, eps=self$epsilon, seed_index=self$seed_index) # compute landmark set
-      dist_to_lm <- proxy::dist(fv, fv[eps_lm,,drop=FALSE]) # Get distance from each point to landmarks
+    ## Compute the landmark set
+    eps_lm <- landmarks(x=fv, eps=self$epsilon, seed_index=self$seed_index) # compute landmark set
+    dist_to_lm <- proxy::dist(fv, fv[eps_lm,,drop=FALSE]) # Get distance from each point to landmarks
 
-      pts_within_eps <- function(lm_dist){ which(lm_dist <= self$epsilon) }
+    pts_within_eps <- function(lm_dist){ which(lm_dist <= self$epsilon) }
 
-      ## Construct the index set
-      self$index_set <- as.character(eps_lm)
+    ## Construct the index set
+    self$index_set <- as.character(eps_lm)
 
-      ## Construct the preimages
-      if(length(eps_lm) == 1){
-        self$level_sets <- structure(as.list(list(t(apply(dist_to_lm, 2, pts_within_eps))[1,])), names=self$index_set)
+    ## Construct the preimages
+    if(length(eps_lm) == 1){
+      self$level_sets <- structure(as.list(list(t(apply(dist_to_lm, 2, pts_within_eps))[1,])), names=self$index_set)
+    }else{
+      x = apply(dist_to_lm, 2, pts_within_eps)
+      # if all level sets contain the same number of points, apply returns a matrix and gives an error
+      #   -> need to split columns into list elements in this case
+      if(is.matrix(x)){
+        self$level_sets <- structure(split(x, rep(1:ncol(x), each = nrow(x))), names=self$index_set)
       }else{
-        x = apply(dist_to_lm, 2, pts_within_eps)
-        # if all level sets contain the same number of points, apply returns a matrix and gives an error
-        #   -> need to split columns into list elements in this case
-        if(is.matrix(x)){
-          self$level_sets <- structure(split(x, rep(1:ncol(x), each = nrow(x))), names=self$index_set)
-        }else{
-          self$level_sets <- structure(as.list(x), names=self$index_set)
-        }
+        self$level_sets <- structure(as.list(x), names=self$index_set)
       }
     }
+  }
 
-  if (!missing(index)){
-    return(self$level_sets[[index]]) }
+  if (!missing(index)){ return(self$level_sets[[index]]) }
 
   ## Always return self
   invisible(self)

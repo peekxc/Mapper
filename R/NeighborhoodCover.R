@@ -2,21 +2,21 @@
 #'
 #' @docType class
 #' @description This class provides a cover whose open sets are formed by \code{k}-neighborhoods about a landmark
-#' set. Cover sets may contain more than \code{k} points if there are more than \code{k} points equidistant from the
-#' central point. Using this class requires the \code{RANN} package to be installed, and thus explicitly assumes
-#' the filter space endowed with the euclidean metric.
+#' set. If no seed or seed_method is specified, default behavior uses the first data point as the seed. Cover sets
+#' may contain more than \code{k} points if there are more than \code{k} points equidistant from the central point.
+#' Using this class requires the \code{RANN} package to be installed, and thus explicitly assumes the filter space
+#' endowed with the euclidean metric.
 #'
 #' @field k := desired number of neighbord to include in a cover set
 #' @field seed_index := index of data point to use as the seed for landmark set calculation
-#' @field seed_method := method to select a seed (user specified, random, highest eccentricity)
+#' @field seed_method := method to select a seed ("SPEC" : user specified index | "RAND" : random index
+#'  | "ECC" : point with highest eccentricity in the filter space)
 #' @author Yara Skaf, Cory Brunsion
 #' @family cover
 #' @export
 
 library(proxy)
 
-# Seed methods: SPEC (specify index), RAND (random index), ECC (seed with highest eccentricity data point)
-# Default: specified index using first data point (seed_method = "SPEC", seed_index = 1)
 #' @export
 NeighborhoodCover <- R6::R6Class(
   classname = "NeighborhoodCover",
@@ -53,7 +53,7 @@ NeighborhoodCover$set("public", "format", function(...){
     s <- strsplit(x, " ")[[1]]
     paste(toupper(substring(s, 1, 1)), substring(s, 2), sep = "", collapse = " ")
   }
-  sprintf("%s Cover: (k = %s, seed_index = %s)", titlecase(private$.typename), self$k, self$seed_index)
+  sprintf("%s Cover: (k = %s, seed index = %s)", titlecase(private$.typename), self$k, self$seed_index)
 })
 
 ## construct_cover ------
@@ -78,7 +78,8 @@ NeighborhoodCover$set("public", "construct_cover", function(filter, index=NULL){
     }
   }
 
-  eps_lm <- landmarks(x=fv, k=self$k, seed_index=self$seed_index) # compute landmark set
+  ## Compute the landmark set
+  eps_lm <- landmarks(x=fv, k=self$k, seed_index=self$seed_index)
 
   ## Construct the index set
   self$index_set <- as.character(attr(eps_lm,"names"))
