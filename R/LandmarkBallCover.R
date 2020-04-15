@@ -1,20 +1,30 @@
-#' Ball Cover
+#' Landmark Ball Cover
 #'
 #' @docType class
-#' @description This class provides a cover whose open sets are formed by \deqn{\epsilon}-balls centered
-#' about each point. Using this class requires the \code{RANN} package to be installed, and thus explicitly assumes
+#' @description This class provides a cover whose open sets are formed by balls centered about each
+#' point in a landmark set. Given a radius \deqn{\epsilon}, choose a set of landmark points via the
+#' algorithm presented in Dłotko to produce a cover by balls of radius \deqn{\epsilon}. Alternatively,
+#' given a number of cover sets \code{n}, choose \code{n} landmarks via maxmin algorithm.
+#'
+#' This differs from BallCover.R in that it does NOT union intersecting cover sets.
+#'
+#' Using this class requires the \code{RANN} package to be installed, and thus explicitly assumes
 #' the filter space endowed with the euclidean metric.
 #'
-#' This differs from the BallCover in that it does NOT union intersecting cover sets.
-#'
-#' @field epsilon := radius of the ball to form around each point
-#' @author Cory Brunsion, Yara Skaf
+#' @field epsilon := radius of the ball to form around each landmark point
+#' @field num_sets := desired number of balls/cover sets
+#' @field seed_index := index of data point to use as the seed for landmark set calculation
+#' @field seed_method := method to select a seed (user specified, random, highest eccentricity)
+#' @author Yara Skaf, Cory Brunsion
+#' @family cover
+#' @references Dłotko, Paweł. "Ball Mapper: A Shape Summary for Topological Data Analysis." (2019). Web.
 #' @export
 
 library(proxy)
 
 # Seed methods: SPEC (specify index), RAND (random index), ECC (seed with highest eccentricity data point)
 # Default: specified index using first data point (seed_method = "SPEC", seed_index = 1)
+#' @export
 LandmarkBallCover <- R6::R6Class(
   classname = "LandmarkBallCover",
   inherit = CoverRef,
@@ -53,10 +63,8 @@ LandmarkBallCover$set("public", "format", function(...){
   }
   if (!is.null(self$num_sets)) {
     sprintf("%s Cover: (num_sets = %s, seed_index = %s)", titlecase(private$.typename), self$num_sets, self$seed_index)
-  }else{
-    if (!is.null(self$epsilon)) {
-      sprintf("%s Cover: (epsilon = %.2f, seed_index = %s)", titlecase(private$.typename), self$epsilon, self$seed_index)
-    }
+  }else if (!is.null(self$epsilon)){
+    sprintf("%s Cover: (epsilon = %.2f, seed_index = %s)", titlecase(private$.typename), self$epsilon, self$seed_index)
   }
 })
 
@@ -111,7 +119,6 @@ LandmarkBallCover$set("public", "construct_cover", function(filter, index=NULL){
       }else{
         self$level_sets <- structure(as.list(x), names=self$index_set)
       }
-
     }
   }else if (!is.null(self$epsilon)) {
       eps_lm <- landmarks(x=fv, eps=self$epsilon, seed_index=self$seed_index) # compute landmark set

@@ -1,14 +1,16 @@
-#' Ball Cover
+#' Neighborhood Cover
 #'
 #' @docType class
-#' @description This class provides a cover whose open sets are formed by \deqn{\epsilon}-balls centered
-#' about each point. Using this class requires the \code{RANN} package to be installed, and thus explicitly assumes
+#' @description This class provides a cover whose open sets are formed by \code{k}-neighborhoods about a landmark
+#' set. Cover sets may contain more than \code{k} points if there are more than \code{k} points equidistant from the
+#' central point. Using this class requires the \code{RANN} package to be installed, and thus explicitly assumes
 #' the filter space endowed with the euclidean metric.
 #'
-#' This differs from the BallCover in that it does NOT union intersecting cover sets.
-#'
-#' @field epsilon := radius of the ball to form around each point
-#' @author Cory Brunsion, Yara Skaf
+#' @field k := desired number of neighbord to include in a cover set
+#' @field seed_index := index of data point to use as the seed for landmark set calculation
+#' @field seed_method := method to select a seed (user specified, random, highest eccentricity)
+#' @author Yara Skaf, Cory Brunsion
+#' @family cover
 #' @export
 
 library(proxy)
