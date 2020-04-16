@@ -67,24 +67,18 @@ NeighborhoodCover$set("public", "construct_cover", function(filter, index=NULL){
   fv <- filter()
   f_size <- nrow(fv)
 
-  ## Set the seed index if necessary
   if(is.null(index)){
-    if(all(self$seed_method == "RAND")) {
-      self$seed_index = sample(1:f_size, 1)
-    }
-    if(all(self$seed_method == "ECC")) {
-      ecc = eccentricity(from=fv, x=fv)
-      self$seed_index = which.max(ecc)
-    }
+    ## Set the seed index if necessary
+    if(all(self$seed_method == "RAND")) { self$seed_index = sample(1:f_size, 1) }
+    if(all(self$seed_method == "ECC")) {  self$seed_index = which.max(eccentricity(from=fv, x=fv)) }
+
+    ## Compute the landmark set
+    eps_lm <- landmarks(x=fv, k=self$k, seed_index=self$seed_index)
+
+    ## Construct the index set and level sets
+    self$index_set <- as.character(attr(eps_lm,"names"))
+    self$level_sets <- eps_lm
   }
-
-  ## Compute the landmark set
-  eps_lm <- landmarks(x=fv, k=self$k, seed_index=self$seed_index)
-
-  ## Construct the index set
-  self$index_set <- as.character(attr(eps_lm,"names"))
-  self$level_sets <- eps_lm
-
   if (!missing(index)){ return(self$level_sets[[index]]) }
 
   ## Always return self
