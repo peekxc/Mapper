@@ -86,7 +86,7 @@ LandmarkBallCover$set("public", "construct_cover", function(filter, index=NULL){
     if(all(self$seed_method == "ECC")) {  self$seed_index = which.max(eccentricity(from=fv, x=fv)) }
 
     ## Compute the landmark set
-    if (!is.null(self$num_sets)) { eps_lm <- landmarks(x=fv, n=self$num_sets, seed_index=self$seed_index)
+    if (!is.null(self$num_sets)) { eps_lm <- unique(landmarks(x=fv, n=self$num_sets, seed_index=self$seed_index))
     } else if (!is.null(self$epsilon)) { eps_lm <- landmarks(x=fv, eps=self$epsilon, seed_index=self$seed_index) }
 
     ## Construct the index set
