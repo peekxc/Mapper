@@ -4,8 +4,11 @@
 #' \code{x}. Maxmin is a simple greedy algorithm that is relatively efficient, but it has a tendency to pick out extremal points.
 #' If the distance metric is euclidean, an efficient Rcpp implementation is used. If another metric is requested,
 #' the algorithm is performed in R.
+#' Alternatively, a radius \deqn{\epsilon} can be specified so that the landmark set is computed to cover the space with
+#' \deqn{\epsilon}-balls centered at the landmarks.
 #' @param x a data matrix.
 #' @param n the number of landmarks requested.
+#' @param eps the desired radius of balls in the cover set.
 #' @param dist_method the distance metric to use. Any distance measure in the \code{proxy} package is supported.
 #' @param seed_index the first landmark to seed the algorithm.
 #' @param shuffle_data whether to first randomly shuffle the data.
@@ -42,28 +45,25 @@ landmarks <- function(x, n=NULL, eps=NULL, dist_method = "euclidean", seed_index
     }
   } else if(!is.null(eps)){
     stopifnot(toupper(dist_method) %in% toupper(proxy::pr_DB$get_entry_names()))
+    f_dim <- ncol(x)
+    f_size <- nrow(x)
 
-    # STEP 1: Pick point in the space (seed) and add it to the list of centers/landmarks
-    C = list(seed_index)
-    f_C = matrix(x[seed_index,], nrow=1, byrow=TRUE)
+    # algorithm and variable names as specified in Dlotko paper
+    C = c() # create a list to store indices of centers/landmarks
+    next_pt = seed_index # first landmark should be the seed point
+    while(TRUE){
+      C = append(C, next_pt) # add new point to list of landmarks
 
-    # STEP 2: Compute distance between landmark set and each point in the space
-    dists = proxy::dist(f_C, x, method = dist_method)
-    max = which.max(dists)
-    d = dists[max]
+      # compute distance between landmark set and each point in the space
+      dists = proxy::dist(matrix(x[C,], ncol=f_dim), x, method = dist_method)
+      sortedDists = matrix(apply(dists,2,sort),ncol=f_size)
 
-    # Continue until distance is less than epsilon (i.e. stop when all points are contained within an epsilon-ball)
-    while(d >= eps){
-      C = append(C, max)
-      f_C = rbind(f_C, x[max,])
-
-      # STEP 2: Compute distance between landmark set and each point in the space
-      dists = proxy::dist(f_C, x, method = dist_method)
-      orderedIndices = t(apply(dists,2, sort))
-      max = which.max(orderedIndices[,1])
-      d = orderedIndices[max,1]
+      # the next landmark is the point with greatest distance from the current landmark set
+      next_pt = which.max(sortedDists[1,])
+      d = sortedDists[1,next_pt] # done when this max distance is < eps, i.e. when all pts are contained in an eps-ball
+      if(d < eps){break}
     }
-    landmark_idx = unlist(C)
+    landmark_idx = C
   }
   if (is.na(shuffle_idx)){ landmark_idx } else { shuffle_idx[landmark_idx] }
 }
