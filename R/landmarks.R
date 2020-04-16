@@ -52,24 +52,16 @@ landmarks <- function(x, n=NULL, eps=NULL, k=NULL, dist_method = "euclidean", se
     max = which.max(dists)
     d = dists[max]
 
-    # Continue if distance is greater than epsilon
-    if(d >= eps){
+    # Continue until distance is less than epsilon (i.e. stop when all points are contained within an epsilon-ball)
+    while(d >= eps){
       C = append(C, max)
       f_C = rbind(f_C, x[max,])
 
       # STEP 2: Compute distance between landmark set and each point in the space
-      while(TRUE){
-        dists = proxy::dist(f_C, x, method = dist_method)
-        orderedIndices = t(apply(dists,2, sort))
-        max = which.max(orderedIndices[,1])
-        d = orderedIndices[max,1]
-
-        # Continue until distance is less than epsilon (i.e. stop when all points are contained within an epsilon-ball)
-        if(d >= eps){
-          C = append(C,max)
-          f_C = rbind(f_C, x[max,])
-        } else{ break }
-      }
+      dists = proxy::dist(f_C, x, method = dist_method)
+      orderedIndices = t(apply(dists,2, sort))
+      max = which.max(orderedIndices[,1])
+      d = orderedIndices[max,1]
     }
     landmark_idx = unlist(C)
   } else if (!is.null(k)){
