@@ -79,74 +79,45 @@ LandmarkBallCover$set("public", "construct_cover", function(filter, index=NULL){
   fv <- filter()
   f_size <- nrow(fv)
 
-  ## Set the seed index if necessary
-  if(is.null(index)){
-    if(all(self$seed_method == "RAND")) {
-      self$seed_index = sample(1:f_size, 1)
-    }
-    if(all(self$seed_method == "ECC")) {
-      ecc = eccentricity(from=fv, x=fv)
-      self$seed_index = which.max(ecc)
-    }
-  }
-
   ## Construct the balls
-  if (!is.null(self$num_sets)) {
+  if(is.null(index)){
+    ## Set the seed index if necessary
+    if(all(self$seed_method == "RAND")) { self$seed_index = sample(1:f_size, 1) }
+    if(all(self$seed_method == "ECC")) {  self$seed_index = which.max(eccentricity(from=fv, x=fv)) }
+
     ## Compute the landmark set
-    eps_lm <- landmarks(x=fv, n=self$num_sets, seed_index=self$seed_index)
+    if (!is.null(self$num_sets)) { eps_lm <- landmarks(x=fv, n=self$num_sets, seed_index=self$seed_index)
+    } else if (!is.null(self$epsilon)) { eps_lm <- landmarks(x=fv, eps=self$epsilon, seed_index=self$seed_index) }
+
+    ## Construct the index set
+    self$index_set <- as.character(eps_lm)
 
     ## Get distance from each point to landmarks
     dist_to_lm <- proxy::dist(fv, fv[eps_lm,,drop=FALSE])
     pts_within_eps <- function(lm_dist){ which(lm_dist <= self$epsilon) }
 
-    ## Construct the index set
-    self$index_set <- as.character(eps_lm)
-
-    ## Construct the preimages
-    if(length(eps_lm) == 1){
-      orderedIndices = apply(dist_to_lm,1, sort)
-      max = which.max(orderedIndices)
-      self$epsilon = dist_to_lm[max]    # ball radius should be distance of the farthest point from the landmark set so that all points are in at least one ball
-      self$level_sets <- structure(as.list(list(t(apply(dist_to_lm, 2, pts_within_eps))[1,])), names=self$index_set)
-    }else{
-      orderedIndices = t(apply(dist_to_lm,1, sort))
-      max = which.max(orderedIndices[,1])
-      self$epsilon = dist_to_lm[max]    # ball radius should be distance of the farthest point from the landmark set so that all points are in at least one ball
-
-      x = apply(dist_to_lm, 2, pts_within_eps)
-      # if all level sets contain the same number of points, apply returns a matrix and gives an error
-      #   -> need to split columns into list elements in this case
-      if(is.matrix(x)){
-        self$level_sets <- structure(split(x, rep(1:ncol(x), each = nrow(x))), names=self$index_set)
-      }else{
-        self$level_sets <- structure(as.list(x), names=self$index_set)
+    ## Calculate an epsilon if one was not given
+    if (!is.null(self$num_sets)) {
+      if(length(eps_lm) == 1){
+        orderedIndices = apply(dist_to_lm,1, sort)
+        max = which.max(orderedIndices)
+      } else {
+        orderedIndices = t(apply(dist_to_lm,1, sort))
+        max = which.max(orderedIndices[,1])
       }
+      self$epsilon = dist_to_lm[max]    # ball radius should be distance of the farthest point from the landmark set so that all points are in at least one ball
     }
-  }else if (!is.null(self$epsilon)) {
-    ## Compute the landmark set
-    eps_lm <- landmarks(x=fv, eps=self$epsilon, seed_index=self$seed_index) # compute landmark set
-    dist_to_lm <- proxy::dist(fv, fv[eps_lm,,drop=FALSE]) # Get distance from each point to landmarks
-
-    pts_within_eps <- function(lm_dist){ which(lm_dist <= self$epsilon) }
-
-    ## Construct the index set
-    self$index_set <- as.character(eps_lm)
 
     ## Construct the preimages
-    if(length(eps_lm) == 1){
+    if(length(eps_lm) == 1) {
       self$level_sets <- structure(as.list(list(t(apply(dist_to_lm, 2, pts_within_eps))[1,])), names=self$index_set)
-    }else{
+    } else {
       x = apply(dist_to_lm, 2, pts_within_eps)
-      # if all level sets contain the same number of points, apply returns a matrix and gives an error
-      #   -> need to split columns into list elements in this case
-      if(is.matrix(x)){
-        self$level_sets <- structure(split(x, rep(1:ncol(x), each = nrow(x))), names=self$index_set)
-      }else{
-        self$level_sets <- structure(as.list(x), names=self$index_set)
-      }
+      # if all level sets contain the same number of points, apply returns a matrix -> need to split columns into list elements
+      if(is.matrix(x)){ self$level_sets <- structure(split(x, rep(1:ncol(x), each = nrow(x))), names=self$index_set)
+      } else { self$level_sets <- structure(as.list(x), names=self$index_set) }
     }
   }
-
   if (!missing(index)){ return(self$level_sets[[index]]) }
 
   ## Always return self
