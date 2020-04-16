@@ -10,6 +10,7 @@
 #' @param seed_index the first landmark to seed the algorithm.
 #' @param shuffle_data whether to first randomly shuffle the data.
 #' @references De Silva, Vin, and Gunnar E. Carlsson. "Topological estimation using witness complexes." SPBG 4 (2004): 157-166.
+#' @references Dłotko, Paweł. "Ball Mapper: A Shape Summary for Topological Data Analysis." (2019). Web.
 #' @export
 landmarks <- function(x, n=NULL, eps=NULL, k=NULL, dist_method = "euclidean", seed_index = 1, shuffle_data=FALSE){
   stopifnot(is.matrix(x))
@@ -44,33 +45,29 @@ landmarks <- function(x, n=NULL, eps=NULL, k=NULL, dist_method = "euclidean", se
 
     # STEP 1: Pick point in the space (seed) and add it to the list of centers/landmarks
     C = list(seed_index)
-    f_C = list(x[seed_index])
+    f_C = matrix(x[seed_index,], nrow=1, byrow=TRUE)
 
     # STEP 2: Compute distance between landmark set and each point in the space
-    dists = sapply(f_C, function(c) {
-      proxy::dist(c, x, method = dist_method)
-    })
+    dists = proxy::dist(f_C, x, method = dist_method)
     max = which.max(dists)
     d = dists[max]
 
     # Continue if distance is greater than epsilon
     if(d >= eps){
       C = append(C, max)
-      f_C = append(f_C, x[max])
+      f_C = rbind(f_C, x[max,])
 
       # STEP 2: Compute distance between landmark set and each point in the space
       while(TRUE){
-        dists = sapply(f_C, function(c) {
-          proxy::dist(c, x, method = dist_method)
-        })
-        orderedIndices = t(apply(dists,1, sort))
+        dists = proxy::dist(f_C, x, method = dist_method)
+        orderedIndices = t(apply(dists,2, sort))
         max = which.max(orderedIndices[,1])
         d = orderedIndices[max,1]
 
         # Continue until distance is less than epsilon (i.e. stop when all points are contained within an epsilon-ball)
         if(d >= eps){
           C = append(C,max)
-          f_C = append(f_C,x[max])
+          f_C = rbind(f_C, x[max,])
         } else{ break }
       }
     }
@@ -119,6 +116,5 @@ landmarks <- function(x, n=NULL, eps=NULL, k=NULL, dist_method = "euclidean", se
     idx_list = as.character(unlist(C))
     landmark_idx = structure(k_nhds, names=idx_list)
   }
-
   if (is.na(shuffle_idx)){ landmark_idx } else { shuffle_idx[landmark_idx] }
 }
