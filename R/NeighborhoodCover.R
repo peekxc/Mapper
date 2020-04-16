@@ -57,14 +57,16 @@ NeighborhoodCover$set("public", "format", function(...){
 })
 
 ## construct_cover ------
-NeighborhoodCover$set("public", "construct_cover", function(filter, index=NULL){
+NeighborhoodCover$set("public", "construct_cover", function(filter, index=NULL, dist_method = "euclidean"){
   if (!requireNamespace("RANN", quietly = TRUE)){
     stop("Package \"RANN\" is needed for to use this cover.", call. = FALSE)
   }
   self$validate(filter)
+  stopifnot(toupper(dist_method) %in% toupper(proxy::pr_DB$get_entry_names()))
 
   ## Get filter values
   fv <- filter()
+  f_dim <- ncol(fv)
   f_size <- nrow(fv)
 
   if(is.null(index)){
@@ -72,12 +74,38 @@ NeighborhoodCover$set("public", "construct_cover", function(filter, index=NULL){
     if(all(self$seed_method == "RAND")) { self$seed_index = sample(1:f_size, 1) }
     if(all(self$seed_method == "ECC")) {  self$seed_index = which.max(eccentricity(from=fv, x=fv)) }
 
-    ## Compute the landmark set
-    eps_lm <- landmarks(x=fv, k=self$k, seed_index=self$seed_index)
+    ## Compute the set of k-nhds
+    C = c() # create an empty list to store indices of centers
+    k_nhds = list() # create empty list of lists to store points in each neighborhood
+    ptsLeft = c(1:f_size) # keep track of indices that are still available to be chosen as a center
+
+    nextC = self$seed_index # use the seed as the first center
+    while(TRUE){
+      # add the new center to the list and compute its k-neighborhood
+      C = append(C, nextC)
+      neighbors = proxy::dist(matrix(fv[nextC,], ncol=f_dim), fv, method = dist_method)
+      sortedNeighbors = sort(neighbors)
+
+      # include all points that are equidistant from the center, even if those points create a nhd size > k
+      i = 1
+      while( ((self$k+i) <= f_size) && (sortedNeighbors[self$k] == sortedNeighbors[self$k + i]) ){i = i + 1}
+      nhd = order(neighbors)[1:(self$k + i - 1)]
+      k_nhds = append(k_nhds, list(nhd))
+
+      # points that are included in a nhd are no longer eligible to be chosen as centers
+      ptsLeft = setdiff(ptsLeft, nhd)
+      if(length(ptsLeft) <= 0){break}
+
+      # select the next center
+      dists = proxy::dist(matrix(fv[C,], ncol=f_dim), matrix(fv[ptsLeft,], ncol=f_dim), method = dist_method)
+      sortedDists = matrix(apply(dists,2,sort),ncol=length(ptsLeft))
+      max = which.max(sortedDists[1,])
+      nextC = ptsLeft[max]
+    }
 
     ## Construct the index set and level sets
-    self$index_set <- as.character(attr(eps_lm,"names"))
-    self$level_sets <- eps_lm
+    self$index_set = as.character(C)
+    self$level_sets = structure(k_nhds, names=self$index_set)
   }
   if (!missing(index)){ return(self$level_sets[[index]]) }
 
