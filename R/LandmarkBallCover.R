@@ -98,25 +98,18 @@ LandmarkBallCover$set("public", "construct_cover", function(filter, index=NULL){
 
     ## Calculate an epsilon if one was not given
     if (!is.null(self$num_sets)) {
-      if(length(eps_lm) == 1){
-        orderedIndices = apply(dist_to_lm,1, sort)
-        max = which.max(orderedIndices)
-      } else {
-        orderedIndices = t(apply(dist_to_lm,1, sort))
-        max = which.max(orderedIndices[,1])
-      }
-      self$epsilon = dist_to_lm[max]    # ball radius should be distance of the farthest point from the landmark set so that all points are in at least one ball
+      sortedDists = matrix(apply(dist_to_lm,1,sort),nrow=f_size,byrow=TRUE)
+      max = which.max(sortedDists[,1])
+      self$epsilon = sortedDists[max,1] # radius should be distance of the farthest pt from the landmark set so that all pts are in at least one ball
     }
 
-    ## Construct the preimages
-    if(length(eps_lm) == 1) {
-      self$level_sets <- structure(as.list(list(t(apply(dist_to_lm, 2, pts_within_eps))[1,])), names=self$index_set)
-    } else {
-      x = apply(dist_to_lm, 2, pts_within_eps)
-      # if all level sets contain the same number of points, apply returns a matrix -> need to split columns into list elements
-      if(is.matrix(x)){ self$level_sets <- structure(split(x, rep(1:ncol(x), each = nrow(x))), names=self$index_set)
-      } else { self$level_sets <- structure(as.list(x), names=self$index_set) }
-    }
+    x = apply(dist_to_lm, 2, pts_within_eps)
+
+    # if all level sets contain the same number of points, apply returns a matrix -> need to split columns into list elements
+    if(is.matrix(x)){ self$level_sets <- structure(split(x, rep(1:ncol(x), each = nrow(x))), names=self$index_set)
+    } else { self$level_sets <- structure(as.list(x), names=self$index_set) }
+
+    print(self$level_sets)
   }
   if (!missing(index)){ return(self$level_sets[[index]]) }
 
