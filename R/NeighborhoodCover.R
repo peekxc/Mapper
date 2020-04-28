@@ -28,7 +28,7 @@ NeighborhoodCover <- R6::R6Class(
 #' @export
 NeighborhoodCover$set("public", "initialize", function(...){
   super$initialize(typename="neighborhood")
-  params <- list(...)
+  params <- c(...)
   if ("k" %in% names(params)){ self$k <- params[["k"]] }
   if ("seed_index" %in% names(params)){ self$seed_index <- params[["seed_index"]] }
   if ("seed_method" %in% names(params)){ self$seed_method <- params[["seed_method"]] }

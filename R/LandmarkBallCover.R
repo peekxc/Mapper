@@ -34,7 +34,7 @@ LandmarkBallCover <- R6::R6Class(
 #' @export
 LandmarkBallCover$set("public", "initialize", function(...){
   super$initialize(typename="landmark_ball")
-  params <- list(...)
+  params <- c(...)
   if ("epsilon" %in% names(params)){ self$epsilon <- params[["epsilon"]] }
   if ("num_sets" %in% names(params)){ self$num_sets <- params[["num_sets"]] }
   if ("seed_index" %in% names(params)){ self$seed_index <- params[["seed_index"]] }
@@ -108,8 +108,6 @@ LandmarkBallCover$set("public", "construct_cover", function(filter, index=NULL){
     # if all level sets contain the same number of points, apply returns a matrix -> need to split columns into list elements
     if(is.matrix(x)){ self$level_sets <- structure(split(x, rep(1:ncol(x), each = nrow(x))), names=self$index_set)
     } else { self$level_sets <- structure(as.list(x), names=self$index_set) }
-
-    print(self$level_sets)
   }
   if (!missing(index)){ return(self$level_sets[[index]]) }
 
