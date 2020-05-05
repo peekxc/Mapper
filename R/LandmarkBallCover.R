@@ -64,7 +64,7 @@ LandmarkBallCover$set("public", "format", function(...){
   if (!is.null(self$num_sets)) {
     sprintf("%s Cover: (number of sets = %s, seed index = %s)", titlecase(private$.typename), self$num_sets, self$seed_index)
   }else if (!is.null(self$epsilon)){
-    sprintf("%s Cover: (epsilon = %.2f, seed index = %s)", titlecase(private$.typename), self$epsilon, self$seed_index)
+    sprintf("%s Cover: (epsilon = %s, seed index = %s)", titlecase(private$.typename), self$epsilon, self$seed_index)
   }
 })
 
