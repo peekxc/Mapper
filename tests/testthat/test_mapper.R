@@ -67,22 +67,22 @@ test_that("Mapper is valid", {
 })
 
 ## Check wrapper works 
-test_that("Mapper wrapper matches MapperRef object", {
-  left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
-  f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
-  m1 <- mapper(X = noisy_circle, 
-               filter = f_x,
-               cover = list(cover="fixed interval", number_intervals=5L, percent_overlap=50),
-               distance_measure = "euclidean",
-               clustering_algorithm = list(cl="single", threshold = 0.0), return_reference = TRUE)
-  m2 <- MapperRef$new(X = noisy_circle)$
-    use_filter(f_x)$
-    use_cover(cover="fixed interval", number_intervals=5L, percent_overlap=50)$
-    use_distance_measure("euclidean")$
-    use_clustering_algorithm(cl="single", cutoff_method = "continuous", threshold = 0.0)$
-    construct_k_skeleton(k = 1L)
-  testthat::expect_equal(m1, m2)
-})
+# test_that("Mapper wrapper matches MapperRef object", {
+#  left_pt <- noisy_circle[which.min(noisy_circle[, 1]),]
+#  f_x <- matrix(apply(noisy_circle, 1, function(pt) (pt - left_pt)[1]))
+#  m1 <- mapper(X = noisy_circle, 
+#               filter = f_x,
+#               cover = list(cover="fixed interval", number_intervals=5L, percent_overlap=50),
+#               distance_measure = "euclidean",
+#               clustering_algorithm = list(cl="single", threshold = 0.0), return_reference = TRUE)
+#  m2 <- MapperRef$new(X = noisy_circle)$
+#    use_filter(f_x)$
+#    use_cover(cover="fixed interval", number_intervals=5L, percent_overlap=50)$
+#    use_distance_measure("euclidean")$
+#    use_clustering_algorithm(cl="single", cutoff_method = "continuous", threshold = 0.0)$
+#    construct_k_skeleton(k = 1L)
+#  testthat::expect_equal(m1, m2)
+# })
 
 
 
