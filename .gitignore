@@ -49,3 +49,4 @@ ignore/
 doc
 Meta
 *cache
+src/Mapper.dll
