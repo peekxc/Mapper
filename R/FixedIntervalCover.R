@@ -219,3 +219,54 @@ FixedIntervalCover$set("public", "interval_len_to_percent_overlap", function(fil
   100.0*(1.0 - (base_interval_length/interval_len))
 })
 
+## Renders a plot of a 1- or 2-dimensional cover
+FixedIntervalCover$set("public", "plot", function(filter, add=FALSE, index=NULL, color_pal=NULL, ...){
+  
+  ## Dimension of the cover
+  c_dim <- length(self$number_intervals)
+  
+  ## Default color palette & transparency
+  n_overlap <- ceiling(100 / (100 - max(self$percent_overlap)))
+  if (is.null(color_pal)) color_pal <- grDevices::rainbow(n_overlap, start=0, end=4/6)
+  color_pal <- adjustcolor(color_pal, alpha.f = 1 / (n_overlap + 1))
+  
+  if (c_dim == 1) {
+    ## vertically stack cover sets by non-overlap & color accordingly
+    set_bnds <- self$interval_bounds(filter, index)
+    if (!is.matrix(set_bnds)) set_bnds <- t(set_bnds)
+    cart_prod <- arrayInd(seq(prod(self$number_intervals)), .dim = self$number_intervals)
+    stratum <- rowSums(cart_prod) %% n_overlap + 1
+    set_cols <- color_pal[stratum]
+    if (!is.null(index)) set_cols <- set_cols[match(index, self$index_set)]
+    ## plot sets over filtered point cloud
+    if (add){
+      stratum <- par("usr")[3] + diff(par("usr")[3:4])*stratum/(n_overlap + 1)
+    }else{
+      set_ran <- range(set_bnds)
+      graphics::plot.new()
+      graphics::plot.window(xlim=set_ran, ylim=c(0,n_overlap+1))
+    }
+    graphics::arrows(set_bnds[, 1], stratum, set_bnds[, 2],
+                     col = set_cols, code = 3, ...)
+    
+  } else if (c_dim == 2) {
+    ## overlay cover sets & color by non-overlap
+    set_bnds <- self$interval_bounds(filter, index)
+    if (!is.matrix(set_bnds)) set_bnds <- t(set_bnds)
+    cart_prod <- arrayInd(seq(prod(self$number_intervals)), .dim = self$number_intervals)
+    set_cols <- color_pal[rowSums(cart_prod) %% n_overlap + 1]
+    if (!is.null(index)) set_cols <- set_cols[match(index, self$index_set)]
+    ## plot sets over filtered point cloud
+    if (!add){
+      set_ran <- apply(rbind(set_bnds[, 1:2], set_bnds[, 3:4]), 2, range)
+      graphics::plot.new()
+      graphics::plot.window(xlim=set_ran[, 1], ylim=set_ran[, 2])
+    }
+    graphics::rect(set_bnds[, 1], set_bnds[, 2], set_bnds[, 3], set_bnds[, 4],
+                   col = set_cols, ...)
+    
+  } else {
+    ## -+- Could invoke PCA here to ordinate data and transform cover sets -+-
+    stop("Plotting is only implemented for 1- and 2-dimensional filters.")
+  }
+})
