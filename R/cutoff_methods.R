@@ -27,7 +27,8 @@ cutoff_first_bin <- function(hcl, num_bins, check_skew=TRUE) {
   if (check_skew){
     mid <- median(seq(num_bins))
     if (sum(bin_idx[1L:(mid-1L)]) < sum(bin_idx[mid:num_bins])){
-      return(as.vector(cutree(hcl, k = 1L)))
+      return(max(hcl$height))
+      # return(as.vector(cutree(hcl, k = 1L)))
     }
   }
   
