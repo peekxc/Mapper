@@ -4,7 +4,9 @@
 \name{wvs_us_wave6}
 \alias{wvs_us_wave6}
 \title{Subset of World Values Survey}
-\format{A 28-dimensional data.frame of questionnaire responses, unnormalized.}
+\format{
+A 28-dimensional data.frame of questionnaire responses, unnormalized.
+}
 \source{
 \url{http://www.worldvaluessurvey.org/WVSDocumentationWV6.jsp}
 }

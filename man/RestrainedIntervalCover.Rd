@@ -4,24 +4,104 @@
 \name{RestrainedIntervalCover}
 \alias{RestrainedIntervalCover}
 \title{Restrained Interval Cover}
-\format{An object of class \code{R6ClassGenerator} of length 24.}
-\usage{
-RestrainedIntervalCover
-}
 \description{
 The interval cover is multidimensional, two-parameter family of covers. Given the number of
 intervals and the overlap percentage between these intervals, this class constructs hyper-rectangular cover of the
 given filter space, where individual level sets are distributed uniformly along a rectangular grid.
 }
-\section{Fields}{
-
+\author{
+Matt Piekenbrock
+}
+\section{Super class}{
+\code{\link[Mapper:CoverRef]{Mapper::CoverRef}} -> \code{RestrainedIntervalCover}
+}
+\section{Active bindings}{
+\if{html}{\out{<div class="r6-active-bindings">}}
 \describe{
 \item{\code{number_intervals}}{vector of number of bins to cover the Z with (per dimension)}
 
 \item{\code{percent_overlap}}{vector of overlap percentages}
-}}
-
-\author{
-Matt Piekenbrock
 }
-\keyword{datasets}
+\if{html}{\out{</div>}}
+}
+\section{Methods}{
+\subsection{Public methods}{
+\itemize{
+\item \href{#method-RestrainedIntervalCover-new}{\code{RestrainedIntervalCover$new()}}
+\item \href{#method-RestrainedIntervalCover-validate}{\code{RestrainedIntervalCover$validate()}}
+\item \href{#method-RestrainedIntervalCover-format}{\code{RestrainedIntervalCover$format()}}
+\item \href{#method-RestrainedIntervalCover-construct_index_set}{\code{RestrainedIntervalCover$construct_index_set()}}
+\item \href{#method-RestrainedIntervalCover-construct_cover}{\code{RestrainedIntervalCover$construct_cover()}}
+\item \href{#method-RestrainedIntervalCover-clone}{\code{RestrainedIntervalCover$clone()}}
+}
+}
+\if{html}{\out{
+<details open><summary>Inherited methods</summary>
+<ul>
+<li><span class="pkg-link" data-pkg="Mapper" data-topic="CoverRef" data-id="neighborhood"><a href='../../Mapper/html/CoverRef.html#method-CoverRef-neighborhood'><code>Mapper::CoverRef$neighborhood()</code></a></li>
+</ul>
+</details>
+}}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-RestrainedIntervalCover-new"></a>}}
+\if{latex}{\out{\hypertarget{method-RestrainedIntervalCover-new}{}}}
+\subsection{Method \code{new()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{RestrainedIntervalCover$new(...)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-RestrainedIntervalCover-validate"></a>}}
+\if{latex}{\out{\hypertarget{method-RestrainedIntervalCover-validate}{}}}
+\subsection{Method \code{validate()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{RestrainedIntervalCover$validate(filter)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-RestrainedIntervalCover-format"></a>}}
+\if{latex}{\out{\hypertarget{method-RestrainedIntervalCover-format}{}}}
+\subsection{Method \code{format()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{RestrainedIntervalCover$format(...)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-RestrainedIntervalCover-construct_index_set"></a>}}
+\if{latex}{\out{\hypertarget{method-RestrainedIntervalCover-construct_index_set}{}}}
+\subsection{Method \code{construct_index_set()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{RestrainedIntervalCover$construct_index_set(...)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-RestrainedIntervalCover-construct_cover"></a>}}
+\if{latex}{\out{\hypertarget{method-RestrainedIntervalCover-construct_cover}{}}}
+\subsection{Method \code{construct_cover()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{RestrainedIntervalCover$construct_cover(filter, index = NULL)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-RestrainedIntervalCover-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-RestrainedIntervalCover-clone}{}}}
+\subsection{Method \code{clone()}}{
+The objects of this class are cloneable with this method.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{RestrainedIntervalCover$clone(deep = FALSE)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{deep}}{Whether to make a deep clone.}
+}
+\if{html}{\out{</div>}}
+}
+}
+}

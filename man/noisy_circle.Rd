@@ -4,7 +4,9 @@
 \name{noisy_circle}
 \alias{noisy_circle}
 \title{1,500 noisy points sampled on the perimeter of a circle.}
-\format{A two dimensional of points.}
+\format{
+A two dimensional of points.
+}
 \source{
 Generated.
 }

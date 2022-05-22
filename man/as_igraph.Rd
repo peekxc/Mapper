@@ -6,8 +6,6 @@
 \arguments{
 \item{vertex_scale}{scaling function for the vertex sizes.}
 
-\item{vertex_min}{minimum vertex size.}
-
 \item{vertex_min}{maximum vertex size.}
 
 \item{col_pal}{color palette to color the vertices by.}

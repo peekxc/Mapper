@@ -4,9 +4,18 @@
 \alias{gromov_hausdorff}
 \title{gromov hausdorff}
 \usage{
-gromov_hausdorff(d_X, d_Y, mu_X, mu_Y, p = 1, flb_solver = "glpk",
-  flb_only = TRUE, options = list(localsolver = "COBYLA", localtol =
-  1e-07), control = list(maxeval = 300), return_optimizer = FALSE)
+gromov_hausdorff(
+  d_X,
+  d_Y,
+  mu_X,
+  mu_Y,
+  p = 1,
+  flb_solver = "glpk",
+  flb_only = TRUE,
+  options = list(localsolver = "COBYLA", localtol = 1e-07),
+  control = list(maxeval = 300),
+  return_optimizer = FALSE
+)
 }
 \arguments{
 \item{d_X}{either a dist object, or (n x n) numeric metric distance matrix over \code{X}.}

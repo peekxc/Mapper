@@ -4,8 +4,13 @@
 \alias{landmarks}
 \title{landmarks}
 \usage{
-landmarks(x, n, dist_method = "euclidean", seed_index = 1,
-  shuffle_data = FALSE)
+landmarks(
+  x,
+  n,
+  dist_method = "euclidean",
+  seed_index = 1,
+  shuffle_data = FALSE
+)
 }
 \arguments{
 \item{x}{a data matrix.}

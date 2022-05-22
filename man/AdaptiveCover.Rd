@@ -4,10 +4,6 @@
 \name{AdaptiveCover}
 \alias{AdaptiveCover}
 \title{Adaptive Cover}
-\format{An object of class \code{R6ClassGenerator} of length 24.}
-\usage{
-AdaptiveCover
-}
 \description{
 This class provides cover which 'adapts' the lengths of the open sets to the density of 
 the filter values. The cutoff points are chosen with pre-selected quantile method, see \code{?quantile}
@@ -15,17 +11,101 @@ for more details on the calculation. Note that the percentage that each bin over
 transforming the cutoff points, so the interpretation of the bins as overlapping by \code{percent_overlap}%
 isn't quite accurate.
 }
-\section{Fields}{
-
+\author{
+Matt Piekenbrock
+}
+\section{Super class}{
+\code{\link[Mapper:CoverRef]{Mapper::CoverRef}} -> \code{AdaptiveCover}
+}
+\section{Public fields}{
+\if{html}{\out{<div class="r6-fields">}}
 \describe{
 \item{\code{number_intervals}}{vector of number of bins to cover the filter space with (per dimension)}
 
 \item{\code{percent_overlap}}{vector of overlap percentages}
 
 \item{\code{quantile_method}}{the method to use to compute the quantiles}
-}}
-
-\author{
-Matt Piekenbrock
 }
-\keyword{datasets}
+\if{html}{\out{</div>}}
+}
+\section{Methods}{
+\subsection{Public methods}{
+\itemize{
+\item \href{#method-AdaptiveCover-new}{\code{AdaptiveCover$new()}}
+\item \href{#method-AdaptiveCover-validate}{\code{AdaptiveCover$validate()}}
+\item \href{#method-AdaptiveCover-format}{\code{AdaptiveCover$format()}}
+\item \href{#method-AdaptiveCover-construct_index_set}{\code{AdaptiveCover$construct_index_set()}}
+\item \href{#method-AdaptiveCover-construct_cover}{\code{AdaptiveCover$construct_cover()}}
+\item \href{#method-AdaptiveCover-clone}{\code{AdaptiveCover$clone()}}
+}
+}
+\if{html}{\out{
+<details open><summary>Inherited methods</summary>
+<ul>
+<li><span class="pkg-link" data-pkg="Mapper" data-topic="CoverRef" data-id="neighborhood"><a href='../../Mapper/html/CoverRef.html#method-CoverRef-neighborhood'><code>Mapper::CoverRef$neighborhood()</code></a></li>
+</ul>
+</details>
+}}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-AdaptiveCover-new"></a>}}
+\if{latex}{\out{\hypertarget{method-AdaptiveCover-new}{}}}
+\subsection{Method \code{new()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{AdaptiveCover$new(...)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-AdaptiveCover-validate"></a>}}
+\if{latex}{\out{\hypertarget{method-AdaptiveCover-validate}{}}}
+\subsection{Method \code{validate()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{AdaptiveCover$validate(filter)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-AdaptiveCover-format"></a>}}
+\if{latex}{\out{\hypertarget{method-AdaptiveCover-format}{}}}
+\subsection{Method \code{format()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{AdaptiveCover$format(...)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-AdaptiveCover-construct_index_set"></a>}}
+\if{latex}{\out{\hypertarget{method-AdaptiveCover-construct_index_set}{}}}
+\subsection{Method \code{construct_index_set()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{AdaptiveCover$construct_index_set(...)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-AdaptiveCover-construct_cover"></a>}}
+\if{latex}{\out{\hypertarget{method-AdaptiveCover-construct_cover}{}}}
+\subsection{Method \code{construct_cover()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{AdaptiveCover$construct_cover(filter, index = NULL)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-AdaptiveCover-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-AdaptiveCover-clone}{}}}
+\subsection{Method \code{clone()}}{
+The objects of this class are cloneable with this method.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{AdaptiveCover$clone(deep = FALSE)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{deep}}{Whether to make a deep clone.}
+}
+\if{html}{\out{</div>}}
+}
+}
+}

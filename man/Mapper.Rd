@@ -5,9 +5,14 @@
 \alias{mapper}
 \title{mapper}
 \usage{
-mapper(X, filter, cover = c(cover = "fixed interval", number_intervals =
-  10L, percent_overlap = 35), distance_measure = "euclidean",
-  clustering_algorithm = c(cl = "single"), return_reference = FALSE)
+mapper(
+  X,
+  filter,
+  cover = c(cover = "fixed interval", number_intervals = 10L, percent_overlap = 35),
+  distance_measure = "euclidean",
+  clustering_algorithm = c(cl = "single"),
+  return_reference = FALSE
+)
 }
 \arguments{
 \item{X}{Either an \eqn{n x D} data matrix.}

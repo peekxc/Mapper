@@ -4,8 +4,14 @@
 \alias{multiscale}
 \title{Multiscale Mapper}
 \usage{
-multiscale(m, max_dim = 1L, max_overlap = 50, time = c("integer",
-  "measure", "overlap"), f = NULL, stats = FALSE)
+multiscale(
+  m,
+  max_dim = 1L,
+  max_overlap = 50,
+  time = c("integer", "measure", "overlap"),
+  f = NULL,
+  stats = FALSE
+)
 }
 \arguments{
 \item{m}{The initial mapper to start with.}
