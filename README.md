@@ -22,6 +22,16 @@ A stable CRAN release is planned for the future.
 
 For [some reason](https://www.r-bloggers.com/suggests-depends/), `R CMD check` installs all packages listed in the [Suggests](https://cran.r-project.org/doc/manuals/r-release/R-exts.html#Suggested-packages) field of the `DESCRIPTION` file. These must be installed, sometimes from source, without error across all platforms to make this package suitable for [CRAN](https://cran.r-project.org/). This package includes multiple examples in either vignettes or example code that use large libraries like e.g. `nloptr`, `geigen`, `rgl`, etc. whose purpose is more illustrative than necessary for the package to function. As a result, the packages listed in `Suggests` are kept to a minimum to use the `Mapper` package functionally. Please refer to the documentation of individual functions for that functions dependencies. 
 
+### Updates to simplextree
+
+The mapper construction culminates in the nerve of a pullback cover, which is an abstract object called a simplicial complex.
+Mapper relies on [the simplextree package](https://github.com/peekxc/simplextree) to store, manipulate, and visualize simplicial complexes.
+While simplextree has been revamped, the current stable version of Mapper, and several development branches, depend on [this older version](https://github.com/peekxc/simplextree/tree/6e34926); see [this issue](https://github.com/peekxc/Mapper/issues/18) for details.
+In order to install and use Mapper, first install simplextree as follows:
+```R
+remotes::install_github("peekxc/simplextree", ref = "6e34926")
+```
+
 ## Usage
 
 Given a data set, the first step to Mapper is to define a filter function. Here is an example using the noisy points sampled from the perimeter of a circle, similar to the example given by Example 3.2 in the original paper.   
