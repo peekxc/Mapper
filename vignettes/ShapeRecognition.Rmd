@@ -86,7 +86,7 @@ Intuitively, the Hausdorff distance provides very convenient distance measure fo
 
 To illustrate this idea, I'm going to borrow some high-fidelity [pose](https://en.wikipedia.org/wiki/Pose_(computer_vision)) data sets from [this source](http://people.csail.mit.edu/sumner/research/deftransfer/data.html)
 
-```{r, echo=TRUE, eval=FALSE}
+```{r, echo=TRUE, eval=TRUE}
 target_dir <- tempdir()
 target_file <- file.path(target_dir, "elephant-poses.tgz")
 pose_db <- "http://people.csail.mit.edu/sumner/research/deftransfer/data"
@@ -98,7 +98,7 @@ if (!file.exists(target_file)){
 }
 ```
 
-```{r, echo=FALSE, eval=TRUE}
+```{r, echo=FALSE, eval=FALSE}
 target_dir <- normalizePath("~/Downloads")
 target_file <- file.path(target_dir, "elephant-poses.tgz")
 ```
@@ -133,7 +133,8 @@ A common procedure to extract a subset of points, or _landmarks_, is the well-kn
 
 The _Mapper_ package has a fast C++ implementation of this procedure, which returns the indices of the points chosen as landmarks. Here's code to pick 4000 landmarks from the elephant mesh:
 ```{r landmark_cache, echo=FALSE, eval=TRUE}
-landmark_idx <- readRDS("landmarks.rds")
+landmark_file <- system.file("vignette", "landmarks.rds", package = "Mapper")
+landmark_idx <- readRDS(landmark_file)
 ```
 ```{r landmark_calc, echo=TRUE, eval=FALSE}
 landmark_idx <- landmarks(xyz, n = 4000)
@@ -169,7 +170,8 @@ However, the direct euclidean eccentricity of the _point cloud_ alone doesn't pr
 
 Instead, an alternative to use the shortest path, or _geodesic_ distance as our metric input to the eccentricity function. Calculating the shortest-path between all pairs of points is a well-known problem that can be solved via e.g. the [Floyd-Warshall algorithm](https://en.wikipedia.org/wiki/Floyd%E2%80%93Warshall_algorithm). I use an implementation of said algorithm in [igraph](https://igraph.org/r/) here:
 ```{r ecc_cache, echo=FALSE, eval=TRUE}
-shape_ecc <- readRDS("shape_ecc.rds")
+shape_file <- system.file("vignette", "shape_ecc.rds", package = "Mapper")
+shape_ecc <- readRDS(shape_file)
 ```
 
 ```{r ecc_calc, echo=TRUE, eval=FALSE}
