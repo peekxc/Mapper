@@ -11,9 +11,16 @@ vignette: >
   %\VignetteEngine{knitr::rmarkdown}
 ---
 
+```{r setup_depends, echo=FALSE, eval=TRUE}
+if (!requireNamespace("rgl", quietly = TRUE)){ 
+  install.packages("rgl", repos = "http://cran.us.r-project.org") 
+}
+if (!requireNamespace("readobj", quietly = TRUE)){ 
+  install.packages("readobj", repos = "http://cran.us.r-project.org") 
+}
+```
+
 ```{r setup, echo=FALSE, results="asis", include=FALSE}
-library("rgl")
-library("readobj")
 library("Mapper")
 knitr::opts_chunk$set(rgl.newwindow = TRUE)
 set.seed(123)
